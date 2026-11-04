@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/GLTFLoader.js";
 import {
-  DIFFICULTIES, FORMS, PATTERNS, STAGES, THEMES,
+  DIFFICULTIES, FORMS, PATTERNS, STAGES, THEMES, DAN_RUN, ENDLESS_RUN, HAT_COLORS,
   LANE_W, NORUN_SCALE, JUMP_V, HOP_V, GRAVITY,
 } from "./config.js";
 import * as store from "./storage.js";
-import { makeQuestion, makeChoices, dots, OP_WORD } from "./questions.js";
+import { makeQuestion, makeDanQuestions, makeChoices, dots, OP_WORD } from "./questions.js";
 
 /* =========================================================
    共通
@@ -29,7 +29,7 @@ function disposeObj(o) {
     const ms = c.material ? (Array.isArray(c.material) ? c.material : [c.material]) : [];
     for (const m of ms) {
       if (m.userData.shared) continue;
-      if (m.map) m.map.dispose();
+      if (m.map && !m.userData.keepMap) m.map.dispose();
       m.dispose();
     }
   });
@@ -39,7 +39,7 @@ function disposeObj(o) {
    描画の準備
    ========================================================= */
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));   // スマホで重くならないよう少し控えめ
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.prepend(renderer.domElement);
 
@@ -164,6 +164,7 @@ function applyTheme(name) {
   ground.material.color.set(theme.ground);
   road.material.color.set(theme.road);
   dashMat.color.set(theme.dash);
+  applyThemeExtras();
   let trees = 0;
   for (const o of decor) {
     const k = o.userData.kind;
@@ -196,6 +197,287 @@ function canvasTex(w, h, draw) {
   return t;
 }
 const FONT = '"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans-serif';
+/* =========================================================
+   背景の作りこみ（スマホで重くならないよう、同じ形は使い回す）
+   - 道の模様（小石・落ち葉）と草の模様：テクスチャを流して動かす
+   - 道のふちの石・草むら、道ばたの小物：1周期ぶんを並べたグループを ずらして くり返す
+   - 遠くの山：動かない（霧の影響を受けない）
+   ========================================================= */
+const ROAD_REPEAT = 100, GROUND_REPEAT_Y = 50;
+function drawRoadTex(x, w, h) {
+  const base = new THREE.Color(theme.road);
+  x.fillStyle = `#${base.getHexString()}`;
+  x.fillRect(0, 0, w, h);
+  // うっすら土のむら
+  for (let i = 0; i < 40; i++) {
+    x.fillStyle = `rgba(160,120,70,${rand(0.03, 0.07)})`;
+    x.beginPath(); x.ellipse(rand(0, w), rand(0, h), rand(10, 30), rand(6, 18), 0, 0, Math.PI * 2); x.fill();
+  }
+  if (theme.roadDots === "leaf") {
+    const cols = ["#e08a3c", "#c9652e", "#e6b84a", "#a9763e"];
+    for (let i = 0; i < 14; i++) {
+      x.save(); x.translate(rand(0, w), rand(0, h)); x.rotate(rand(0, Math.PI));
+      x.globalAlpha = 0.8;
+      x.fillStyle = cols[randInt(0, cols.length - 1)];
+      x.beginPath(); x.ellipse(0, 0, 3.2, 5.5, 0, 0, Math.PI * 2); x.fill();
+      x.restore();
+    }
+  } else {
+    for (let i = 0; i < 30; i++) {
+      const g = randInt(175, 215);
+      x.fillStyle = `rgba(${g},${g - 8},${g - 25},.85)`;
+      x.beginPath(); x.ellipse(rand(0, w), rand(0, h), rand(1.2, 2.4), rand(2, 4), 0, 0, Math.PI * 2); x.fill();
+    }
+  }
+}
+function drawGrassTex(x, w, h) {
+  x.fillStyle = "#ffffff"; x.fillRect(0, 0, w, h);    // 色は材質の色（テーマ）で付ける
+  const tint = new THREE.Color(theme.grassTint);
+  for (let i = 0; i < 160; i++) {          // 草のすじ
+    const px = rand(0, w), py = rand(0, h);
+    x.strokeStyle = `rgba(${Math.round(tint.r * 140)},${Math.round(tint.g * 200)},${Math.round(tint.b * 120)},.35)`;
+    x.lineWidth = 2;
+    x.beginPath(); x.moveTo(px, py); x.lineTo(px + rand(-3, 3), py - rand(6, 12)); x.stroke();
+  }
+}
+const roadCanvas = document.createElement("canvas");
+roadCanvas.width = 128; roadCanvas.height = 128;
+const roadTex = new THREE.CanvasTexture(roadCanvas);
+roadTex.colorSpace = THREE.SRGBColorSpace;
+roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
+roadTex.repeat.set(2, ROAD_REPEAT);
+road.material.map = roadTex;
+const grassCanvas = document.createElement("canvas");
+grassCanvas.width = 128; grassCanvas.height = 128;
+const grassTex = new THREE.CanvasTexture(grassCanvas);
+grassTex.colorSpace = THREE.SRGBColorSpace;
+grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+grassTex.repeat.set(36, GROUND_REPEAT_Y);
+ground.material.map = grassTex;
+
+// 道のふち（石・草むら）と 道ばたの小物：長さ EDGE_P の1周期を EDGE_COPIES 回くり返す
+const EDGE_P = 30, EDGE_COPIES = 5;
+const edge = new THREE.Group();
+scene.add(edge);
+const edgeStoneGeo = new THREE.DodecahedronGeometry(0.22, 0);
+const edgeStoneMat = new THREE.MeshLambertMaterial({ color: 0xc9c4bb, flatShading: true });
+const tuftGeo = new THREE.ConeGeometry(0.09, 0.55, 4);
+const tuftMat = lambert(0x6fb35e);
+const bushGeo = new THREE.SphereGeometry(0.55, 10, 8);
+const bushMat = lambert(0x58a84f);
+const blobGeo = new THREE.CircleGeometry(1, 20);
+const blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false });
+blobGeo.userData.shared = true;
+blobMat.userData.shared = true;
+function blobShadow(r, sx = 1, sz = 1) {   // まるい影
+  const s = new THREE.Mesh(blobGeo, blobMat);
+  s.rotation.x = -Math.PI / 2;
+  s.position.y = 0.015;
+  s.scale.set(r * sx, r * sz, 1);
+  return s;
+}
+{
+  const stones = [], tufts = [], bushes = [];
+  const edgeX = LANE_W * 1.5 + 0.55;
+  for (const side of [1, -1]) {
+    for (let i = 0; i < 9; i++) stones.push([side * (edgeX + rand(0, 0.5)), rand(0, EDGE_P), rand(0.6, 1.3)]);
+    for (let i = 0; i < 7; i++) {
+      const z = rand(0, EDGE_P), x = side * (edgeX + rand(0.5, 1.6));
+      for (let k = 0; k < 4; k++) tufts.push([x + rand(-0.15, 0.15), z + rand(-0.15, 0.15), rand(0.7, 1.3), rand(-0.4, 0.4)]);
+    }
+    for (let i = 0; i < 2; i++) bushes.push([side * (edgeX + rand(1.6, 3.2)), rand(0, EDGE_P), rand(0.8, 1.4)]);
+  }
+  const mk = (geo, mat, list, place) => {
+    const im = new THREE.InstancedMesh(geo, mat, list.length * EDGE_COPIES);
+    const o = new THREE.Object3D();
+    let n = 0;
+    for (let c = 0; c < EDGE_COPIES; c++) {
+      for (const it of list) { place(o, it, c * EDGE_P); o.updateMatrix(); im.setMatrixAt(n++, o.matrix); }
+    }
+    im.frustumCulled = false;
+    edge.add(im);
+    return im;
+  };
+  mk(edgeStoneGeo, edgeStoneMat, stones, (o, [x, z, s], off) => {
+    o.position.set(x, 0.08 * s, z + off); o.scale.set(s, s * 0.7, s); o.rotation.set(0, z * 3, 0);
+  });
+  mk(tuftGeo, tuftMat, tufts, (o, [x, z, s, tilt], off) => {
+    o.position.set(x, 0.25 * s, z + off); o.scale.set(s, s, s); o.rotation.set(tilt * 0.6, 0, tilt);
+  });
+  mk(bushGeo, bushMat, bushes, (o, [x, z, s], off) => {
+    o.position.set(x, 0.35 * s, z + off); o.scale.set(s * 1.2, s * 0.85, s); o.rotation.set(0, 0, 0);
+  });
+  // 茂みの影
+  mk(blobGeo, blobMat, bushes, (o, [x, z, s], off) => {
+    o.position.set(x + 0.15, 0.016, z + off - 0.15); o.scale.set(s * 0.8, s * 0.7, 1); o.rotation.set(-Math.PI / 2, 0, 0);
+  });
+  // 道ばたの立て札（ところどころ）
+  const signTex = canvasTex(128, 64, (x, w, h) => {
+    x.fillStyle = "#f3d9a4"; x.fillRect(0, 0, w, h);
+    x.strokeStyle = "#a0703c"; x.lineWidth = 6; x.strokeRect(3, 3, w - 6, h - 6);
+    x.fillStyle = "#7a4e22"; x.font = `bold 34px ${FONT}`; x.textAlign = "center"; x.textBaseline = "middle";
+    x.fillText("→", w / 2, h / 2 + 2);
+  });
+  for (let c = 0; c < EDGE_COPIES; c++) {
+    const g = new THREE.Group();
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), lambert(0x9a6a3d));
+    post.position.y = 0.45;
+    const board = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.36, 0.05), [
+      lambert(0xd9b07a), lambert(0xd9b07a), lambert(0xd9b07a), lambert(0xd9b07a),
+      new THREE.MeshLambertMaterial({ map: signTex }), new THREE.MeshLambertMaterial({ map: signTex }),
+    ]);
+    board.position.y = 0.85;
+    g.add(post, board);
+    g.position.set((c % 2 ? 1 : -1) * (edgeX + 1.1), 0, c * EDGE_P + 17);
+    g.rotation.y = Math.PI;
+    edge.add(g);
+  }
+}
+let edgeScroll = 0;
+
+// 遠くの山（霧の影響を受けない・動かない）
+const mountains = [];
+for (let i = 0; i < 16; i++) {
+  const r = rand(14, 30), h = rand(14, 30);
+  const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), new THREE.MeshBasicMaterial({ color: 0x8cc0e8, fog: false }));
+  const x = (i - 7.5) * 22 + rand(-6, 6);
+  m.position.set(x, h / 2 - 2, rand(150, 175));
+  m.userData.layer = i % 2;
+  scene.add(m);
+  mountains.push(m);
+  // 雪のぼうし
+  if (h > 22) {
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.32, h * 0.32, 7), new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }));
+    cap.position.y = h * 0.34;
+    m.add(cap);
+  }
+}
+// 遠くの大きな雲（霧の影響を受けない）
+for (let i = 0; i < 6; i++) {
+  const c = makeCloud();
+  c.traverse((o) => { if (o.isMesh) o.material = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false, transparent: true, opacity: 0.9 }); });
+  c.scale.setScalar(rand(3, 5));
+  c.position.set(rand(-90, 90), rand(22, 34), rand(140, 160));
+  scene.add(c);
+}
+// 木に影をつける
+for (const o of decor) if (o.userData.kind === "tree") o.add(blobShadow(1.25, 1, 0.8));
+
+/* テーマに合わせて 模様・ふち・山の色を変える */
+function applyThemeExtras() {
+  const rx = roadCanvas.getContext("2d");
+  drawRoadTex(rx, roadCanvas.width, roadCanvas.height);
+  roadTex.needsUpdate = true;
+  road.material.color.set(0xffffff);
+  drawGrassTex(grassCanvas.getContext("2d"), grassCanvas.width, grassCanvas.height);
+  grassTex.needsUpdate = true;
+  tuftMat.color.set(theme.grassTint);
+  bushMat.color.set(new THREE.Color(theme.grassTint).multiplyScalar(0.85));
+  edgeStoneMat.color.set(theme.roadDots === "leaf" ? 0xb5ad9c : 0xd2cdc2);
+  mountains.forEach((m) => m.material.color.set(theme.mountains[m.userData.layer]));
+}
+
+/* 背景を流す（テクスチャのずらし・ふちのくり返し） */
+function scrollGround(dist) {
+  roadTex.offset.y = -((dist * ROAD_REPEAT) / 400) % 1;
+  grassTex.offset.y = -((dist * GROUND_REPEAT_Y) / 400) % 1;
+  edge.position.z = -10 - (dist % EDGE_P);
+}
+
+/* =========================================================
+   演出：土ぼこり・キラキラ・紙吹雪（使い回しの「プール」で、毎回作らない）
+   ========================================================= */
+const softTex = canvasTex(64, 64, (x, w, h) => {
+  const g = x.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+  g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(1, "rgba(255,255,255,0)");
+  x.fillStyle = g; x.fillRect(0, 0, w, h);
+});
+const starTex = canvasTex(64, 64, (x, w, h) => {
+  x.fillStyle = "#ffffff";
+  x.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i / 10) * Math.PI * 2, r = i % 2 ? 12 : 30;
+    x.lineTo(w / 2 + Math.cos(a) * r, h / 2 + Math.sin(a) * r);
+  }
+  x.closePath(); x.fill();
+});
+function makePool(n, make) {
+  const items = [];
+  for (let i = 0; i < n; i++) { const o = make(); o.visible = false; scene.add(o); items.push({ o, life: 0 }); }
+  let k = 0;
+  return { items, take() { const it = items[k]; k = (k + 1) % n; return it; } };
+}
+const dustPool = makePool(24, () => new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: 0xd9c4a0, transparent: true, depthWrite: false })));
+const starPool = makePool(36, () => new THREE.Sprite(new THREE.SpriteMaterial({ map: starTex, transparent: true, depthWrite: false })));
+const CONFETTI_COLORS = [0xff7eb6, 0xffd84d, 0x6cc0ff, 0x5fe0b0, 0xb59cff, 0xff9a4d];
+const confettiGeo = new THREE.PlaneGeometry(0.14, 0.24);
+const confettiMats = CONFETTI_COLORS.map((c) => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
+const confettiPool = makePool(90, () => new THREE.Mesh(confettiGeo, confettiMats[randInt(0, confettiMats.length - 1)]));
+
+function dust() {   // 着地した時の 土ぼこり（後ろへ流れる）
+  for (let i = 0; i < 2; i++) {
+    const it = dustPool.take();
+    it.o.visible = true;
+    it.o.material.color.set(new THREE.Color(theme.road).multiplyScalar(0.85));
+    it.o.position.set(me.x + rand(-0.5, 0.5), 0.15, rand(-0.5, -0.2));
+    it.v = new THREE.Vector3(rand(-0.4, 0.4), rand(0.3, 0.7), -(run ? run.speed : 2) * 0.55);
+    it.life = it.max = rand(0.45, 0.65);
+    it.kind = "dust";
+  }
+}
+function starBurst() {   // 正解の キラキラ
+  const cols = [0xffe066, 0xff8fc8, 0x8fd8ff, 0xffffff];
+  for (let i = 0; i < 18; i++) {
+    const it = starPool.take();
+    it.o.visible = true;
+    it.o.material.color.set(cols[i % cols.length]);
+    it.o.position.set(me.x, 1.3 + me.y, 0.4);
+    const a = (i / 18) * Math.PI * 2;
+    it.v = new THREE.Vector3(Math.cos(a) * rand(2.5, 4), Math.sin(a) * rand(2.5, 4) + 1.5, rand(0, 1.5));
+    it.life = it.max = rand(0.6, 0.9);
+    it.kind = "star";
+  }
+}
+function confetti() {    // ゴールの 紙吹雪
+  for (const it of confettiPool.items) {
+    it.o.visible = true;
+    it.o.position.set(me.x + rand(-5, 5), rand(4, 8), rand(-1, 5));
+    it.o.rotation.set(rand(0, 6), rand(0, 6), rand(0, 6));
+    it.v = new THREE.Vector3(rand(-0.6, 0.6), rand(-1.6, -0.8), rand(-0.3, 0.3));
+    it.spin = new THREE.Vector3(rand(-6, 6), rand(-6, 6), rand(-6, 6));
+    it.life = it.max = rand(2.6, 3.6);
+    it.kind = "confetti";
+  }
+}
+function updateFx(dt, t) {
+  for (const pool of [dustPool, starPool, confettiPool]) {
+    for (const it of pool.items) {
+      if (it.life <= 0) continue;
+      it.life -= dt;
+      const k = Math.max(0, it.life / it.max);
+      if (it.life <= 0) { it.o.visible = false; continue; }
+      if (it.kind === "dust") {
+        it.o.position.addScaledVector(it.v, dt);
+        const s = 0.5 + (1 - k) * 0.9;
+        it.o.scale.set(s, s, 1);
+        it.o.material.opacity = 0.55 * k;
+      } else if (it.kind === "star") {
+        it.v.y -= 6 * dt;
+        it.o.position.addScaledVector(it.v, dt);
+        const s = 0.35 * (0.6 + k * 0.6) * (1 + Math.sin(t * 20 + it.max * 10) * 0.15);
+        it.o.scale.set(s, s, 1);
+        it.o.material.opacity = Math.min(1, k * 1.6);
+      } else {
+        it.o.position.addScaledVector(it.v, dt);
+        it.o.position.x += Math.sin(t * 3 + it.max * 7) * dt * 0.8;
+        it.o.rotation.x += it.spin.x * dt;
+        it.o.rotation.y += it.spin.y * dt;
+        if (it.o.position.y < 0.05) it.life = 0.01;
+      }
+    }
+  }
+}
+
 /* =========================================================
    のるん
    ========================================================= */
@@ -238,6 +520,15 @@ async function loadNorun() {
       o.material = o.material.clone();
       o.material.userData.baseColor = o.material.color.clone();
       norun.bodyMats.push(o.material);
+    }
+  });
+  // 帽子の色を変えるため、帽子の材質も複製しておく
+  norun.hatMats = [];
+  m.traverse((o) => {
+    if (o.isMesh && o.material.name === "M_Hat") {
+      o.material = o.material.clone();
+      o.material.userData.baseColor = o.material.color.clone();
+      norun.hatMats.push(o.material);
     }
   });
   // びっくりした時の「お」の口（元の口と入れ替えて見せる）
@@ -345,6 +636,15 @@ function buildAddon(kind) {
     };
   }
   return null;
+}
+
+function applyHat(id) {
+  if (!norun.hatMats) return;
+  const h = HAT_COLORS.find((x) => x.id === id) || HAT_COLORS[0];
+  for (const m of norun.hatMats) {
+    if (h.color == null) m.color.copy(m.userData.baseColor);
+    else m.color.set(h.color);
+  }
 }
 
 function applyFormLook(id) {
@@ -520,6 +820,9 @@ function makeObstacle(kind) {
       g.add(r);
     }
   }
+  // 足もとの影
+  if (kind === "L") g.add(blobShadow(theme.obsL === "stump" ? 0.85 : 1.05, 1, theme.obsL === "stump" ? 0.85 : 0.5));
+  else if (kind === "T") g.add(blobShadow(1.15, 1, 0.85));
   return g;
 }
 
@@ -564,8 +867,37 @@ const wallTex = canvasTex(256, 360, (x, w, h) => {
 });
 wallTex.userData = {};
 
+/* 問題ゾーン（ゲートの手前）の床：テーマの色に「？」もよう。テクスチャはテーマごとに1つ作って使い回す */
+const zoneTexCache = {};
+function zoneTexture() {
+  const key = theme.zone;
+  if (zoneTexCache[key]) return zoneTexCache[key];
+  const col = `#${new THREE.Color(theme.zone).getHexString()}`;
+  const tex = canvasTex(256, 512, (x, w, h) => {
+    x.fillStyle = col; x.fillRect(0, 0, w, h);
+    x.fillStyle = "rgba(255,255,255,.45)";
+    for (let i = 0; i < 6; i++) x.fillRect(0, i * 14, w, 7);        // 入り口のしま
+    x.font = `bold 64px ${FONT}`; x.textAlign = "center"; x.textBaseline = "middle";
+    x.fillStyle = "rgba(255,255,255,.5)";
+    [[64, 170], [192, 260], [64, 350], [192, 440]].forEach(([px, py]) => x.fillText("？", px, py));
+    x.strokeStyle = "rgba(255,255,255,.8)"; x.lineWidth = 8;
+    x.strokeRect(4, -10, w - 8, h + 20);                             // 両はしの白い線
+  });
+  tex.userData.keep = true;
+  zoneTexCache[key] = tex;
+  return tex;
+}
+const ZONE_LEN = 15;
+
 function makeGate(item) {
   const g = new THREE.Group();
+  const zoneMat = new THREE.MeshLambertMaterial({ map: zoneTexture() });
+  zoneMat.userData.keepMap = true;
+  const zone = new THREE.Mesh(new THREE.PlaneGeometry(LANE_W * 3 + 0.4, ZONE_LEN), zoneMat);
+  zone.rotation.x = -Math.PI / 2;
+  zone.rotation.z = Math.PI;       // 入り口のしまを手前に
+  zone.position.set(0, 0.012, -ZONE_LEN / 2);
+  g.add(zone);
   const frame = lambert(0x8a5fbf);
   const H = 2.9;
   for (let i = 0; i < 4; i++) {
@@ -654,38 +986,71 @@ function pickWeighted(weights) {
   return entries[0][0];
 }
 
-function buildCourse(stage, difficulty) {
-  const items = [];
-  let d = 28;
-  let lastVariant = "";
-  stage.sections.forEach((rows, gi) => {
+/* コース：def.kind = stage（ステージ）/ dan（かけざん）/ endless（エンドレス）
+   エンドレスは走りながら先を継ぎ足していく（extend） */
+function makeCourse(def) {
+  const c = { items: [], d: 28, gi: 0, lastVariant: "", goalD: Infinity, gates: 0, extend: () => {} };
+  const addRows = (rows) => {
     for (let r = 0; r < rows; r++) {
-      d += stage.rowGap;
-      const variants = PATTERNS[pickWeighted(stage.patterns)];
+      c.d += def.rowGap;
+      const variants = PATTERNS[pickWeighted(def.patterns)];
       let v = variants[randInt(0, variants.length - 1)];
-      if (v === lastVariant && variants.length > 1) v = variants[(variants.indexOf(v) + 1) % variants.length];
-      lastVariant = v;
-      [...v].forEach((c, lane) => { if (c !== ".") items.push({ type: "obs", kind: c, lane, d }); });
+      if (v === c.lastVariant && variants.length > 1) v = variants[(variants.indexOf(v) + 1) % variants.length];
+      c.lastVariant = v;
+      [...v].forEach((ch, lane) => { if (ch !== ".") c.items.push({ type: "obs", kind: ch, lane, d: c.d }); });
     }
-    d += stage.rowGap + 8;
-    // 算数ゲート
-    const q = makeQuestion(difficulty);
-    const n = Array.isArray(stage.choices) ? stage.choices[gi] : stage.choices;
+  };
+  const addGate = (q, n) => {
+    c.d += def.rowGap + 8;
     const choices = makeChoices(q, n);
     const laneChoice = [-1, -1, -1];
     if (n >= 3) {
       laneChoice.splice(0, 3, 0, 1, 2);   // 3択：3レーンぜんぶ扉（どこでも通れる）
     } else {
-      const wall = randInt(0, 2);   // 1レーンは通れない壁
+      const wall = randInt(0, 2);        // 2択：1レーンは通れない壁
       let k = 0;
       for (let lane = 0; lane < 3; lane++) if (lane !== wall) laneChoice[lane] = k++;
     }
-    items.push({ type: "gate", d, q, choices, laneChoice });
-    d += 18;
+    c.items.push({ type: "gate", d: c.d, q, choices, laneChoice, no: ++c.gates });
+    c.d += 18;
+    c.gi++;
+  };
+
+  if (def.kind === "endless") {
+    c.extend = (dist) => {
+      while (c.d - dist < 190) {
+        addRows(randInt(def.rowsMin, def.rowsMax));
+        const n = c.gi >= def.threeFrom && Math.random() < def.threeRate ? 3 : 2;
+        addGate(makeQuestion("mixed"), n);
+      }
+    };
+    c.extend(0);
+  } else {
+    def.sections.forEach((rows, gi) => {
+      addRows(rows);
+      const n = Array.isArray(def.choices) ? def.choices[gi] : def.choices;
+      addGate(def.questions ? def.questions[gi] : makeQuestion(player.difficulty), n);
+    });
+    c.goalD = c.d + 26;
+    c.items.push({ type: "goal", d: c.goalD });
+  }
+  return c;
+}
+
+/* ランの設定を作る（「もういちど」で作り直せるように関数で持つ） */
+function stageDef(stage) {
+  return () => ({ kind: "stage", ...stage, title: stage.name });
+}
+function danDef(dan, order) {
+  return () => ({
+    kind: "dan", dan, order, ...DAN_RUN,
+    title: `${dan}の だん（${order ? "じゅんばん" : "ランダム"}）`,
+    sections: Array(9).fill(DAN_RUN.rowsPerSection),
+    questions: makeDanQuestions(dan, order),
   });
-  const goalD = d + 26;
-  items.push({ type: "goal", d: goalD });
-  return { items, goalD };
+}
+function endlessDef() {
+  return () => ({ kind: "endless", ...ENDLESS_RUN, title: "エンドレス" });
 }
 
 /* =========================================================
@@ -699,19 +1064,24 @@ const me = { lane: 1, x: 0, y: 0, vy: 0, jumps: 0, rollT: 0, prevVx: 0, vx: 0, p
 
 function formOf(id) { return FORMS.find((f) => f.id === id) || FORMS[0]; }
 
-function startRun(stage, formId) {
+function startRun(makeDef, formId) {
   clearRun();
+  const def = makeDef();
   const form = formOf(formId);
-  applyTheme(stage.theme);       // 障害物の見た目もテーマで決まるので、コースを作る前に
+  applyTheme(def.theme);         // 障害物の見た目もテーマで決まるので、コースを作る前に
   applyFormLook(form.id);
-  const course = buildCourse(stage, player.difficulty);
+  applyHat(player.hat);
+  const course = makeCourse(def);
   run = {
-    bounce: 0,
-    stage, form, course, dist: 0, next: 0, active: [], t: 0, endT: 0, reason: null, failGate: null,
+    bounce: 0, makeDef, def, correct: 0,
+    form, course, dist: 0, next: 0, active: [], t: 0, endT: 0, reason: null, failGate: null,
     // ランでは どの姿でも 速さ・動きは同じ（変身は見た目と図鑑。特技はアスレ／塔モードで使う）
-    speed: stage.speed,
+    speed: def.speed,
     laneK: 14,
   };
+  const endless = def.kind === "endless";
+  $("progress").classList.toggle("hidden", endless);
+  $("meter").classList.toggle("hidden", !endless);
   Object.assign(me, { lane: 1, x: 0, y: 0, vy: 0, jumps: 0, rollT: 0, vx: 0 });
   Object.assign(look, { surprise: 0, hatPop: 0, spin: 0 });
   $("formBadge").textContent = form.art;
@@ -772,7 +1142,13 @@ function updateRun(dt) {
     run.bounce -= b;
     run.dist -= b;
   }
+  run.course.extend(run.dist);
   spawnAhead();
+  // エンドレスで たまった古いデータを捨てる
+  if (run.next > 120) {
+    run.course.items.splice(0, 60);
+    run.next -= 60;
+  }
 
   // 物の位置
   for (const it of run.active) {
@@ -822,7 +1198,9 @@ function passGate(g) {
   if (ci < 0) { fail("wall", g); return; }
   if (ci === g.choices.correct) {
     g.ok = true;
+    run.correct++;
     sparkle(0xffe066);
+    starBurst();
     toast("せいかい！ ✨", 700);
     hideQuestion();
   } else {
@@ -840,6 +1218,31 @@ function fail(reason, gate) {
   me.vy = 5;
   hideQuestion();
   toast(reason === "wrong" ? "あっ！ ちがう とびら！" : "ぶつかった！", 1200);
+  if (run.def.kind === "endless") endlessReward();
+}
+
+/* 小物（いまは帽子の色）を n こ もらう。まだ持っていない色から えらぶ */
+function grantHats(n) {
+  const got = [];
+  for (let i = 0; i < n; i++) {
+    const pool = HAT_COLORS.filter((h) => !player.hats.includes(h.id));
+    if (!pool.length) break;
+    const h = pool[randInt(0, pool.length - 1)];
+    player.hats.push(h.id);
+    got.push(h);
+  }
+  return got;
+}
+
+function endlessReward() {
+  const m = Math.floor(run.dist);
+  const reached = run.def.rewards.filter((r) => m >= r).length;
+  run.meters = m;
+  run.isBest = m > (player.bestEndless || 0);
+  if (run.isBest) player.bestEndless = m;
+  run.hatsGot = grantHats(reached);
+  run.nextReward = run.def.rewards.find((r) => m < r) || null;
+  store.savePlayer(player);
 }
 
 function clearStage() {
@@ -847,50 +1250,85 @@ function clearStage() {
   run.endT = 0;
   hideQuestion();
   toast("ゴール！ 🎉", 1400);
+  confetti();
   for (let i = 0; i < 4; i++) setTimeout(() => sparkle([0xff7eb6, 0xffe066, 0x7ec8ff, 0x8be08b][i]), i * 180);
-  // 記録とごほうび（はじめてのクリアのみ）
-  const first = !player.cleared.includes(run.stage.id);
+  const def = run.def;
   run.reward = null;
-  if (first) {
-    player.cleared.push(run.stage.id);
-    const rw = run.stage.reward;
-    if (rw && rw.type === "form" && !player.forms.includes(rw.id)) {
-      player.forms.push(rw.id);
-      run.reward = rw;
+  run.hatsGot = [];
+  if (def.kind === "stage") {
+    // ステージ：はじめてクリアした時に 新しい変身
+    if (!player.cleared.includes(def.id)) {
+      player.cleared.push(def.id);
+      const rw = def.reward;
+      if (rw && rw.type === "form" && !player.forms.includes(rw.id)) {
+        player.forms.push(rw.id);
+        run.reward = rw;
+      }
     }
-    store.savePlayer(player);
+  } else if (def.kind === "dan") {
+    // かけざん：クリアするたびに 小物（帽子の色）を1つ
+    const list = player.danCleared[def.order ? "order" : "random"];
+    if (!list.includes(def.dan)) list.push(def.dan);
+    run.hatsGot = grantHats(1);
   }
+  store.savePlayer(player);
+}
+
+function hatsText(got) {
+  return got.map((h) => `👒 ぼうしの いろ「${h.name}」`).join("\n");
+}
+
+function failAnswerText() {
+  let t = "ぶつかっちゃった！\nもういちど チャレンジしよう";
+  if (run.reason === "wrong" || run.reason === "wall") {
+    const q = run.failGate.q;
+    const ans = q.ans;
+    t = run.reason === "wall" ? "とびらの ない かべに ぶつかった！\n" : "";
+    t += q.dots
+      ? `${dots(q.a)} ${OP_WORD[q.op]} ${dots(q.b)}\nこたえは ${dots(ans) || "0こ"}（${ans}）だったよ`
+      : `${q.a} ${q.op} ${q.b} の こたえは ${ans} だったよ`;
+  }
+  return t;
 }
 
 function showResult() {
   const ok = state === "clear";
+  const def = run.def;
   $("hud").classList.add("hidden");
-  const nextStage = STAGES.find((s) => s.id === run.stage.id + 1);
-  if (ok) {
-    $("resultIcon").textContent = "🎉";
-    $("resultTitle").textContent = "ステージクリア！";
-    let t = `「${run.stage.name}」を クリアしたよ！`;
+  let icon, title, text, next = false;
+  if (def.kind === "endless") {
+    icon = run.hatsGot.length ? "👒" : "🏃";
+    title = `${run.meters}m はしった！`;
+    text = `せいかい ${run.correct}もん\nさいこう きろく ${player.bestEndless}m${run.isBest && run.meters > 0 ? "（しんきろく！）" : ""}`;
+    if (run.hatsGot.length) text += `\n\nごほうび！\n${hatsText(run.hatsGot)}\nきせかえで かえられるよ`;
+    else if (run.nextReward && player.hats.length < HAT_COLORS.length) text += `\n\nあと ${run.nextReward - run.meters}m で 小物が もらえるよ`;
+    if (run.reason !== "hit") text += `\n\n${failAnswerText()}`;
+  } else if (ok) {
+    icon = "🎉";
+    title = def.kind === "dan" ? `${def.title} クリア！` : "ステージクリア！";
+    text = def.kind === "dan" ? `9もん ぜんぶ せいかい！` : `「${def.name}」を クリアしたよ！`;
     if (run.reward) {
       const f = formOf(run.reward.id);
-      t += `\n\nあたらしい へんしん\n${f.art}「${f.name}」を てにいれた！\nずかんに とうろくしたよ`;
-      $("resultIcon").textContent = f.art;
+      text += `\n\nあたらしい へんしん\n${f.art}「${f.name}」を てにいれた！\nずかんに とうろくしたよ`;
+      icon = f.art;
     }
-    $("resultText").textContent = t;
+    if (run.hatsGot.length) {
+      text += `\n\nごほうび！\n${hatsText(run.hatsGot)}\nきせかえで かえられるよ`;
+      icon = "👒";
+    } else if (def.kind === "dan") {
+      text += "\n\nぼうしの いろは ぜんぶ もってるよ！";
+    }
+    const nextStage = def.kind === "stage" && STAGES.find((s) => s.id === def.id + 1);
+    next = !!(nextStage && nextStage.ready);
   } else {
-    $("resultIcon").textContent = "💫";
-    $("resultTitle").textContent = "ざんねん！";
-    let t = "ぶつかっちゃった！\nもういちど チャレンジしよう";
-    if (run.reason === "wrong" || run.reason === "wall") {
-      const q = run.failGate.q;
-      const ans = q.ans;
-      t = run.reason === "wall" ? "とびらの ない かべに ぶつかった！\n" : "";
-      t += q.dots
-        ? `${dots(q.a)} ${OP_WORD[q.op]} ${dots(q.b)}\nこたえは ${dots(ans) || "0こ"}（${ans}）だったよ`
-        : `${q.a} ${q.op} ${q.b} の こたえは ${ans} だったよ`;
-    }
-    $("resultText").textContent = t;
+    icon = "💫";
+    title = "ざんねん！";
+    text = failAnswerText();
   }
-  $("btnNext").classList.toggle("hidden", !(ok && nextStage && nextStage.ready));
+  $("resultIcon").textContent = icon;
+  $("resultTitle").textContent = title;
+  $("resultText").textContent = text;
+  $("btnNext").classList.toggle("hidden", !next);
   showScreen("scResult");
 }
 
@@ -937,6 +1375,10 @@ function hideQuestion() {
 
 function updateProgress() {
   if (!run) return;
+  if (run.def.kind === "endless") {
+    $("meter").textContent = `${Math.floor(run.dist)}m`;
+    return;
+  }
   const p = clamp(run.dist / run.course.goalD, 0, 1);
   $("progressFill").style.width = `${p * 100}%`;
   $("progressIcon").style.left = `${p * 100}%`;
@@ -1012,7 +1454,7 @@ addEventListener("keydown", (e) => {
 /* =========================================================
    画面（メニュー）
    ========================================================= */
-const SCREENS = ["scTitle", "scNewPlayer", "scConfirm", "scHome", "scStages", "scForms", "scResult"];
+const SCREENS = ["scTitle", "scNewPlayer", "scConfirm", "scHome", "scRunMenu", "scStages", "scDan", "scDress", "scForms", "scResult"];
 function showScreen(id) {
   for (const s of SCREENS) $(s).classList.toggle("hidden", s !== id);
 }
@@ -1087,7 +1529,10 @@ $("btnConfirmNo").onclick = () => { renderTitle(); showScreen("scTitle"); };
 function selectPlayer(name) {
   player = store.loadPlayer(name);
   if (!player.forms.includes(player.form)) player.form = "norun";
+  if (!player.hats.includes(player.hat)) player.hat = "default";
+  player.danCleared = { order: [], random: [], ...(player.danCleared || {}) };
   applyFormLook(player.form);
+  applyHat(player.hat);
   store.setLast(name);
   delMode = false;
   renderHome();
@@ -1108,9 +1553,66 @@ function renderHome() {
   }
   $("diffNote").textContent = (DIFFICULTIES.find((d) => d.id === player.difficulty) || DIFFICULTIES[0]).note;
 }
-$("btnRun").onclick = () => { renderStages(); showScreen("scStages"); };
+$("btnRun").onclick = () => showScreen("scRunMenu");
 $("btnZukan").onclick = () => openForms(null);
-$("btnSwitch").onclick = () => { player = null; applyFormLook("norun"); renderTitle(); toMenu("scTitle"); };
+$("btnDress").onclick = () => openDress();
+
+// ---- ランタイプのメニュー ----
+$("btnModeStage").onclick = () => { renderStages(); showScreen("scStages"); };
+$("btnModeDan").onclick = () => { renderDan(); showScreen("scDan"); };
+$("btnModeEndless").onclick = () => openForms(endlessDef(), ENDLESS_RUN.theme, "scRunMenu");
+$("btnRunMenuBack").onclick = () => showScreen("scHome");
+
+// ---- かけざん：段えらび ----
+let danPick = 1, danOrder = true;
+function renderDan() {
+  const grid = $("danGrid");
+  grid.innerHTML = "";
+  const done = player.danCleared[danOrder ? "order" : "random"];
+  for (let n = 1; n <= 9; n++) {
+    const b = document.createElement("button");
+    b.className = "chip dan" + (danPick === n ? " on" : "");
+    b.innerHTML = `${n}の だん${done.includes(n) ? "<br>⭐" : ""}`;
+    b.onclick = () => { danPick = n; renderDan(); };
+    grid.append(b);
+  }
+  $("btnDanOrder").classList.toggle("on", danOrder);
+  $("btnDanRandom").classList.toggle("on", !danOrder);
+  $("danNote").textContent = danOrder
+    ? `${danPick}×1 から ${danPick}×9 まで じゅんばんに 9もん`
+    : `${danPick}の だんから ばらばらに 9もん`;
+}
+$("btnDanOrder").onclick = () => { danOrder = true; renderDan(); };
+$("btnDanRandom").onclick = () => { danOrder = false; renderDan(); };
+$("btnDanGo").onclick = () => openForms(danDef(danPick, danOrder), DAN_RUN.theme, "scDan");
+$("btnDanBack").onclick = () => showScreen("scRunMenu");
+
+// ---- きせかえ（帽子の色。ピンズはモデル改修後） ----
+let dressPick = "default";
+function openDress() {
+  dressPick = player.hat;
+  applyFormLook(player.form);
+  renderDress();
+  showScreen("scDress");
+}
+function renderDress() {
+  const grid = $("hatGrid");
+  grid.innerHTML = "";
+  for (const h of HAT_COLORS) {
+    const has = player.hats.includes(h.id);
+    const b = document.createElement("button");
+    b.className = "hat" + (dressPick === h.id ? " on" : "");
+    b.innerHTML = has
+      ? `<span class="sw" style="background:${h.swatch}"></span>${h.name}`
+      : `<span class="sw lock">？</span>？？？`;
+    b.disabled = !has;
+    b.onclick = () => { dressPick = h.id; applyHat(h.id); player.hat = h.id; store.savePlayer(player); renderDress(); };
+    grid.append(b);
+  }
+  $("hatCount").textContent = `あつめた いろ ${player.hats.length}/${HAT_COLORS.length}（かけざん・エンドレスで もらえるよ）`;
+}
+$("btnDressBack").onclick = () => showScreen("scHome");
+$("btnSwitch").onclick = () => { player = null; applyFormLook("norun"); applyHat("default"); renderTitle(); toMenu("scTitle"); };
 
 // ---- ステージ ----
 const isUnlocked = (s) => s.id === 1 || player.cleared.includes(s.id - 1);
@@ -1126,20 +1628,22 @@ function renderStages() {
     else if (!isUnlocked(s)) sub = `🔒 ステージ${s.id - 1}を クリアすると あくよ`;
     b.innerHTML = `<span class="num">${s.id}</span><span class="t">${s.name}<br><span class="s">${sub}</span></span>`;
     b.disabled = !s.ready || !isUnlocked(s);
-    b.onclick = () => openForms(s);
+    b.onclick = () => openForms(stageDef(s), s.theme, "scStages");
     list.append(b);
   }
 }
-$("btnStagesBack").onclick = () => showScreen("scHome");
+$("btnStagesBack").onclick = () => showScreen("scRunMenu");
 
 // ---- 図鑑（stage があればスタート前の変身えらび） ----
-let formsStage = null, pickedForm = "norun";
-function openForms(stage) {
-  formsStage = stage;
+let formsDef = null, formsBack = "scHome", pickedForm = "norun";
+/* makeDef があれば スタート前の変身えらび、無ければ 図鑑を見るだけ */
+function openForms(makeDef, themeName = "field", back = "scHome") {
+  formsDef = makeDef;
+  formsBack = makeDef ? back : "scHome";
   pickedForm = player.forms.includes(player.form) ? player.form : "norun";
-  $("formsTitle").textContent = stage ? "どの すがたで いく？" : "ずかん";
-  $("btnFormsGo").classList.toggle("hidden", !stage);
-  applyTheme(stage ? stage.theme : "field");   // スタート前は そのステージの景色を見せる
+  $("formsTitle").textContent = makeDef ? "どの すがたで いく？" : "ずかん";
+  $("btnFormsGo").classList.toggle("hidden", !makeDef);
+  applyTheme(themeName);   // スタート前は そのコースの景色を見せる
   applyFormLook(pickedForm);
   renderForms();
   showScreen("scForms");
@@ -1163,19 +1667,21 @@ function renderForms() {
 $("btnFormsGo").onclick = () => {
   player.form = pickedForm;
   store.savePlayer(player);
-  startRun(formsStage, pickedForm);
+  startRun(formsDef, pickedForm);
 };
 $("btnFormsBack").onclick = () => {
   applyTheme("field");
   applyFormLook(player.form);
-  if (formsStage) { renderStages(); showScreen("scStages"); } else showScreen("scHome");
+  if (formsBack === "scStages") renderStages();
+  if (formsBack === "scDan") renderDan();
+  showScreen(formsBack);
 };
 
 // ---- 結果 ----
-$("btnRetry").onclick = () => startRun(run.stage, run.form.id);
+$("btnRetry").onclick = () => startRun(run.makeDef, run.form.id);
 $("btnNext").onclick = () => {
-  const s = STAGES.find((x) => x.id === run.stage.id + 1);
-  openForms(s);
+  const s = STAGES.find((x) => x.id === run.def.id + 1);
+  openForms(stageDef(s), s.theme);
 };
 $("btnToHome").onclick = () => { applyTheme("field"); renderHome(); toMenu("scHome"); };
 $("btnQuit").onclick = () => { applyTheme("field"); renderHome(); toMenu("scHome"); };
@@ -1211,6 +1717,7 @@ function updateMe(dt) {
     me.y += me.vy * dt;
     if (me.y <= 0) {
       if (me.vy < -2) look.squash = Math.min(0.32, 0.1 + -me.vy * 0.025);   // 着地でつぶれる
+      if (state === "play" && me.vy < -2) dust();
       me.y = 0;
       me.jumps = 0;
       // ふだんは ぷにぷに跳ね続ける（メニューではゆっくり、ころがり中は跳ねない）
@@ -1245,6 +1752,8 @@ function updateMe(dt) {
 }
 
 function updateWorld(dt, speed) {
+  edgeScroll += speed * dt;
+  scrollGround(edgeScroll);
   for (const d of dashes) {
     d.position.z -= speed * dt;
     if (d.position.z < -4) d.position.z += DASH_SPAN;   // カメラの近くまで来たら先に回す
@@ -1299,6 +1808,7 @@ function tick() {
   const { ax, ay } = updateMe(dt);
   updateNorunLook(dt, t, ax, ay);
   updateParticles(dt);
+  updateFx(dt, t);
   updateCamera(dt, t);
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
@@ -1326,6 +1836,7 @@ if (DEBUG) {
     THREE, store, STAGES, FORMS, norun, me, look,
     get state() { return state; }, get run() { return run; }, get player() { return player; },
     selectPlayer, startRun, openForms, toMenu, renderHome, jump, moveLane, roll, fail, applyFormLook, applyTheme,
+    applyHat, stageDef, danDef, endlessDef, openDress,
     nextObstacle() {
       return run && run.active.filter((i) => !i.passed).sort((a, b) => a.d - b.d)[0];
     },

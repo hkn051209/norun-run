@@ -30,8 +30,10 @@ export function newPlayerData(name) {
     cleared: [],          // クリアしたステージID
     forms: ["norun"],     // 図鑑に登録された変身
     form: "norun",        // さいごに選んだ変身
-    hats: ["default"],    // 集めた帽子の色（今後のごほうび用）
-    hat: "default",
+    hats: ["default"],    // 集めた帽子の色（小物のごほうび）
+    hat: "default",       // いまの帽子の色
+    danCleared: { order: [], random: [] },   // かけざんモードでクリアした段
+    bestEndless: 0,       // エンドレスの さいこう記録（m）
     bgm: true,
   };
 }

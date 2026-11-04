@@ -5,6 +5,9 @@
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
 export function makeQuestion(difficulty) {
+  if (difficulty === "mixed") {   // エンドレス：たし算・ひき算・かけざんが まざる
+    return makeQuestion(Math.random() < 0.6 ? "normal" : "kuku");
+  }
   if (difficulty === "kuku") {
     const a = randInt(1, 9), b = randInt(1, 9);
     return { a, b, op: "×", ans: a * b, max: 81 };
@@ -24,6 +27,13 @@ export function makeQuestion(difficulty) {
   }
   const a = randInt(3, 20), b = randInt(1, a - 1);
   return { a, b, op: "−", ans: a - b, max: 20 };
+}
+
+/* かけざんモード：段の9問。order=じゅんばん（×1〜×9）/ random=その段の9問をシャッフル */
+export function makeDanQuestions(dan, order) {
+  const bs = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  if (!order) bs.sort(() => Math.random() - 0.5);
+  return bs.map((b) => ({ a: dan, b, op: "×", ans: dan * b, max: 81 }));
 }
 
 /* まちがいの選択肢：子どもが間違えやすい近い数（±1, ±2, かけ算は ±段 も） */
