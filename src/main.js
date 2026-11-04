@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/GLTFLoader.js";
 import {
-  DIFFICULTIES, FORMS, PATTERNS, STAGES,
+  DIFFICULTIES, FORMS, PATTERNS, STAGES, THEMES,
   LANE_W, NORUN_SCALE, JUMP_V, HOP_V, GRAVITY,
 } from "./config.js";
 import * as store from "./storage.js";
@@ -66,7 +66,7 @@ onResize();
 /* =========================================================
    背景（はらっぱ・3レーンの道・木・花・雲）
    ========================================================= */
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(240, 400), lambert(0x9bd77a));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(240, 400), lambert(0x9bd77a));   // 色はテーマで変わる
 ground.rotation.x = -Math.PI / 2;
 ground.position.set(0, -0.02, 120);
 scene.add(ground);
@@ -98,11 +98,11 @@ function makeTree() {
   const g = new THREE.Group();
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 1.3, 7), lambert(0x9a6a3d));
   trunk.position.y = 0.65;
-  const c = [0x5fbf5a, 0x77c96a, 0x4fae63][randInt(0, 2)];
-  const top = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 10), lambert(c));
+  const top = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 10), lambert(0x5fbf5a));
   top.position.y = 2.1;
   top.scale.y = 1.15;
   g.add(trunk, top);
+  g.userData = { kind: "tree", top };
   return g;
 }
 function makeFlower() {
@@ -113,6 +113,24 @@ function makeFlower() {
   const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.25, 5), lambert(0x4a9a4a));
   stem.position.y = 0.12;
   g.add(head, stem);
+  g.userData = { kind: "flower" };
+  return g;
+}
+function makeMushroom() {
+  const g = new THREE.Group();
+  const c = [0xff6b6b, 0xffa94d, 0xf783ac][randInt(0, 2)];
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), lambert(c));
+  cap.position.y = 0.32;
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.34, 8), lambert(0xfff4e0));
+  stem.position.y = 0.17;
+  g.add(cap, stem);
+  for (let i = 0; i < 3; i++) {   // 白い水玉
+    const d = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), lambert(0xffffff));
+    const a = i * 2.1;
+    d.position.set(Math.cos(a) * 0.17, 0.5, Math.sin(a) * 0.17);
+    g.add(d);
+  }
+  g.userData = { kind: "mushroom" };
   return g;
 }
 function makeCloud() {
@@ -124,15 +142,41 @@ function makeCloud() {
   }
   return g;
 }
+let theme = THEMES.field;
 const decor = [];
 function placeDecor(o, init) {
   const side = Math.random() < 0.5 ? -1 : 1;
-  o.position.x = side * rand(LANE_W * 1.5 + 2.2, LANE_W * 1.5 + 14);
+  const near = o.userData.kind === "tree" ? theme.treeNear : 1.0;
+  const far = o.userData.kind === "tree" ? 14 : 8;
+  o.position.x = side * rand(LANE_W * 1.5 + near, LANE_W * 1.5 + far);
   o.position.z = init ? rand(-10, 110) : rand(110, 125);
   o.scale.setScalar(rand(0.8, 1.3));
 }
-for (let i = 0; i < 26; i++) { const t = makeTree(); placeDecor(t, true); scene.add(t); decor.push(t); }
-for (let i = 0; i < 40; i++) { const f = makeFlower(); placeDecor(f, true); f.position.x *= 0.7; scene.add(f); decor.push(f); }
+for (let i = 0; i < 60; i++) { const t2 = makeTree(); scene.add(t2); decor.push(t2); }
+for (let i = 0; i < 36; i++) { const f = makeFlower(); scene.add(f); decor.push(f); }
+for (let i = 0; i < 30; i++) { const m = makeMushroom(); scene.add(m); decor.push(m); }
+
+/* 背景のテーマを切り替える（ステージごと） */
+function applyTheme(name) {
+  theme = THEMES[name] || THEMES.field;
+  scene.background.set(theme.sky);
+  scene.fog.color.set(theme.sky);
+  ground.material.color.set(theme.ground);
+  road.material.color.set(theme.road);
+  dashMat.color.set(theme.dash);
+  let trees = 0;
+  for (const o of decor) {
+    const k = o.userData.kind;
+    if (k === "tree") {
+      o.visible = trees++ < theme.trees;
+      o.userData.top.material.color.set(theme.treeColors[randInt(0, theme.treeColors.length - 1)]);
+    } else {
+      o.visible = k === theme.decor;
+    }
+    placeDecor(o, true);
+  }
+}
+
 const clouds = [];
 for (let i = 0; i < 9; i++) {
   const c = makeCloud();
@@ -141,6 +185,17 @@ for (let i = 0; i < 9; i++) {
   clouds.push(c);
 }
 
+/* 文字・ドットを描いたテクスチャ */
+function canvasTex(w, h, draw) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+const FONT = '"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans-serif';
 /* =========================================================
    のるん
    ========================================================= */
@@ -175,6 +230,148 @@ async function loadNorun() {
     o.userData.baseQuat = o.quaternion.clone();
   }
   norun.turn.add(m);
+
+  // 体の色を変身ごとに変えるため、体の材質を自分用に複製しておく
+  norun.bodyMats = [];
+  m.traverse((o) => {
+    if (o.isMesh && o.material.name === "M_Body") {
+      o.material = o.material.clone();
+      o.material.userData.baseColor = o.material.color.clone();
+      norun.bodyMats.push(o.material);
+    }
+  });
+  // びっくりした時の「お」の口（元の口と入れ替えて見せる）
+  norun.mouth.userData.parts = norun.mouth.children.length ? [...norun.mouth.children] : [norun.mouth];
+  if (!norun.mouth.children.length) norun.mouth.userData.parts = [];
+  const om = new THREE.Group();
+  const hole = new THREE.Mesh(new THREE.CircleGeometry(0.075, 24), new THREE.MeshBasicMaterial({ color: 0x4a2340 }));
+  hole.scale.set(1, 1.2, 1);
+  const tongue = new THREE.Mesh(new THREE.CircleGeometry(0.045, 20), new THREE.MeshBasicMaterial({ color: 0xff8fa8 }));
+  tongue.scale.set(1.2, 0.7, 1);
+  tongue.position.set(0, -0.045, 0.002);
+  om.add(hole, tongue);
+  om.position.set(0, -0.005, 0.035);
+  om.visible = false;
+  norun.mouth.add(om);
+  openMouth = om;
+}
+
+/* 頭の上の「！」（いつもカメラを向く板） */
+const bang = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: canvasTex(128, 128, (x, w, h) => {
+    x.fillStyle = "#ffe066";
+    x.beginPath();
+    for (let i = 0; i < 16; i++) {        // ぎざぎざの ふきだし
+      const a = (i / 16) * Math.PI * 2, r = i % 2 ? 46 : 60;
+      x.lineTo(w / 2 + Math.cos(a) * r, h / 2 + Math.sin(a) * r);
+    }
+    x.closePath(); x.fill();
+    x.lineWidth = 5; x.strokeStyle = "#ff9f1c"; x.stroke();
+    x.fillStyle = "#ff3d6e"; x.font = `bold 80px ${FONT}`;
+    x.textAlign = "center"; x.textBaseline = "middle";
+    x.fillText("！", w / 2 + 2, h / 2 + 4);
+  }),
+  depthTest: false,
+}));
+bang.visible = false;
+bang.renderOrder = 10;
+norun.root.add(bang);
+let openMouth = new THREE.Group();
+
+/* ---------- 変身の見た目 ----------
+   体の色（元の色に掛ける）・透け具合・飾り（ねこのしっぽ、くらげのあし）。
+   飾りは体（Body）の子にするので、ぷにぷにの つぶれ・のびも一緒にかかる */
+const formLook = { id: "norun", addon: null };
+
+function makeBeads(n, r0, r1, colors, opacity = 1) {
+  const beads = [];
+  const g = new THREE.Group();
+  for (let i = 0; i < n; i++) {
+    const r = lerp(r0, r1, i / Math.max(1, n - 1));
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(r, 10, 8),
+      new THREE.MeshBasicMaterial({ color: colors[i % colors.length], transparent: opacity < 1, opacity })
+    );
+    g.add(m);
+    beads.push(m);
+  }
+  return { g, beads };
+}
+
+function buildAddon(kind) {
+  const group = new THREE.Group();
+  if (kind === "tail") {
+    // 帽子のつばの下から 後ろへ出て、上へ くるんと立つ（後ろ姿でも見えるように 帽子より外まで出す）
+    const { g, beads } = makeBeads(12, 0.14, 0.1, [0xf2a65a, 0xf2a65a, 0xffe2b8]);
+    group.add(g);
+    return {
+      group,
+      update(t, k) {   // 先っぽほど よくゆれる
+        beads.forEach((b, i) => {
+          const u = i / (beads.length - 1);
+          const back = Math.min(u * 2.2, 1);            // 前半は後ろへ
+          const up = Math.max(0, u - 0.35) / 0.65;      // 後半は上へ
+          b.position.set(
+            Math.sin(t * 5 - i * 0.5) * 0.18 * up * k,
+            0.18 + up * 1.15 + Math.sin(t * 5 - i * 0.5 + 1) * 0.04 * up,
+            -0.5 - back * 0.62 + up * 0.12
+          );
+        });
+      },
+    };
+  }
+  if (kind === "tentacles") {
+    const strands = [];
+    for (let s = 0; s < 6; s++) {
+      const { g, beads } = makeBeads(10, 0.11, 0.05, [0xc8ecff, 0x9fd4ff, 0xe3c8ff], 0.85);
+      group.add(g);
+      strands.push({ beads, a: lerp(-1.25, 1.25, s / 5) });
+    }
+    return {
+      group,
+      update(t, k) {   // からだの後ろ下から 帽子の外まで ゆらゆら たなびく あし
+        for (const st of strands) {
+          const bx = Math.sin(st.a) * 0.6, bz = -Math.cos(st.a) * 0.45;
+          st.beads.forEach((b, i) => {
+            const u = i / (st.beads.length - 1);
+            b.position.set(
+              bx * (1 + u * 0.45) + Math.sin(t * 4 + i * 0.6 + st.a * 3) * 0.1 * u,
+              0.12 + u * 0.18 + Math.sin(t * 5 - i * 0.8 + st.a) * 0.1 * u * k,
+              bz - u * 1.0
+            );
+          });
+        }
+      },
+    };
+  }
+  return null;
+}
+
+function applyFormLook(id) {
+  if (!norun.model) return;
+  const lk = formOf(id).look || {};
+  const op = lk.opacity ?? 1;
+  for (const m of norun.bodyMats) {
+    m.color.copy(m.userData.baseColor);
+    if (lk.body != null) m.color.multiply(new THREE.Color(lk.body));
+    m.transparent = op < 1;
+    m.opacity = op;
+    m.depthWrite = op >= 1;
+    m.needsUpdate = true;
+  }
+  if (formLook.addon) {
+    norun.body.remove(formLook.addon.group);
+    disposeObj(formLook.addon.group);
+  }
+  formLook.addon = lk.addon ? buildAddon(lk.addon) : null;
+  if (formLook.addon) norun.body.add(formLook.addon.group);
+  formLook.id = id;
+}
+
+function animateAddon(dt, t) {
+  if (!formLook.addon) return;
+  const k = state === "play" ? 1.3 : 0.8;
+  formLook.addon.update(t, k);
 }
 
 /* のるんの見た目の状態 */
@@ -199,12 +396,23 @@ function updateNorunLook(dt, t, ax, ay) {
   look.blink = Math.max(0, look.blink - dt);
   const blinkK = look.blink > 0 && look.surprise < 0.1 ? 0.15 : 1;
 
-  // 目と口（ノード原点が中心なので、スケールでそのまま拡大できる）
-  // びっくり：目は縦に大きく見開く（横長の目なので、縦に伸ばすと丸い目になる）、口も縦に開く
+  // びっくり顔：目の形は そのまま（大きくすると鋭く見えて怖いので）。
+  // 口を「お」の形に開けて、頭の上に「！」を出す
   const sp = look.surprise;
-  norun.eyeL.scale.set(1 + sp * 0.12, (1 + sp * 1.3) * blinkK, 1 + sp * 0.3);
-  norun.eyeR.scale.set(1 + sp * 0.12, (1 + sp * 1.3) * blinkK, 1 + sp * 0.3);
-  norun.mouth.scale.set(1 - sp * 0.15, 1 + sp * 0.9, 1);
+  norun.eyeL.scale.set(1, blinkK, 1);
+  norun.eyeR.scale.set(1, blinkK, 1);
+  const om = clamp((sp - 0.15) / 0.85, 0, 1);
+  norun.mouth.userData.parts.forEach((c) => { c.visible = om < 0.5; });
+  openMouth.visible = om > 0.02;
+  openMouth.scale.setScalar(0.4 + om * 0.6);
+  const ex = clamp((sp - 0.05) / 0.5, 0, 1);
+  bang.visible = ex > 0.02;
+  const pop = ex < 1 ? ex * 1.25 : 1 + Math.sin(t * 9) * 0.04;   // ぽんっと出て、少しはずむ
+  bang.scale.set(0.9 * pop, 0.9 * pop, 1);
+  bang.position.y = 2.15 + me.y * 0 + Math.sin(t * 6) * 0.04;
+
+  // 変身の飾り（しっぽ・あし）をゆらす
+  animateAddon(dt, t);
 
   // 帽子ポップ
   const hp = look.hatPop;
@@ -237,6 +445,10 @@ const GEO = {
   log: shared(new THREE.CylinderGeometry(0.32, 0.32, LANE_W - 0.4, 14)),
   logEnd: shared(new THREE.CircleGeometry(0.3, 14)),
   rock: shared(new THREE.DodecahedronGeometry(1.0, 1)),
+  stump: shared(new THREE.CylinderGeometry(0.62, 0.72, 0.58, 16)),
+  stumpTop: shared(new THREE.CircleGeometry(0.62, 16)),
+  trunk: shared(new THREE.CylinderGeometry(0.55, 0.7, 3.2, 12)),
+  leaves: shared(new THREE.SphereGeometry(1.05, 14, 10)),
   post: shared(new THREE.CylinderGeometry(0.1, 0.1, 1.6, 8)),
   bar: shared(new THREE.CylinderGeometry(0.16, 0.16, LANE_W - 0.2, 10)),
   picket: shared(new THREE.BoxGeometry(0.22, 1.9, 0.12)),
@@ -246,6 +458,8 @@ const MAT = {
   log: sharedMat(lambert(0xb0753f)),
   logEnd: sharedMat(lambert(0xe8c48c)),
   rock: sharedMat(new THREE.MeshLambertMaterial({ color: 0xa3a8b8, flatShading: true })),
+  bark: sharedMat(lambert(0x8a5a33)),
+  leaves: sharedMat(lambert(0x3f9a4f)),
   post: sharedMat(lambert(0xffffff)),
   bar: sharedMat(lambert(0xff7eb6)),
   fence: sharedMat(lambert(0xd9a066)),
@@ -253,7 +467,21 @@ const MAT = {
 
 function makeObstacle(kind) {
   const g = new THREE.Group();
-  if (kind === "L") {          // ひくい丸太：ジャンプでこえる
+  if (kind === "L" && theme.obsL === "stump") {   // きりかぶ：ジャンプでこえる
+    const s = new THREE.Mesh(GEO.stump, MAT.log);
+    s.position.y = 0.29;
+    const top = new THREE.Mesh(GEO.stumpTop, MAT.logEnd);
+    top.rotation.x = -Math.PI / 2;
+    top.position.y = 0.585;
+    g.add(s, top);
+  } else if (kind === "T" && theme.obsT === "bigtree") {   // 大きな木：よける
+    const tr = new THREE.Mesh(GEO.trunk, MAT.bark);
+    tr.position.y = 1.6;
+    const lv = new THREE.Mesh(GEO.leaves, MAT.leaves);
+    lv.position.y = 3.4;
+    lv.scale.set(1.0, 0.9, 1.0);
+    g.add(tr, lv);
+  } else if (kind === "L") {          // ひくい丸太：ジャンプでこえる
     const log = new THREE.Mesh(GEO.log, MAT.log);
     log.rotation.z = Math.PI / 2;
     log.position.y = 0.32;
@@ -295,17 +523,6 @@ function makeObstacle(kind) {
   return g;
 }
 
-/* 文字・ドットを描いたテクスチャ */
-function canvasTex(w, h, draw) {
-  const c = document.createElement("canvas");
-  c.width = w; c.height = h;
-  draw(c.getContext("2d"), w, h);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
-  return t;
-}
-const FONT = '"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans-serif';
 const DOOR_COLORS = [["#fff3c4", "#ffd27a"], ["#e3f6ff", "#9fd8ff"], ["#ffe3f0", "#ffb3d4"]];
 
 function doorTexture(value, withDots, colorIdx) {
@@ -441,7 +658,7 @@ function buildCourse(stage, difficulty) {
   const items = [];
   let d = 28;
   let lastVariant = "";
-  stage.sections.forEach((rows) => {
+  stage.sections.forEach((rows, gi) => {
     for (let r = 0; r < rows; r++) {
       d += stage.rowGap;
       const variants = PATTERNS[pickWeighted(stage.patterns)];
@@ -453,10 +670,11 @@ function buildCourse(stage, difficulty) {
     d += stage.rowGap + 8;
     // 算数ゲート
     const q = makeQuestion(difficulty);
-    const choices = makeChoices(q, stage.choices);
+    const n = Array.isArray(stage.choices) ? stage.choices[gi] : stage.choices;
+    const choices = makeChoices(q, n);
     const laneChoice = [-1, -1, -1];
-    if (stage.choices >= 3) {
-      laneChoice.splice(0, 3, 0, 1, 2);
+    if (n >= 3) {
+      laneChoice.splice(0, 3, 0, 1, 2);   // 3択：3レーンぜんぶ扉（どこでも通れる）
     } else {
       const wall = randInt(0, 2);   // 1レーンは通れない壁
       let k = 0;
@@ -484,17 +702,20 @@ function formOf(id) { return FORMS.find((f) => f.id === id) || FORMS[0]; }
 function startRun(stage, formId) {
   clearRun();
   const form = formOf(formId);
+  applyTheme(stage.theme);       // 障害物の見た目もテーマで決まるので、コースを作る前に
+  applyFormLook(form.id);
   const course = buildCourse(stage, player.difficulty);
   run = {
     bounce: 0,
     stage, form, course, dist: 0, next: 0, active: [], t: 0, endT: 0, reason: null, failGate: null,
-    speed: stage.speed * (form.ability === "fast" ? 1.2 : 1),
-    laneK: form.ability === "fast" ? 22 : 14,
+    // ランでは どの姿でも 速さ・動きは同じ（変身は見た目と図鑑。特技はアスレ／塔モードで使う）
+    speed: stage.speed,
+    laneK: 14,
   };
   Object.assign(me, { lane: 1, x: 0, y: 0, vy: 0, jumps: 0, rollT: 0, vx: 0 });
   Object.assign(look, { surprise: 0, hatPop: 0, spin: 0 });
   $("formBadge").textContent = form.art;
-  $("btnRoll").classList.toggle("hidden", form.ability !== "roll");
+  $("btnRoll").classList.add("hidden");
   $("question").classList.add("off");
   showScreen(null);
   $("hud").classList.remove("hidden");
@@ -533,12 +754,8 @@ const laneNow = () => LANE_X.reduce((best, x, i) => (Math.abs(me.x - x) < Math.a
 const touchesLane = (lane) => Math.abs(me.x - LANE_X[lane]) < 0.95;
 
 function hitsObstacle(it) {
-  const ab = run.form.ability;
   if (it.kind === "L") return me.y < 0.62;
-  if (it.kind === "T") return true;
-  if (it.kind === "B") return !(me.rollT > 0 && me.y < 0.2) && me.y < 1.4;
-  if (it.kind === "F") return ab !== "phase";
-  return false;
+  return true;   // T（たかい）・B・F はよけるしかない
 }
 
 function updateRun(dt) {
@@ -558,14 +775,18 @@ function updateRun(dt) {
   spawnAhead();
 
   // 物の位置
-  for (const it of run.active) it.obj.position.z = it.d - run.dist;
+  for (const it of run.active) {
+    it.obj.position.z = it.d - run.dist;
+    // のるんを通りすぎた障害物は消す（大きな木などがカメラの前をふさがないように。ぶつかった物は残す）
+    if (it.type === "obs" && it !== run.hitObs) it.obj.visible = it.obj.position.z > -1.6;
+  }
 
   if (moving) {
     // 当たり判定
     for (const it of run.active) {
       const z = it.d - run.dist;
       if (it.type === "obs" && !it.passed) {
-        if (Math.abs(z) < 0.75 && touchesLane(it.lane) && hitsObstacle(it)) { fail("hit"); break; }
+        if (Math.abs(z) < 0.75 && touchesLane(it.lane) && hitsObstacle(it)) { run.hitObs = it; fail("hit"); break; }
         if (z < -0.75) it.passed = true;
       } else if (it.type === "gate" && !it.passed && z <= 0.2) {
         it.passed = true;
@@ -576,9 +797,9 @@ function updateRun(dt) {
         clearStage();
       }
     }
-    // 出題の表示：ゲートが見えてきたら
+    // 出題の表示：ゲートが見えてきたら（失敗・ゴールした時は出さない）
     const g = run.active.find((it) => it.type === "gate" && !it.passed);
-    if (g && g.d - run.dist < 62) showQuestion(g.q); else hideQuestion();
+    if (state === "play" && g && g.d - run.dist < 62) showQuestion(g.q); else hideQuestion();
   }
 
   // 後ろに流れたものを消す
@@ -752,15 +973,16 @@ function moveLane(dir) {
 }
 function jump() {
   if (state !== "play" && state !== "ready") return;
-  const max = run.form.ability === "float" ? 2 : 1;
-  if (me.jumps >= max) return;
+  if (me.jumps >= 1) return;
   me.jumps++;
   me.rollT = 0;
   me.vy = JUMP_V * (me.jumps === 2 ? 0.85 : 1);
   look.squash = -0.2;
 }
 function roll() {
-  if (state !== "play" || run.form.ability !== "roll") return;
+  return;   // ころがりはアスレ用（ランでは使わない）
+  // eslint-disable-next-line no-unreachable
+  if (state !== "play") return;
   me.rollT = 0.9;
   if (me.y > 0.1) me.vy = -12;   // 空中なら すぐ着地
 }
@@ -864,6 +1086,8 @@ $("btnConfirmNo").onclick = () => { renderTitle(); showScreen("scTitle"); };
 
 function selectPlayer(name) {
   player = store.loadPlayer(name);
+  if (!player.forms.includes(player.form)) player.form = "norun";
+  applyFormLook(player.form);
   store.setLast(name);
   delMode = false;
   renderHome();
@@ -886,7 +1110,7 @@ function renderHome() {
 }
 $("btnRun").onclick = () => { renderStages(); showScreen("scStages"); };
 $("btnZukan").onclick = () => openForms(null);
-$("btnSwitch").onclick = () => { player = null; renderTitle(); toMenu("scTitle"); };
+$("btnSwitch").onclick = () => { player = null; applyFormLook("norun"); renderTitle(); toMenu("scTitle"); };
 
 // ---- ステージ ----
 const isUnlocked = (s) => s.id === 1 || player.cleared.includes(s.id - 1);
@@ -915,6 +1139,8 @@ function openForms(stage) {
   pickedForm = player.forms.includes(player.form) ? player.form : "norun";
   $("formsTitle").textContent = stage ? "どの すがたで いく？" : "ずかん";
   $("btnFormsGo").classList.toggle("hidden", !stage);
+  applyTheme(stage ? stage.theme : "field");   // スタート前は そのステージの景色を見せる
+  applyFormLook(pickedForm);
   renderForms();
   showScreen("scForms");
 }
@@ -927,7 +1153,7 @@ function renderForms() {
     b.className = "form" + (has && pickedForm === f.id ? " on" : "");
     b.innerHTML = `<span class="art">${has ? f.art : "❔"}</span>${has ? f.name : "？？？"}`;
     b.disabled = !has;
-    b.onclick = () => { pickedForm = f.id; renderForms(); };
+    b.onclick = () => { pickedForm = f.id; applyFormLook(f.id); renderForms(); };
     list.append(b);
   }
   const f = formOf(pickedForm);
@@ -940,6 +1166,8 @@ $("btnFormsGo").onclick = () => {
   startRun(formsStage, pickedForm);
 };
 $("btnFormsBack").onclick = () => {
+  applyTheme("field");
+  applyFormLook(player.form);
   if (formsStage) { renderStages(); showScreen("scStages"); } else showScreen("scHome");
 };
 
@@ -949,8 +1177,8 @@ $("btnNext").onclick = () => {
   const s = STAGES.find((x) => x.id === run.stage.id + 1);
   openForms(s);
 };
-$("btnToHome").onclick = () => { renderHome(); toMenu("scHome"); };
-$("btnQuit").onclick = () => { renderHome(); toMenu("scHome"); };
+$("btnToHome").onclick = () => { applyTheme("field"); renderHome(); toMenu("scHome"); };
+$("btnQuit").onclick = () => { applyTheme("field"); renderHome(); toMenu("scHome"); };
 
 /* =========================================================
    毎フレームの更新
@@ -961,7 +1189,6 @@ const _camLook = new THREE.Vector3();
 
 function updateMe(dt) {
   const inRun = run && (state === "play" || state === "ready");
-  const ab = run ? run.form.ability : null;
 
   // 左右
   const prevX = me.x;
@@ -980,7 +1207,6 @@ function updateMe(dt) {
   } else if (state !== "loading") {
     if (me.rollT > 0) me.rollT -= dt;
     let g = GRAVITY;
-    if (ab === "float" && me.vy < 0 && me.jumps > 0) g *= 0.35;   // くらげ：ふわりと落ちる
     me.vy -= g * dt;
     me.y += me.vy * dt;
     if (me.y <= 0) {
@@ -1025,7 +1251,7 @@ function updateWorld(dt, speed) {
   }
   for (const o of decor) {
     o.position.z -= speed * dt;
-    if (o.position.z < -12) { const sx = o.position.x; placeDecor(o, false); if (Math.abs(sx) < LANE_W * 1.5 + 8) o.position.x *= 0.7; }
+    if (o.position.z < -12) placeDecor(o, false);
   }
   for (const c of clouds) {
     c.position.z -= (speed * 0.25 + 0.3) * dt;
@@ -1084,6 +1310,7 @@ function tick() {
 tick();
 try {
   await loadNorun();
+  applyTheme("field");
   $("loading").classList.add("hidden");
   state = "menu";
   renderTitle();
@@ -1098,7 +1325,7 @@ if (DEBUG) {
   window.G = {
     THREE, store, STAGES, FORMS, norun, me, look,
     get state() { return state; }, get run() { return run; }, get player() { return player; },
-    selectPlayer, startRun, openForms, toMenu, renderHome, jump, moveLane, roll, fail,
+    selectPlayer, startRun, openForms, toMenu, renderHome, jump, moveLane, roll, fail, applyFormLook, applyTheme,
     nextObstacle() {
       return run && run.active.filter((i) => !i.passed).sort((a, b) => a.d - b.d)[0];
     },
