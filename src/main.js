@@ -17,6 +17,12 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const damp = (a, b, k, dt) => lerp(a, b, 1 - Math.exp(-k * dt));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const DEBUG = location.search.includes("debug");
+// 見た目の切り替え：URL に ?classic を付けると前の見た目（高いカメラ・平らな道・原っぱ）で比べられる
+const CLASSIC = location.search.includes("classic");
+// プレイ中のカメラ：新しい見た目は 低く・近く（道が奥へすぼまって スピード感が出る）
+const CAM = CLASSIC
+  ? { y: 3.4, z: -6.3, lookY: 1.0, lookZ: 10, fov: 58, fovPortrait: 72 }
+  : { y: 2.5, z: -4.9, lookY: 1.0, lookZ: 12, fov: 64, fovPortrait: 78 };
 
 // カメラは -Z 側から +Z（進行方向）を見る。画面の左 = +X
 const LANE_X = [LANE_W, 0, -LANE_W];   // 0=左 1=まんなか 2=右（画面から見て）
@@ -57,7 +63,7 @@ scene.add(sun);
 function onResize() {
   renderer.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight;
-  camera.fov = camera.aspect < 1 ? 72 : 58;
+  camera.fov = camera.aspect < 1 ? CAM.fovPortrait : CAM.fov;
   camera.updateProjectionMatrix();
 }
 addEventListener("resize", onResize);
@@ -74,10 +80,22 @@ const road = new THREE.Mesh(new THREE.PlaneGeometry(LANE_W * 3 + 0.6, 400), lamb
 road.rotation.x = -Math.PI / 2;
 road.position.set(0, -0.01, 120);
 scene.add(road);
-for (const x of [1.5, -1.5]) {   // 道のふち
+if (CLASSIC) for (const x of [1.5, -1.5]) {   // 道のふち（前の見た目）
   const e = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 400), lambert(0xffffff));
   e.position.set(x * LANE_W + Math.sign(x) * 0.3, 0.04, 120);
   scene.add(e);
+}
+// 新しい見た目：レーンの境目は 石だたみの「溝」（道の長さ方向に同じなので動かさなくてよい）
+const grooveMat = lambert(0x8a7458);
+const grooveHiMat = lambert(0xfff3dc);
+if (!CLASSIC) for (const x of [LANE_W / 2, -LANE_W / 2]) {
+  const gr = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 400), grooveMat);
+  gr.rotation.x = -Math.PI / 2;
+  gr.position.set(x, 0.004, 120);
+  const hi = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 400), grooveHiMat);
+  hi.rotation.x = -Math.PI / 2;
+  hi.position.set(x + 0.09, 0.005, 120);
+  scene.add(gr, hi);
 }
 // レーンの区切り（流れる点線）
 const dashGeo = new THREE.BoxGeometry(0.12, 0.02, 1.4);
@@ -87,6 +105,7 @@ const dashes = [];
 for (let i = 0; i < 36; i++) {
   for (const x of [LANE_W / 2, -LANE_W / 2]) {
     const d = new THREE.Mesh(dashGeo, dashMat);
+    d.visible = CLASSIC;
     d.position.set(x, 0.005, -4 + i * 3.5);
     scene.add(d);
     dashes.push(d);
@@ -146,9 +165,12 @@ let theme = THEMES.field;
 const decor = [];
 function placeDecor(o, init) {
   const side = Math.random() < 0.5 ? -1 : 1;
-  const near = o.userData.kind === "tree" ? theme.treeNear : 1.0;
-  const far = o.userData.kind === "tree" ? 14 : 8;
-  o.position.x = side * rand(LANE_W * 1.5 + near, LANE_W * 1.5 + far);
+  const isTree = o.userData.kind === "tree";
+  // 新しい見た目では 柵・生け垣・近くの大きな木より外側に置く
+  const base = CLASSIC ? LANE_W * 1.5 : LANE_W * 1.5 + 0.6 + (isTree ? 7.5 : 2.6);
+  const near = CLASSIC ? (isTree ? theme.treeNear : 1.0) : 0;
+  const far = isTree ? 14 : 8;
+  o.position.x = side * rand(base + near, base + far);
   o.position.z = init ? rand(-10, 110) : rand(110, 125);
   o.scale.setScalar(rand(0.8, 1.3));
 }
@@ -203,8 +225,44 @@ const FONT = '"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans
    - 道のふちの石・草むら、道ばたの小物：1周期ぶんを並べたグループを ずらして くり返す
    - 遠くの山：動かない（霧の影響を受けない）
    ========================================================= */
-const ROAD_REPEAT = 100, GROUND_REPEAT_Y = 50;
+const ROAD_REPEAT = 100, ROAD_REPEAT_COBBLE = 150, GROUND_REPEAT_Y = 50;
+/* 石だたみ：5×5の石。1段ごとに半分ずらす。はしをまたぐ石は反対側にも描いて、つなぎ目が出ないように */
+function drawCobble(x, w, h) {
+  const base = new THREE.Color(theme.road);
+  const mortar = base.clone().multiplyScalar(0.62);
+  x.fillStyle = `#${mortar.getHexString()}`;
+  x.fillRect(0, 0, w, h);
+  const rows = 5, cols = 5, cw = w / cols, ch = h / rows;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const shade = rand(0.88, 1.08);
+      const col = base.clone().multiplyScalar(shade);
+      const ox = (r % 2) * cw / 2 + c * cw, oy = r * ch;
+      const iw = cw - rand(5, 9), ih = ch - rand(5, 9);
+      for (const dx of [0, -w]) {
+        const sx = ox + dx + (cw - iw) / 2, sy = oy + (ch - ih) / 2;
+        const g = x.createLinearGradient(sx, sy, sx, sy + ih);
+        g.addColorStop(0, `#${col.clone().multiplyScalar(1.12).getHexString()}`);
+        g.addColorStop(1, `#${col.clone().multiplyScalar(0.9).getHexString()}`);
+        x.fillStyle = g;
+        x.beginPath(); x.roundRect(sx, sy, iw, ih, 12); x.fill();
+        x.fillStyle = "rgba(255,255,255,.18)";      // 上のふちの光
+        x.beginPath(); x.roundRect(sx + 4, sy + 3, iw - 8, 5, 3); x.fill();
+      }
+    }
+  }
+  if (theme.roadDots === "leaf") {   // 森は落ち葉も少し
+    const cols2 = ["#e08a3c", "#c9652e", "#e6b84a"];
+    for (let i = 0; i < 10; i++) {
+      x.save(); x.translate(rand(10, w - 10), rand(10, h - 10)); x.rotate(rand(0, Math.PI));
+      x.fillStyle = cols2[randInt(0, 2)];
+      x.beginPath(); x.ellipse(0, 0, 4, 7, 0, 0, Math.PI * 2); x.fill();
+      x.restore();
+    }
+  }
+}
 function drawRoadTex(x, w, h) {
+  if (!CLASSIC) { drawCobble(x, w, h); return; }
   const base = new THREE.Color(theme.road);
   x.fillStyle = `#${base.getHexString()}`;
   x.fillRect(0, 0, w, h);
@@ -241,11 +299,11 @@ function drawGrassTex(x, w, h) {
   }
 }
 const roadCanvas = document.createElement("canvas");
-roadCanvas.width = 128; roadCanvas.height = 128;
+roadCanvas.width = roadCanvas.height = CLASSIC ? 128 : 256;
 const roadTex = new THREE.CanvasTexture(roadCanvas);
 roadTex.colorSpace = THREE.SRGBColorSpace;
 roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
-roadTex.repeat.set(2, ROAD_REPEAT);
+roadTex.repeat.set(CLASSIC ? 2 : 3, CLASSIC ? ROAD_REPEAT : ROAD_REPEAT_COBBLE);
 road.material.map = roadTex;
 const grassCanvas = document.createElement("canvas");
 grassCanvas.width = 128; grassCanvas.height = 128;
@@ -276,16 +334,84 @@ function blobShadow(r, sx = 1, sz = 1) {   // まるい影
   s.scale.set(r * sx, r * sz, 1);
   return s;
 }
+/* ---------- 新しい見た目：道を「通路」にする ----------
+   道のすぐ外に 立体の縁石 → 木の柵 → 生け垣 → 道に近い大きな木（枝が上にかぶさる）。
+   どれも1周期ぶんを InstancedMesh でまとめて描くので、数が多くても軽い */
+const CURB_X = LANE_W * 1.5 + 0.3 + 0.27;      // 縁石の中心（道のはし＋半分）
+const curbMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+const fenceMat = lambert(0xc99561);
+const hedgeMat = lambert(0x5aa64f);
+const nearLeafMat = lambert(0x4fae55);
+const nearTrunkMat = lambert(0x8a5a33);
+function buildCorridor(mk) {
+  const curbs = [], posts = [], rails = [], hedges = [], trees = [];
+  for (const side of [1, -1]) {
+    // 縁石：1.5m の石ブロック（色を少しずつ変える）
+    for (let z = 0; z < EDGE_P; z += 1.5) curbs.push([side * CURB_X, z + 0.75, rand(0.86, 1.0)]);
+    // 柵：くい 1.5m ごと＋横木2本
+    for (let z = 0; z < EDGE_P; z += 1.5) posts.push([side * (CURB_X + 0.62), z]);
+    for (const y of [0.42, 0.78]) rails.push([side * (CURB_X + 0.62), y]);
+    // 生け垣：すきまを空けて ならべる
+    let z = rand(0, 2);
+    while (z < EDGE_P - 2) {
+      const len = rand(3, 5.5);
+      hedges.push([side * (CURB_X + 1.55 + rand(0, 0.3)), z + len / 2, len, rand(0.75, 1.05)]);
+      z += len + rand(0.8, 2.5);
+    }
+    // 道に近い大きな木（1周期に3本）
+    for (let i = 0; i < 3; i++) {
+      trees.push([side * (CURB_X + rand(3.0, 4.8)), i * (EDGE_P / 3) + rand(0, EDGE_P / 3 - 2), rand(0.9, 1.25)]);
+    }
+  }
+  const curbGeo = new THREE.BoxGeometry(0.54, 0.3, 1.44);
+  const curbIm = mk(curbGeo, curbMat, curbs, (o, [x, z], off) => {
+    o.position.set(x, 0.15, z + off); o.scale.set(1, 1, 1); o.rotation.set(0, 0, 0);
+  });
+  // 縁石の色むら（石らしく）
+  const cc = new THREE.Color();
+  for (let i = 0; i < curbIm.count; i++) {
+    const s = curbs[i % curbs.length][2];
+    curbIm.setColorAt(i, cc.setRGB(0.93 * s, 0.9 * s, 0.85 * s));
+  }
+  curbIm.instanceColor.needsUpdate = true;
+  mk(new THREE.CylinderGeometry(0.07, 0.08, 1.0, 6), fenceMat, posts, (o, [x, z], off) => {
+    o.position.set(x, 0.5, z + off); o.scale.set(1, 1, 1); o.rotation.set(0, 0, 0);
+  });
+  mk(new THREE.BoxGeometry(0.06, 0.1, EDGE_P), fenceMat, rails, (o, [x, y], off) => {
+    o.position.set(x, y, EDGE_P / 2 + off); o.scale.set(1, 1, 1); o.rotation.set(0, 0, 0);
+  });
+  mk(new THREE.SphereGeometry(0.5, 12, 8), hedgeMat, hedges, (o, [x, z, len, h], off) => {
+    o.position.set(x, 0.42 * h, z + off); o.scale.set(1.5, 1.7 * h, len); o.rotation.set(0, 0, 0);
+  });
+  mk(blobGeo, blobMat, hedges, (o, [x, z, len], off) => {
+    o.position.set(x + 0.1, 0.016, z + off); o.scale.set(1.0, len * 0.55, 1); o.rotation.set(-Math.PI / 2, 0, 0);
+  });
+  // 大きな木：幹＋葉っぱ3つ。葉っぱは道の側に張り出す
+  mk(new THREE.CylinderGeometry(0.28, 0.4, 3.4, 8), nearTrunkMat, trees, (o, [x, z, s], off) => {
+    o.position.set(x, 1.7 * s, z + off); o.scale.set(s, s, s); o.rotation.set(0, 0, -Math.sign(x) * 0.06);
+  });
+  const leafGeo = new THREE.SphereGeometry(1.0, 12, 10);
+  [[0, 3.6, 0, 1.9], [-0.9, 3.1, 0.6, 1.4], [0.6, 3.3, -0.8, 1.5]].forEach(([dx, y, dz, r]) => {
+    mk(leafGeo, nearLeafMat, trees, (o, [x, z, s], off) => {
+      o.position.set(x - Math.sign(x) * (0.6 - dx) * s, y * s, z + dz * s + off);
+      o.scale.set(r * s, r * s * 0.85, r * s); o.rotation.set(0, 0, 0);
+    });
+  });
+  mk(blobGeo, blobMat, trees, (o, [x, z, s], off) => {
+    o.position.set(x - Math.sign(x) * 0.5, 0.017, z + off); o.scale.set(2.1 * s, 1.8 * s, 1); o.rotation.set(-Math.PI / 2, 0, 0);
+  });
+}
+
 {
   const stones = [], tufts = [], bushes = [];
   const edgeX = LANE_W * 1.5 + 0.55;
   for (const side of [1, -1]) {
     for (let i = 0; i < 9; i++) stones.push([side * (edgeX + rand(0, 0.5)), rand(0, EDGE_P), rand(0.6, 1.3)]);
     for (let i = 0; i < 7; i++) {
-      const z = rand(0, EDGE_P), x = side * (edgeX + rand(0.5, 1.6));
+      const z = rand(0, EDGE_P), x = side * (CLASSIC ? edgeX + rand(0.5, 1.6) : CURB_X + rand(0.75, 1.3));
       for (let k = 0; k < 4; k++) tufts.push([x + rand(-0.15, 0.15), z + rand(-0.15, 0.15), rand(0.7, 1.3), rand(-0.4, 0.4)]);
     }
-    for (let i = 0; i < 2; i++) bushes.push([side * (edgeX + rand(1.6, 3.2)), rand(0, EDGE_P), rand(0.8, 1.4)]);
+    if (CLASSIC) for (let i = 0; i < 2; i++) bushes.push([side * (edgeX + rand(1.6, 3.2)), rand(0, EDGE_P), rand(0.8, 1.4)]);
   }
   const mk = (geo, mat, list, place) => {
     const im = new THREE.InstancedMesh(geo, mat, list.length * EDGE_COPIES);
@@ -298,9 +424,10 @@ function blobShadow(r, sx = 1, sz = 1) {   // まるい影
     edge.add(im);
     return im;
   };
-  mk(edgeStoneGeo, edgeStoneMat, stones, (o, [x, z, s], off) => {
+  if (CLASSIC) mk(edgeStoneGeo, edgeStoneMat, stones, (o, [x, z, s], off) => {
     o.position.set(x, 0.08 * s, z + off); o.scale.set(s, s * 0.7, s); o.rotation.set(0, z * 3, 0);
   });
+  if (!CLASSIC) buildCorridor(mk);
   mk(tuftGeo, tuftMat, tufts, (o, [x, z, s, tilt], off) => {
     o.position.set(x, 0.25 * s, z + off); o.scale.set(s, s, s); o.rotation.set(tilt * 0.6, 0, tilt);
   });
@@ -328,7 +455,7 @@ function blobShadow(r, sx = 1, sz = 1) {   // まるい影
     ]);
     board.position.y = 0.85;
     g.add(post, board);
-    g.position.set((c % 2 ? 1 : -1) * (edgeX + 1.1), 0, c * EDGE_P + 17);
+    g.position.set((c % 2 ? 1 : -1) * (CLASSIC ? edgeX + 1.1 : CURB_X + 1.35), 0, c * EDGE_P + 17);
     g.rotation.y = Math.PI;
     edge.add(g);
   }
@@ -374,12 +501,16 @@ function applyThemeExtras() {
   tuftMat.color.set(theme.grassTint);
   bushMat.color.set(new THREE.Color(theme.grassTint).multiplyScalar(0.85));
   edgeStoneMat.color.set(theme.roadDots === "leaf" ? 0xb5ad9c : 0xd2cdc2);
+  hedgeMat.color.set(new THREE.Color(theme.grassTint).multiplyScalar(0.82));
+  nearLeafMat.color.set(theme.treeColors[0]);
+  curbMat.color.set(theme.roadDots === "leaf" ? 0xd8d0bf : 0xf2ece0);
+  grooveMat.color.set(new THREE.Color(theme.road).multiplyScalar(0.55));
   mountains.forEach((m) => m.material.color.set(theme.mountains[m.userData.layer]));
 }
 
 /* 背景を流す（テクスチャのずらし・ふちのくり返し） */
 function scrollGround(dist) {
-  roadTex.offset.y = -((dist * ROAD_REPEAT) / 400) % 1;
+  roadTex.offset.y = -((dist * roadTex.repeat.y) / 400) % 1;
   grassTex.offset.y = -((dist * GROUND_REPEAT_Y) / 400) % 1;
   edge.position.z = -10 - (dist % EDGE_P);
 }
@@ -498,7 +629,7 @@ shadow.position.y = 0.01;
 scene.add(shadow);
 
 async function loadNorun() {
-  const gltf = await new GLTFLoader().loadAsync("assets/models/norun-v2.glb");
+  const gltf = await new GLTFLoader().loadAsync("assets/models/norun-v4.glb");
   const m = gltf.scene;
   m.scale.setScalar(NORUN_SCALE);
   const get = (n) => m.getObjectByName(n);
@@ -682,13 +813,32 @@ const look = {
   blinkT: 2, blink: 0,
   star: { a: 0, v: 0, b: 0, w: 0 },   // 星の揺れ（ばね）
   spin: 0,
+  // 走る時の 左右の揺れ（体は足もとを支点に揺れ、帽子と星は少し遅れてついてくる）
+  swayPhase: 0, swayAmp: 0, sway: 0, swayVel: 0,
+  hatLag: { a: 0, v: 0 },
 };
+const SWAY = { angle: 0.17, twist: 0.07, speed: 9.6 };   // 角度（ラジアン）・ひねり・速さ（2回跳ねるごとに左右1往復）
 
 function updateNorunLook(dt, t, ax, ay) {
   if (!norun.model) return;
   // ぷにぷに：つぶれ・のび（体ごと。帽子も一緒に）
   const s = look.squash;
   norun.body.scale.set(1 + s * 0.8, 1 - s, 1 + s * 0.8);
+
+  // 走る揺れ：左右に ゆらゆら（メニューでは ゆっくり小さく）
+  const running = state === "play" || state === "ready";
+  look.swayAmp = damp(look.swayAmp, running ? 1 : state === "menu" ? 0.3 : 0, 6, dt);
+  look.swayPhase += dt * (running ? SWAY.speed : 3.5);
+  const prevSway = look.sway, prevSwayVel = look.swayVel;
+  look.sway = Math.sin(look.swayPhase) * SWAY.angle * look.swayAmp;
+  look.swayVel = (look.sway - prevSway) / Math.max(dt, 1e-4);
+  const swayAcc = (look.swayVel - prevSwayVel) / Math.max(dt, 1e-4);
+  norun.body.rotation.set(0, Math.sin(look.swayPhase) * SWAY.twist * look.swayAmp, look.sway);
+  // 帽子：体の揺れを ばねで追いかける（少し遅れる）
+  const hl = look.hatLag;
+  hl.v += (-(hl.a - look.sway) * 90 - hl.v * 9) * dt;
+  hl.a += hl.v * dt;
+  const hatLagRel = clamp(hl.a - look.sway, -0.25, 0.25);
 
   // まばたき
   look.blinkT -= dt;
@@ -719,12 +869,12 @@ function updateNorunLook(dt, t, ax, ay) {
   const hb = norun.hat.userData;
   norun.hat.position.copy(hb.basePos);
   norun.hat.position.y += hp * 0.95 + (hp > 0 ? Math.sin(t * 6) * 0.04 * hp : 0);
-  norun.hat.rotation.set(0, 0, hp > 0 ? Math.sin(t * 5) * 0.15 * hp : 0);
+  norun.hat.rotation.set(0, 0, (hp > 0 ? Math.sin(t * 5) * 0.15 * hp : 0) + hatLagRel);
   norun.hat.quaternion.premultiply(hb.baseQuat);
 
   // 星の揺れ：横の加速・縦の加速で振られて、ばねで戻る
   const st = look.star;
-  st.v += (-st.a * 70 - st.v * 5 + ax * 0.06) * dt;
+  st.v += (-st.a * 70 - st.v * 5 + ax * 0.06 - clamp(swayAcc, -40, 40) * 0.5) * dt;
   st.a += st.v * dt;
   st.w += (-st.b * 70 - st.w * 5 - ay * 0.03) * dt;
   st.b += st.w * dt;
@@ -1158,7 +1308,7 @@ function updateRun(dt) {
   for (const it of run.active) {
     it.obj.position.z = it.d - run.dist;
     // のるんを通りすぎた障害物は消す（大きな木などがカメラの前をふさがないように。ぶつかった物は残す）
-    if (it.type === "obs" && it !== run.hitObs) it.obj.visible = it.obj.position.z > -1.6;
+    if (it.type === "obs" && it !== run.hitObs) it.obj.visible = it.obj.position.z > (CLASSIC ? -1.6 : -0.9);
   }
 
   if (moving) {
@@ -1784,10 +1934,10 @@ function updateCamera(dt, t) {
   const px = lerp(me.x * 0.55, me.x, showcase);
   camera.position.set(
     px + rand(-sh, sh),
-    lerp(3.4, 1.75, showcase) + rand(-sh, sh),
-    lerp(-6.3, -4.6, showcase)
+    lerp(CAM.y, 1.75, showcase) + rand(-sh, sh),
+    lerp(CAM.z, -4.6, showcase)
   );
-  _camLook.set(lerp(me.x * 0.35, me.x, showcase), lerp(1.0, 0.75, showcase), lerp(10, 0, showcase));
+  _camLook.set(lerp(me.x * 0.35, me.x, showcase), lerp(CAM.lookY, 0.75, showcase), lerp(CAM.lookZ, 0, showcase));
   camera.lookAt(_camLook);
   // メニュー中はのるんがパネルに隠れないよう画面をずらす（横長→左、縦長→上）
   const W = innerWidth, H = innerHeight, portrait = H > W;
