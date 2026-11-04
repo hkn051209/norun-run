@@ -58,8 +58,17 @@ input.name{width:100%;font-size:26px;padding:12px 14px;border-radius:16px;border
 #progressFill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#ffb6d9,#ff7eb6);border-radius:99px}
 #progressIcon{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:24px}
 #progressGoal{position:absolute;right:-6px;top:50%;transform:translateY(-50%);font-size:22px}
+#meter{flex:1;text-align:center;font-size:22px;font-weight:900;margin:0 8px}
+.dan{padding:12px 4px;font-size:18px}
+#danGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+#hatGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:8px 0}
+.hat{padding:8px 4px;border-radius:16px;border:4px solid transparent;background:#f6f2fc;font-size:15px;font-weight:900;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:4px}
+.hat .sw{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #e2dbef;font-size:20px}
+.hat .sw.lock{background:#e9e4f2;color:#a59cb8}
+.hat.on{border-color:#ffb800;background:#fff6d6}
+.hat:disabled{opacity:.7}
 #formBadge{font-size:30px;background:#fff;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 #b7a6d6}
-#question{position:absolute;top:66px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);border-radius:22px;padding:8px 22px;font-size:clamp(30px,5.5vw,52px);font-weight:900;white-space:nowrap;box-shadow:0 5px 0 #b7a6d6;transition:opacity .2s}
+#question{position:absolute;top:clamp(74px,16vh,170px);left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);border-radius:22px;padding:8px 22px;font-size:clamp(30px,5.5vw,52px);font-weight:900;white-space:nowrap;box-shadow:0 5px 0 #b7a6d6;transition:opacity .2s}
 #question .dot{color:#ff5a8c;letter-spacing:-.06em}
 #question .op{font-size:.6em;color:#6b5a8a;margin:0 .3em;vertical-align:.15em}
 #question.off{opacity:0}
@@ -89,6 +98,7 @@ input.name{width:100%;font-size:26px;padding:12px 14px;border-radius:16px;border
     <button class="pill" id="btnQuit">≡</button>
     <div id="formBadge">🧙</div>
     <div id="progress"><div id="progressFill"></div><div id="progressIcon">🟣</div><div id="progressGoal">🏁</div></div>
+    <div id="meter" class="pill hidden">0m</div>
     <button class="pill" id="btnBgm">♪</button>
   </div>
   <div id="question" class="off"></div>
@@ -140,13 +150,52 @@ input.name{width:100%;font-size:26px;padding:12px 14px;border-radius:16px;border
     <button class="big" id="btnRun">🏃 ランタイプ</button>
     <button class="big" disabled>🧗 アスレタイプ（じゅんびちゅう）</button>
     <button class="big" disabled>🗼 とうモード（じゅんびちゅう）</button>
-    <p class="note" style="margin-top:14px">もんだいの むずかしさ</p>
+    <p class="note" style="margin-top:14px">ステージの もんだいの むずかしさ</p>
     <div class="row" id="diffRow"></div>
     <p class="note" id="diffNote"></p>
     <div class="row">
       <button class="big alt" id="btnZukan">📖 ずかん</button>
-      <button class="big gray" id="btnSwitch">👥 ひとを かえる</button>
+      <button class="big alt" id="btnDress">👒 きせかえ</button>
     </div>
+    <button class="big gray" id="btnSwitch">👥 ひとを かえる</button>
+  </div>
+</div>
+
+<!-- ランタイプのメニュー -->
+<div id="scRunMenu" class="screen hidden">
+  <div class="panel">
+    <h2>ランタイプ</h2>
+    <button class="big" id="btnModeStage">🗺️ ステージ<br><span style="font-size:15px">ゴールを めざして すすむ</span></button>
+    <button class="big" id="btnModeDan">✖️ かけざん<br><span style="font-size:15px">だんを えらんで 9もん</span></button>
+    <button class="big" id="btnModeEndless">♾️ エンドレス<br><span style="font-size:15px">ぶつかるまで どこまでも</span></button>
+    <button class="big gray" id="btnRunMenuBack">もどる</button>
+  </div>
+</div>
+
+<!-- かけざん：段えらび -->
+<div id="scDan" class="screen hidden">
+  <div class="panel">
+    <h2>どの だんに する？</h2>
+    <div id="danGrid"></div>
+    <div class="row">
+      <button class="chip" id="btnDanOrder">じゅんばん</button>
+      <button class="chip" id="btnDanRandom">ランダム</button>
+    </div>
+    <p class="note" id="danNote"></p>
+    <button class="big" id="btnDanGo">すすむ</button>
+    <button class="big gray" id="btnDanBack">もどる</button>
+  </div>
+</div>
+
+<!-- きせかえ -->
+<div id="scDress" class="screen hidden">
+  <div class="panel">
+    <h2>きせかえ</h2>
+    <p class="note" style="font-weight:900">ぼうしの いろ</p>
+    <div id="hatGrid"></div>
+    <p class="note" id="hatCount"></p>
+    <p class="note">ピンズの つけかえは じゅんびちゅう</p>
+    <button class="big gray" id="btnDressBack">もどる</button>
   </div>
 </div>
 
