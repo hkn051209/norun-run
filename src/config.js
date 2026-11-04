@@ -97,19 +97,21 @@ export const STAGES = [
    order=じゅんばん（×1〜×9）/ random=その段からランダム。どちらも9問・ゴールあり
    かけざんは思い出す系なので、ステージより少し速い */
 export const DAN_RUN = {
-  theme: "field", speed: 8, rowsPerSection: 2, choices: 2, rowGap: 13,
+  theme: "field", speed: 9, rowsPerSection: 2, choices: 2, rowGap: 13,
   patterns: { low1: 3, tall1: 3, tall2: 2, lowAll: 1 },
 };
 
 /* ---- エンドレスモード ----
    たし算・ひき算・かけざんが まざる。ゴールなし、ぶつかるまで。
    gates が threeFrom 個をこえると、ときどき3択（threeRate）
-   rewards: 走った長さ（m）ごとに小物を1つ。例：200m で1つ、600m で2つ… */
+   速さ：speed から始まり、100m すすむごとに speedUp ずつ上がる（maxSpeed まで）
+   rewardEvery: せいかい この数ごとに 小物を1つ */
 export const ENDLESS_RUN = {
-  theme: "sunset", speed: 7, rowGap: 12, rowsMin: 2, rowsMax: 4,
+  theme: "sunset", speed: 7, speedUp: 0.5, maxSpeed: 12,
+  rowGap: 12, rowsMin: 2, rowsMax: 4,
   threeFrom: 4, threeRate: 0.4,
   patterns: { low1: 2, tall1: 2, tall2: 3, lowAll: 2, mix: 2 },
-  rewards: [200, 600, 1200, 2000],
+  rewardEvery: 10,
 };
 
 /* ---- 小物：帽子の色（ごほうび） ----

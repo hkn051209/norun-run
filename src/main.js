@@ -1143,6 +1143,10 @@ function updateRun(dt) {
     run.dist -= b;
   }
   run.course.extend(run.dist);
+  // エンドレス：すすむほど 少しずつ速くなる
+  if (run.def.kind === "endless") {
+    run.speed = Math.min(run.def.maxSpeed, run.def.speed + (run.dist / 100) * run.def.speedUp);
+  }
   spawnAhead();
   // エンドレスで たまった古いデータを捨てる
   if (run.next > 120) {
@@ -1236,12 +1240,12 @@ function grantHats(n) {
 
 function endlessReward() {
   const m = Math.floor(run.dist);
-  const reached = run.def.rewards.filter((r) => m >= r).length;
+  const every = run.def.rewardEvery;
   run.meters = m;
   run.isBest = m > (player.bestEndless || 0);
   if (run.isBest) player.bestEndless = m;
-  run.hatsGot = grantHats(reached);
-  run.nextReward = run.def.rewards.find((r) => m < r) || null;
+  run.hatsGot = grantHats(Math.floor(run.correct / every));   // せいかい10もんごとに 小物1つ
+  run.toNext = every - (run.correct % every);
   store.savePlayer(player);
 }
 
@@ -1301,7 +1305,7 @@ function showResult() {
     title = `${run.meters}m はしった！`;
     text = `せいかい ${run.correct}もん\nさいこう きろく ${player.bestEndless}m${run.isBest && run.meters > 0 ? "（しんきろく！）" : ""}`;
     if (run.hatsGot.length) text += `\n\nごほうび！\n${hatsText(run.hatsGot)}\nきせかえで かえられるよ`;
-    else if (run.nextReward && player.hats.length < HAT_COLORS.length) text += `\n\nあと ${run.nextReward - run.meters}m で 小物が もらえるよ`;
+    else if (player.hats.length < HAT_COLORS.length) text += `\n\nあと ${run.toNext}もん せいかいで 小物が もらえるよ`;
     if (run.reason !== "hit") text += `\n\n${failAnswerText()}`;
   } else if (ok) {
     icon = "🎉";
@@ -1376,7 +1380,8 @@ function hideQuestion() {
 function updateProgress() {
   if (!run) return;
   if (run.def.kind === "endless") {
-    $("meter").textContent = `${Math.floor(run.dist)}m`;
+    const every = run.def.rewardEvery;
+    $("meter").textContent = `${Math.floor(run.dist)}m ・ ごほうびまで あと${every - (run.correct % every)}もん`;
     return;
   }
   const p = clamp(run.dist / run.course.goalD, 0, 1);
