@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>のるんラン</title>
+<style>
+:root{--ink:#3b2a5a;--pink:#ff7eb6;--pinkd:#d6558f;--sky:#5bc0eb;--skyd:#2e8fbf;--panel:rgba(255,255,255,.96)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#a8e4ff;font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans-serif;-webkit-user-select:none;user-select:none;touch-action:none;color:var(--ink)}
+canvas{display:block;position:fixed;inset:0}
+.hidden{display:none !important}
+button{font-family:inherit;cursor:pointer}
+
+/* ---------- 画面（メニュー類）：横長は右側、縦長は下側にパネル ---------- */
+.screen{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:flex-end;padding:3vh 4vw}
+.panel{background:var(--panel);border-radius:28px;padding:20px 24px;width:min(48vw,520px);max-height:94vh;overflow:auto;touch-action:pan-y;text-align:center;box-shadow:0 8px 0 #b7a6d6}
+@media (orientation:portrait){
+  .screen{justify-content:center;align-items:flex-end}
+  .panel{width:min(94vw,560px);max-height:58vh}
+}
+h1{margin:4px 0 10px;font-size:40px;color:var(--pink)}
+h2{margin:4px 0 12px;font-size:26px}
+p.note{margin:4px 0 10px;font-size:16px;color:#6b5a8a}
+.big{display:block;width:100%;margin:10px 0;padding:15px;border:0;border-radius:20px;font-size:22px;font-weight:900;color:#fff;background:var(--pink);box-shadow:0 5px 0 var(--pinkd)}
+.big.alt{background:var(--sky);box-shadow:0 5px 0 var(--skyd)}
+.big.gray,.big:disabled{background:#d9d4e3;box-shadow:0 5px 0 #b8b1c7;color:#857c97}
+.row{display:flex;gap:10px;align-items:center}
+.row .big{margin:6px 0}
+.small{padding:9px 14px;border:0;border-radius:14px;font-size:17px;font-weight:800;background:#ffd166;color:#5a3d00}
+.small.danger{background:#ffb0b0;color:#7a1b1b}
+.chip{flex:1;padding:12px 6px;border:4px solid transparent;border-radius:16px;background:#f1ecf9;font-size:17px;font-weight:900;color:var(--ink)}
+.chip.on{border-color:#ffb800;background:#fff6d6}
+.list{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.player{display:flex;gap:8px}
+.player .big{margin:0;flex:1;text-align:left;padding-left:20px}
+input.name{width:100%;font-size:26px;padding:12px 14px;border-radius:16px;border:3px solid #cbbde6;font-family:inherit;text-align:center;-webkit-user-select:text;user-select:text}
+.msg{min-height:22px;color:#d6336c;font-weight:700}
+.stage{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:#f6f2fc;margin:8px 0;text-align:left;border:0;width:100%;font-size:18px;color:var(--ink)}
+.stage .num{width:52px;height:52px;border-radius:50%;background:var(--pink);color:#fff;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;flex:none}
+.stage .t{flex:1;font-weight:900}
+.stage .s{font-size:14px;color:#7d6b9c;font-weight:700}
+.stage:disabled{opacity:.55}
+.stage:disabled .num{background:#b8b1c7}
+.forms{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin:8px 0}
+.form{padding:10px 6px;border-radius:18px;border:4px solid transparent;background:#f6f2fc;font-size:16px;font-weight:900;color:var(--ink)}
+.form .art{font-size:48px;line-height:1.2;display:block}
+.form.on{border-color:#ffb800;background:#fff6d6}
+.form:disabled{opacity:.6}
+.formDesc{min-height:44px;font-size:16px;font-weight:700;color:#6b5a8a;margin:6px 0}
+
+/* ---------- ゲーム中の表示 ---------- */
+#hud{position:fixed;inset:0;z-index:2;pointer-events:none}
+#hud button{pointer-events:auto}
+#topbar{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:center;gap:8px}
+.pill{background:#fff;border:0;border-radius:999px;padding:9px 14px;font-size:17px;font-weight:800;color:var(--ink);box-shadow:0 3px 0 #b7a6d6}
+#progress{flex:1;height:16px;background:rgba(255,255,255,.7);border-radius:99px;position:relative;margin:0 8px}
+#progressFill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#ffb6d9,#ff7eb6);border-radius:99px}
+#progressIcon{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:24px}
+#progressGoal{position:absolute;right:-6px;top:50%;transform:translateY(-50%);font-size:22px}
+#formBadge{font-size:30px;background:#fff;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 #b7a6d6}
+#question{position:absolute;top:66px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);border-radius:22px;padding:8px 22px;font-size:clamp(30px,5.5vw,52px);font-weight:900;white-space:nowrap;box-shadow:0 5px 0 #b7a6d6;transition:opacity .2s}
+#question .dot{color:#ff5a8c;letter-spacing:-.06em}
+#question .op{font-size:.6em;color:#6b5a8a;margin:0 .3em;vertical-align:.15em}
+#question.off{opacity:0}
+#controls{position:absolute;bottom:16px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-end}
+.ctl{width:96px;height:96px;border-radius:50%;border:0;background:rgba(255,255,255,.6);font-size:40px;font-weight:900;color:var(--ink);box-shadow:0 5px 0 rgba(59,42,90,.3)}
+.ctl.jump{width:120px;height:84px;border-radius:44px;font-size:24px}
+.mid{display:flex;gap:12px}
+#toast{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%) scale(.9);background:rgba(255,255,255,.95);padding:12px 26px;border-radius:20px;font-size:clamp(24px,4.5vw,40px);font-weight:900;color:#ff5a8c;opacity:0;transition:.15s;white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+/* 結果 */
+#resultIcon{font-size:84px;line-height:1.1}
+#resultText{font-size:21px;font-weight:700;white-space:pre-line;margin:8px 0}
+
+#loading{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:#a8e4ff;font-size:28px;font-weight:900;white-space:pre-line;text-align:center;padding:20px}
+</style>
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.min.js", "three/addons/": "./lib/addons/" } }
+</script>
+</head>
+<body>
+<div id="loading">よみこみちゅう…</div>
+
+<!-- ゲーム中 -->
+<div id="hud" class="hidden">
+  <div id="topbar">
+    <button class="pill" id="btnQuit">≡</button>
+    <div id="formBadge">🧙</div>
+    <div id="progress"><div id="progressFill"></div><div id="progressIcon">🟣</div><div id="progressGoal">🏁</div></div>
+    <button class="pill" id="btnBgm">♪</button>
+  </div>
+  <div id="question" class="off"></div>
+  <div id="controls">
+    <button class="ctl" id="btnL">◀</button>
+    <div class="mid">
+      <button class="ctl jump hidden" id="btnRoll">ころがる</button>
+      <button class="ctl jump" id="btnJump">ジャンプ</button>
+    </div>
+    <button class="ctl" id="btnR">▶</button>
+  </div>
+  <div id="toast"></div>
+</div>
+
+<!-- プレイヤー選択 -->
+<div id="scTitle" class="screen hidden">
+  <div class="panel">
+    <h1>のるんラン</h1>
+    <p class="note">だれが あそぶ？</p>
+    <div class="list" id="playerList"></div>
+    <button class="big alt" id="btnNewPlayer">＋ なまえを つくる</button>
+    <button class="small danger" id="btnDelMode" style="margin-top:6px">なまえを けす</button>
+  </div>
+</div>
+
+<div id="scNewPlayer" class="screen hidden">
+  <div class="panel">
+    <h2>なまえを いれてね</h2>
+    <input class="name" id="nameInput" maxlength="10" autocomplete="off" placeholder="なまえ">
+    <div class="msg" id="nameMsg"></div>
+    <button class="big" id="btnNameOk">けってい</button>
+    <button class="big gray" id="btnNameCancel">もどる</button>
+  </div>
+</div>
+
+<div id="scConfirm" class="screen hidden">
+  <div class="panel">
+    <h2 id="confirmText"></h2>
+    <p class="note">きえた データは もどせないよ</p>
+    <button class="big" id="btnConfirmYes" style="background:#ff6b6b;box-shadow:0 5px 0 #c94a4a">けす</button>
+    <button class="big gray" id="btnConfirmNo">やめる</button>
+  </div>
+</div>
+
+<!-- ホーム -->
+<div id="scHome" class="screen hidden">
+  <div class="panel">
+    <h2 id="homeHello"></h2>
+    <button class="big" id="btnRun">🏃 ランタイプ</button>
+    <button class="big" disabled>🧗 アスレタイプ（じゅんびちゅう）</button>
+    <button class="big" disabled>🗼 とうモード（じゅんびちゅう）</button>
+    <p class="note" style="margin-top:14px">もんだいの むずかしさ</p>
+    <div class="row" id="diffRow"></div>
+    <p class="note" id="diffNote"></p>
+    <div class="row">
+      <button class="big alt" id="btnZukan">📖 ずかん</button>
+      <button class="big gray" id="btnSwitch">👥 ひとを かえる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ステージえらび -->
+<div id="scStages" class="screen hidden">
+  <div class="panel">
+    <h2>ステージを えらんでね</h2>
+    <div id="stageList"></div>
+    <button class="big gray" id="btnStagesBack">もどる</button>
+  </div>
+</div>
+
+<!-- 図鑑（スタート前の変身えらび / 見るだけ） -->
+<div id="scForms" class="screen hidden">
+  <div class="panel">
+    <h2 id="formsTitle">ずかん</h2>
+    <div class="forms" id="formList"></div>
+    <div class="formDesc" id="formDesc"></div>
+    <button class="big" id="btnFormsGo">スタート！</button>
+    <button class="big gray" id="btnFormsBack">もどる</button>
+  </div>
+</div>
+
+<!-- 結果 -->
+<div id="scResult" class="screen hidden">
+  <div class="panel">
+    <div id="resultIcon"></div>
+    <h2 id="resultTitle"></h2>
+    <div id="resultText"></div>
+    <button class="big" id="btnRetry">もういちど</button>
+    <button class="big alt hidden" id="btnNext">つぎへ</button>
+    <button class="big gray" id="btnToHome">メニューへ</button>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
