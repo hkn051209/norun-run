@@ -5,7 +5,7 @@
 | 素材 | ファイル | 出どころ | ライセンス・権利 |
 |---|---|---|---|
 | キャラクター「のるん」 | — | ひこのさんのオリジナルキャラクター | 権利はひこのさん |
-| のるんの3Dモデル | assets/models/norun-v2.glb | クロド制作（norun build.py） | ひこのさんのキャラクターに基づく制作物 |
+| のるんの3Dモデル | assets/models/norun-v4.glb | クロド制作（norun build.py） | ひこのさんのキャラクターに基づく制作物 |
 | 3D描画ライブラリ | lib/three.module.min.js, lib/addons/*.js | three.js r160 | MIT（lib/THREE-LICENSE.txt） |
 | 背景・障害物・ゲート・ゴール・道の模様・山・演出 | src/main.js 内で図形と canvas から生成 | クロド制作（外部素材なし） | — |
 | 図鑑の絵 | 絵文字 | 端末の絵文字フォント | 表示は端末依存。販売時は自前の絵に差し替え推奨 |
