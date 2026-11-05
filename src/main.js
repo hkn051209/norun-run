@@ -178,6 +178,7 @@ for (let i = 0; i < 60; i++) { const t2 = makeTree(); scene.add(t2); decor.push(
 for (let i = 0; i < 36; i++) { const f = makeFlower(); scene.add(f); decor.push(f); }
 for (let i = 0; i < 30; i++) { const m = makeMushroom(); scene.add(m); decor.push(m); }
 
+const themeName = (th) => Object.keys(THEMES).find((k) => THEMES[k] === th) || "field";
 /* 背景のテーマを切り替える（ステージごと） */
 function applyTheme(name) {
   theme = THEMES[name] || THEMES.field;
@@ -187,9 +188,11 @@ function applyTheme(name) {
   road.material.color.set(theme.road);
   dashMat.color.set(theme.dash);
   applyThemeExtras();
+  for (const [name, set] of Object.entries(kitSets)) set.visible = name === themeName(theme);
   let trees = 0;
   for (const o of decor) {
     const k = o.userData.kind;
+    if (kitReady) { o.visible = false; continue; }   // Nature Kit の木・花に置きかえ
     if (k === "tree") {
       o.visible = trees++ < theme.trees;
       o.userData.top.material.color.set(theme.treeColors[randInt(0, theme.treeColors.length - 1)]);
@@ -343,11 +346,26 @@ const fenceMat = lambert(0xc99561);
 const hedgeMat = lambert(0x5aa64f);
 const nearLeafMat = lambert(0x4fae55);
 const nearTrunkMat = lambert(0x8a5a33);
+/* 縁石：1.5m の石ブロック（色を少しずつ変える） */
+function buildCurbs(mk) {
+  const curbs = [];
+  for (const side of [1, -1]) for (let z = 0; z < EDGE_P; z += 1.5) curbs.push([side * CURB_X, z + 0.75, rand(0.86, 1.0)]);
+  const curbGeo = new THREE.BoxGeometry(0.54, 0.3, 1.44);
+  const curbIm = mk(curbGeo, curbMat, curbs, (o, [x, z], off) => {
+    o.position.set(x, 0.15, z + off); o.scale.set(1, 1, 1); o.rotation.set(0, 0, 0);
+  });
+  const cc = new THREE.Color();
+  for (let i = 0; i < curbIm.count; i++) {
+    const s = curbs[i % curbs.length][2];
+    curbIm.setColorAt(i, cc.setRGB(0.93 * s, 0.9 * s, 0.85 * s));
+  }
+  curbIm.instanceColor.needsUpdate = true;
+}
+
+/* 図形で作った通路（Kenney の素材が読めなかった時の予備） */
 function buildCorridor(mk) {
-  const curbs = [], posts = [], rails = [], hedges = [], trees = [];
+  const posts = [], rails = [], hedges = [], trees = [];
   for (const side of [1, -1]) {
-    // 縁石：1.5m の石ブロック（色を少しずつ変える）
-    for (let z = 0; z < EDGE_P; z += 1.5) curbs.push([side * CURB_X, z + 0.75, rand(0.86, 1.0)]);
     // 柵：くい 1.5m ごと＋横木2本
     for (let z = 0; z < EDGE_P; z += 1.5) posts.push([side * (CURB_X + 0.62), z]);
     for (const y of [0.42, 0.78]) rails.push([side * (CURB_X + 0.62), y]);
@@ -363,17 +381,6 @@ function buildCorridor(mk) {
       trees.push([side * (CURB_X + rand(3.0, 4.8)), i * (EDGE_P / 3) + rand(0, EDGE_P / 3 - 2), rand(0.9, 1.25)]);
     }
   }
-  const curbGeo = new THREE.BoxGeometry(0.54, 0.3, 1.44);
-  const curbIm = mk(curbGeo, curbMat, curbs, (o, [x, z], off) => {
-    o.position.set(x, 0.15, z + off); o.scale.set(1, 1, 1); o.rotation.set(0, 0, 0);
-  });
-  // 縁石の色むら（石らしく）
-  const cc = new THREE.Color();
-  for (let i = 0; i < curbIm.count; i++) {
-    const s = curbs[i % curbs.length][2];
-    curbIm.setColorAt(i, cc.setRGB(0.93 * s, 0.9 * s, 0.85 * s));
-  }
-  curbIm.instanceColor.needsUpdate = true;
   mk(new THREE.CylinderGeometry(0.07, 0.08, 1.0, 6), fenceMat, posts, (o, [x, z], off) => {
     o.position.set(x, 0.5, z + off); o.scale.set(1, 1, 1); o.rotation.set(0, 0, 0);
   });
@@ -427,8 +434,8 @@ function buildCorridor(mk) {
   if (CLASSIC) mk(edgeStoneGeo, edgeStoneMat, stones, (o, [x, z, s], off) => {
     o.position.set(x, 0.08 * s, z + off); o.scale.set(s, s * 0.7, s); o.rotation.set(0, z * 3, 0);
   });
-  if (!CLASSIC) buildCorridor(mk);
-  mk(tuftGeo, tuftMat, tufts, (o, [x, z, s, tilt], off) => {
+  if (!CLASSIC) buildCurbs(mk);
+  if (CLASSIC) mk(tuftGeo, tuftMat, tufts, (o, [x, z, s, tilt], off) => {
     o.position.set(x, 0.25 * s, z + off); o.scale.set(s, s, s); o.rotation.set(tilt * 0.6, 0, tilt);
   });
   mk(bushGeo, bushMat, bushes, (o, [x, z, s], off) => {
@@ -445,7 +452,7 @@ function buildCorridor(mk) {
     x.fillStyle = "#7a4e22"; x.font = `bold 34px ${FONT}`; x.textAlign = "center"; x.textBaseline = "middle";
     x.fillText("→", w / 2, h / 2 + 2);
   });
-  for (let c = 0; c < EDGE_COPIES; c++) {
+  if (CLASSIC) for (let c = 0; c < EDGE_COPIES; c++) {
     const g = new THREE.Group();
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), lambert(0x9a6a3d));
     post.position.y = 0.45;
@@ -461,6 +468,177 @@ function buildCorridor(mk) {
   }
 }
 let edgeScroll = 0;
+
+/* =========================================================
+   Kenney「Nature Kit」（CC0）で 道ばたを作る
+   - モデルは assets/models/nature/ に入っている分だけ読む
+   - どれも EDGE_P の1周期ぶんを InstancedMesh でまとめて描く（数が多くても軽い）
+   - テーマごとに1セットずつ作り、見えるセットを切り替える
+   ========================================================= */
+const KIT_DIR = "assets/models/nature/";
+const KIT = {};          // 名前 → [{ geometry, material }]（ノードの位置・大きさは形に焼きこみ済み）
+let kitReady = false;
+const kitSets = {};      // テーマ名 → Group
+const kitLambert = new Map();
+// Kenney の葉っぱ・草は 青みの強い緑なので、のるんランの あたたかい色に合わせて 置きかえる（材質の名前で指定）
+const KIT_RECOLOR = {
+  leafsGreen: 0x63c25a,
+  leafsDark: 0x3f9d55,
+  grass: 0x72c45e,
+  leafsFall: 0xf2a646,
+};
+
+async function loadKit(names) {
+  const loader = new GLTFLoader();
+  await Promise.all(names.map(async (n) => {
+    const g = await loader.loadAsync(`${KIT_DIR}${n}.glb`);
+    g.scene.updateMatrixWorld(true);
+    const parts = [];
+    g.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      const geo = o.geometry.clone().applyMatrix4(o.matrixWorld);
+      // 軽い材質にそろえる（色はそのまま）。同じ名前の材質は使い回す
+      const key = o.material.name + "#" + o.material.color.getHexString();
+      if (!kitLambert.has(key)) {
+        const col = KIT_RECOLOR[o.material.name] != null ? new THREE.Color(KIT_RECOLOR[o.material.name]) : o.material.color.clone();
+        kitLambert.set(key, new THREE.MeshLambertMaterial({ color: col }));
+      }
+      parts.push({ geometry: geo, material: kitLambert.get(key) });
+    });
+    KIT[n] = parts;
+  }));
+}
+
+/* モデル1つぶん（部品ごとに InstancedMesh）。list の各要素を place で置く */
+function kitInst(parent, name, list, place) {
+  if (!list.length || !KIT[name]) return;
+  const o = new THREE.Object3D();
+  for (const part of KIT[name]) {
+    const im = new THREE.InstancedMesh(part.geometry, part.material, list.length * EDGE_COPIES);
+    let n = 0;
+    for (let c = 0; c < EDGE_COPIES; c++) {
+      for (const it of list) {
+        o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1);
+        place(o, it);
+        o.position.z += c * EDGE_P;
+        o.updateMatrix();
+        im.setMatrixAt(n++, o.matrix);
+      }
+    }
+    im.frustumCulled = false;
+    parent.add(im);
+  }
+}
+function blobInst(parent, list, place) {
+  const im = new THREE.InstancedMesh(blobGeo, blobMat, list.length * EDGE_COPIES);
+  const o = new THREE.Object3D();
+  let n = 0;
+  for (let c = 0; c < EDGE_COPIES; c++) {
+    for (const it of list) {
+      o.position.set(0, 0, 0); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.set(1, 1, 1);
+      place(o, it);
+      o.position.z += c * EDGE_P;
+      o.updateMatrix();
+      im.setMatrixAt(n++, o.matrix);
+    }
+  }
+  im.frustumCulled = false;
+  parent.add(im);
+}
+
+/* テーマごとの 素材の組み合わせ */
+const KIT_THEMES = {
+  field: {
+    near: ["tree_oak", "tree_default", "tree_fat"], far: ["tree_default", "tree_detailed", "tree_oak"],
+    flowers: ["flower_redA", "flower_yellowA", "flower_purpleA"], bushes: ["plant_bushDetailed", "plant_bushLarge"],
+    small: ["rock_smallA", "rock_smallC", "stump_round"], mushrooms: [],
+  },
+  forest: {
+    near: ["tree_oak_dark", "tree_default_dark", "tree_pineRoundA"], far: ["tree_pineTallA_detailed", "tree_pineRoundA", "tree_default_dark"],
+    flowers: ["flower_purpleA"], bushes: ["plant_bushDetailed", "plant_bushLarge"],
+    small: ["stump_round", "log", "rock_smallC"], mushrooms: ["mushroom_redGroup", "mushroom_tanGroup"],
+  },
+  sunset: {
+    near: ["tree_oak_fall", "tree_default_fall", "tree_fat_fall"], far: ["tree_default_fall", "tree_fat_fall", "tree_oak"],
+    flowers: ["flower_yellowA", "flower_redA"], bushes: ["plant_bushDetailed", "plant_bushLarge"],
+    small: ["rock_smallA", "stump_round", "log"], mushrooms: [],
+  },
+};
+const KIT_NAMES = [...new Set(Object.values(KIT_THEMES).flatMap((k) => [...k.near, ...k.far, ...k.flowers, ...k.bushes, ...k.small, ...k.mushrooms]).concat(["fence_simple", "grass", "grass_large", "sign"]))];
+
+/* 1テーマぶんの道ばた（場所はテーマごとに少しずつ違う並びになる） */
+function buildKitSet(themeName) {
+  const k = KIT_THEMES[themeName];
+  const g = new THREE.Group();
+  g.visible = false;
+  edge.add(g);
+  const FENCE_X = CURB_X + 0.62, FENCE_S = 2.0;      // 柵：長さ 2m・高さ 0.7m
+  const pick = (arr) => arr[randInt(0, arr.length - 1)];
+  const byModel = {};    // モデル名 → 置く場所の一覧
+  const add = (name, item) => { (byModel[name] ||= []).push(item); };
+  const bushShadows = [], treeShadows = [];
+  for (const side of [1, -1]) {
+    // 柵（道に そって ずっと）
+    for (let z = 0; z < EDGE_P; z += FENCE_S) add("fence_simple", { x: side * FENCE_X, z: z + FENCE_S / 2, s: FENCE_S, ry: Math.PI / 2 });
+    // 草むら（縁石と柵の あいだ と 柵の外）
+    for (let i = 0; i < 10; i++) add(Math.random() < 0.5 ? "grass" : "grass_large", { x: side * (FENCE_X + rand(-0.35, 1.4)), z: rand(0, EDGE_P), s: rand(1.8, 2.6), ry: rand(0, 6) });
+    // 花
+    for (let i = 0; i < 7; i++) add(pick(k.flowers), { x: side * (FENCE_X + rand(0.4, 1.6)), z: rand(0, EDGE_P), s: rand(2.0, 2.8), ry: rand(0, 6) });
+    // 茂み（柵の外に ならべる）
+    let z = rand(0, 1.5);
+    while (z < EDGE_P - 1) {
+      const it = { x: side * (FENCE_X + rand(1.3, 2.1)), z, s: rand(2.6, 3.6), ry: rand(0, 6) };
+      add(pick(k.bushes), it);
+      bushShadows.push(it);
+      z += rand(1.4, 2.6);
+    }
+    // 小石・切り株・丸太（ところどころ）
+    for (let i = 0; i < 3; i++) add(pick(k.small), { x: side * (FENCE_X + rand(0.5, 1.5)), z: rand(0, EDGE_P), s: rand(2.2, 3.0), ry: rand(0, 6) });
+    // きのこ（森）
+    for (let i = 0; i < (k.mushrooms.length ? 6 : 0); i++) add(pick(k.mushrooms), { x: side * (FENCE_X + rand(0.4, 2.2)), z: rand(0, EDGE_P), s: rand(2.4, 3.4), ry: rand(0, 6) });
+    // 道の近くの大きな木（1周期に3本）。枝が道の上にかぶさるよう、少し道側へ
+    for (let i = 0; i < 3; i++) {
+      const it = { x: side * (FENCE_X + rand(3.0, 4.4)), z: i * (EDGE_P / 3) + rand(0, EDGE_P / 3 - 2), s: rand(4.2, 5.4), ry: rand(0, 6) };
+      add(pick(k.near), it);
+      treeShadows.push(it);
+    }
+    // 遠くの木
+    for (let i = 0; i < 6; i++) add(pick(k.far), { x: side * rand(FENCE_X + 7, FENCE_X + 20), z: rand(0, EDGE_P), s: rand(4, 6.5), ry: rand(0, 6) });
+  }
+  // 立て札（2周期に1本）
+  const sign = [{ x: CURB_X + 1.15, z: 17, s: 2.2, ry: Math.PI }];
+  for (const [name, list] of Object.entries(byModel)) {
+    kitInst(g, name, list, (o, it) => { o.position.set(it.x, 0, it.z); o.scale.setScalar(it.s); o.rotation.y = it.ry; });
+  }
+  kitInst(g, "sign", sign, (o, it) => { o.position.set(it.x, 0, it.z); o.scale.setScalar(it.s); o.rotation.y = it.ry; });
+  blobInst(g, bushShadows, (o, it) => { o.position.set(it.x, 0.016, it.z); o.scale.set(it.s * 0.32, it.s * 0.3, 1); });
+  blobInst(g, treeShadows, (o, it) => { o.position.set(it.x - Math.sign(it.x) * 0.3, 0.017, it.z); o.scale.set(it.s * 0.5, it.s * 0.45, 1); });
+  kitSets[themeName] = g;
+}
+
+/* 起動時に呼ぶ：素材を読んで テーマごとのセットを作る。失敗したら 図形の通路で代わりに */
+async function setupRoadside() {
+  if (CLASSIC) return;
+  try {
+    await loadKit(KIT_NAMES);
+    for (const name of Object.keys(KIT_THEMES)) buildKitSet(name);
+    kitReady = true;
+  } catch (e) {
+    console.warn("Nature Kit を読めなかったので、図形の道ばたを使います", e);
+    buildCorridor(mkInst);
+  }
+}
+function mkInst(geo, mat, list, place) {
+  const im = new THREE.InstancedMesh(geo, mat, list.length * EDGE_COPIES);
+  const o = new THREE.Object3D();
+  let n = 0;
+  for (let c = 0; c < EDGE_COPIES; c++) {
+    for (const it of list) { place(o, it, c * EDGE_P); o.updateMatrix(); im.setMatrixAt(n++, o.matrix); }
+  }
+  im.frustumCulled = false;
+  edge.add(im);
+  return im;
+}
 
 // 遠くの山（霧の影響を受けない・動かない）
 const mountains = [];
@@ -1974,7 +2152,7 @@ function tick() {
    ========================================================= */
 tick();
 try {
-  await loadNorun();
+  await Promise.all([loadNorun(), setupRoadside()]);
   applyTheme("field");
   $("loading").classList.add("hidden");
   state = "menu";
@@ -1991,7 +2169,7 @@ if (DEBUG) {
     THREE, store, STAGES, FORMS, norun, me, look,
     get state() { return state; }, get run() { return run; }, get player() { return player; },
     selectPlayer, startRun, openForms, toMenu, renderHome, jump, moveLane, roll, fail, applyFormLook, applyTheme,
-    applyHat, stageDef, danDef, endlessDef, openDress,
+    applyHat, stageDef, danDef, endlessDef, openDress, renderer,
     nextObstacle() {
       return run && run.active.filter((i) => !i.passed).sort((a, b) => a.d - b.d)[0];
     },
