@@ -396,7 +396,7 @@ export function startPlayRun(opts) {
   stopRunView();
   const base = opts.speed || PLAY_RUN.speed, maxSpeed = opts.maxSpeed || PLAY_RUN.maxSpeed;
   R = {
-    mode: "play", ...opts, base, maxSpeed, dist: 0, speed: base, obs: [], items: [], rowD: 26, last: "",
+    mode: "play", ...opts, base, maxSpeed, dist: 0, speed: base, obs: [], items: [], rowD: 34, last: "",
     ready: 1.0, over: false, overT: 0, bounce: 0, shake: 0,
     kira: 0, dashT: 0, shield: false, safeT: 0, trailI: 0, trailT: 0,
     nextKira: 34, nextStar: RUN_ITEMS.star.from * 2 + 40, nextBubble: RUN_ITEMS.bubble.from * 2 + 60,
@@ -509,8 +509,14 @@ function playStep(dt) {
     it.obj.position.z = z;
     it.obj.rotation.y = tt * (it.kind === "kira" ? 3 : 1.6);
     if (it.kind !== "kira") it.obj.position.y = it.y + Math.sin(tt * 3 + it.d) * 0.15;
+    // ながれぼし中は 前の キラキラを すいよせる
+    if (!it.got && it.kind === "kira" && R.dashT > 0 && z < RUN_ITEMS.star.magnet && z > -0.5) {
+      it.obj.position.x = damp(it.obj.position.x, me.x, 10, dt);
+      it.y = damp(it.y, me.y + 0.6, 10, dt);
+      it.obj.position.y = it.y;
+    }
     if (it.got) { it.obj.position.y += dt * 6; it.obj.scale.multiplyScalar(1 - dt * 5); }
-    else if (!R.over && Math.abs(z) < 0.8 && Math.abs(me.x - LANE_X[it.lane]) < 0.9 && Math.abs(me.y + 0.6 - it.y) < 0.95) {
+    else if (!R.over && Math.abs(z) < 0.8 && Math.abs(me.x - it.obj.position.x) < 0.9 && Math.abs(me.y + 0.6 - it.y) < 0.95) {
       it.got = true;
       if (it.kind === "kira") { R.kira++; if (R.onKira) R.onKira(R.kira); }
       else if (it.kind === "star") { R.dashT = RUN_ITEMS.star.time; if (R.onItem) R.onItem("star"); }

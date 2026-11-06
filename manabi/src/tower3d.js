@@ -2,8 +2,8 @@
    塔（タワーアスレ・エンドレス）
    コースの部品（かいだん・すき間・高い段・ジャンプ台・1本道・動く足場・回るバー）を
    自動で 上へ つないで、のぼりつづける。頂上なし
-   - のるんは 自動で 前へ進む。◀ ▶ で レーン（3本）、ジャンプで こえる
-   - 高い段や かべの前では 止まって まつ（ジャンプすれば のぼれる）
+   - 移動は バーチャルパッド（まるい スティック）。たおした 方向にだけ 進み、はなすと 止まる
+   - ジャンプは ボタン。高い段や かべは ジャンプで のぼる
    - 落ちたら 直前の チェックポイント（旗）から すぐ やりなおし。何回でも OK
    - 記録＝のった足場の いちばん高い所（m）
    ========================================================= */
@@ -243,7 +243,8 @@ export function setTowerPins(pins) { if (nr.pins) applyPins(nr.pins, pins); }
 
 /* ---------- 状態 ---------- */
 let T = null;
-const me = { lane: 1, x: 0, y: 0, z: 0, vy: 0, on: null, free: false, squash: 0, ph: 0, star: 0, starV: 0, stun: 0, wait: 0, blocked: false };
+const me = { x: 0, y: 0, z: 0, vx: 0, vz: 0, vy: 0, yaw: 0, on: null, squash: 0, ph: 0, star: 0, starV: 0, stun: 0, wait: 0, blocked: false };
+const stick = { x: 0, y: 0 };   // バーチャルパッド：x=右が +、y=上（前）が +。大きさ 0〜1
 
 function clearCourse() {
   for (const s of solids) { scene.remove(s.g); s.g.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
@@ -257,7 +258,8 @@ export function startTower(opts) {
   Object.assign(B, { z: -4, y: 0, last: "", n: 0 });
   rest(9);
   T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed };
-  Object.assign(me, { lane: 1, x: 0, y: 0, z: -2, vy: 0, on: null, free: false, stun: 0, wait: 0.9, blocked: false });
+  Object.assign(me, { x: 0, y: 0, z: -2, vx: 0, vz: 0, vy: 0, yaw: 0, on: null, stun: 0, wait: 0.9, blocked: false });
+  stick.x = stick.y = 0;
   canvas.style.display = "block";
   onResize();
   clock.getDelta();
@@ -271,20 +273,11 @@ export function stopTower() {
   canvas.style.display = "none";
   return best;
 }
-const nearestLane = (x) => LANE_X.reduce((b, lx, i) => (Math.abs(x - lx) < Math.abs(x - LANE_X[b]) ? i : b), 0);
-/* レーンを かえる先に 高い かべが あったら かえない */
-function laneBlocked(l) {
-  const x = LANE_X[l];
-  return solids.some((s) => x + 0.35 > s.x0 && x - 0.35 < s.x1 && me.z + 0.28 > s.z0 && me.z - 0.28 < s.z1 && s.y1 > me.y + P.stepUp && s.y0 < me.y + 1.0);
-}
-export function towerMove(d) {
-  if (!T || me.wait > 0) return false;
-  const from = me.free ? nearestLane(me.x) : me.lane;
-  const to = Math.max(0, Math.min(2, from + d));
-  if (to === from || laneBlocked(to)) return false;
-  me.lane = to;
-  me.free = false;
-  return true;
+/* バーチャルパッドの 入力（main.js から 毎回 よぶ） */
+export function towerStick(x, y) {
+  const m = Math.hypot(x, y);
+  const k = m > 1 ? 1 / m : 1;
+  stick.x = x * k; stick.y = y * k;
 }
 export function towerJump() {
   if (!T || !me.on || me.wait > 0) return false;
@@ -306,9 +299,28 @@ addEventListener("resize", onResize);
 
 function respawn() {
   T.falls++;
-  Object.assign(me, { lane: 1, x: 0, y: T.cp.y, z: T.cp.z, vy: 0, on: null, free: false, stun: 0, wait: 0.7 });
+  Object.assign(me, { x: 0, y: T.cp.y, z: T.cp.z, vx: 0, vz: 0, vy: 0, yaw: 0, on: null, stun: 0, wait: 0.7 });
   T.camY = T.cp.y;
   if (T.onFall) T.onFall(T.falls);
+}
+
+/* 1つの 軸ずつ 動かして、かべに ぶつかったら 止める（ひくい段は そのまま のぼる） */
+const HW = 0.3, HD = 0.28;
+function hits(x, z, y) {
+  for (const s of solids) {
+    if (!(x + HW > s.x0 && x - HW < s.x1 && z + HD > s.z0 && z - HD < s.z1)) continue;
+    if (s.y1 <= y + 0.02 || s.y0 >= y + 1.0) continue;
+    return s;
+  }
+  return null;
+}
+function moveAxis(axis, d) {
+  if (Math.abs(d) < 1e-5) return;
+  const nx = axis === "x" ? me.x + d : me.x, nz = axis === "z" ? me.z + d : me.z;
+  const s = hits(nx, nz, me.y);
+  if (!s) { me.x = nx; me.z = nz; return; }
+  if (me.on && s.y1 - me.y <= P.stepUp && !hits(nx, nz, s.y1)) { me.y = s.y1; me.x = nx; me.z = nz; return; }   // かいだん
+  me.blocked = true;
 }
 
 const clock = new THREE.Clock();
@@ -338,31 +350,22 @@ function loop() {
   }
   for (const b of bars) { b.ang += b.sp * dt; b.g.rotation.y = b.ang; }
 
-  // のるん：前へ
-  T.speed = Math.min(P.maxSpeed, P.speed + T.best * P.speedUp);
+  // のるん：スティックの 方向へ 歩く（はなすと すぐ 止まる）
+  T.speed = P.speed;
   if (me.wait > 0) me.wait -= dt;
   if (me.stun > 0) me.stun -= dt;
-  const going = me.wait <= 0 && me.stun <= 0;
+  const canMove = me.wait <= 0 && me.stun <= 0;
+  const tvx = canMove ? -stick.x * T.speed : 0;     // 画面の 右 ＝ ワールドの -x
+  const tvz = canMove ? stick.y * T.speed : 0;
+  me.vx = damp(me.vx, tvx, 16, dt);
+  me.vz = damp(me.vz, tvz, 16, dt);
   me.blocked = false;
-  if (going) {
-    let nz = me.z + T.speed * dt;
-    for (const s of solids) {
-      if (!(me.x + 0.3 > s.x0 && me.x - 0.3 < s.x1)) continue;
-      if (s.y1 <= me.y + 0.02 || s.y0 >= me.y + 1.0) continue;
-      if (s.z0 < me.z + 0.28 - 0.05 || s.z0 > nz + 0.3) continue;
-      if (me.on && s.y1 - me.y <= P.stepUp) { me.y = s.y1; continue; }    // かいだんは そのまま のぼる
-      nz = Math.min(nz, s.z0 - 0.3);
-      me.blocked = true;
-    }
-    me.z = Math.max(me.z, nz);
-  }
-
-  // 左右（動く足場の上では いっしょに 動く）
   const px = me.x;
-  if (me.on && me.on.mov) { me.x += me.on.mov.dx; me.free = true; }
-  else if (me.free) { me.lane = nearestLane(me.x); me.free = false; }
-  if (!me.free) me.x = damp(me.x, LANE_X[me.lane], 13, dt);
+  if (me.on && me.on.mov) me.x += me.on.mov.dx;        // 動く足場の上では いっしょに 動く
+  moveAxis("x", me.vx * dt);
+  moveAxis("z", me.vz * dt);
   const vx = (me.x - px) / Math.max(dt, 1e-4);
+  const going = Math.hypot(me.vx, me.vz) > 0.4;
 
   // 上下：足場に のる
   const prevY = me.y;
@@ -412,9 +415,16 @@ function loop() {
   if (me.y < T.cp.y - 7) respawn();
 
   // のるんの 見た目
-  me.ph += dt * (me.on && going && !me.blocked ? 9.5 : 4);
+  me.ph += dt * (me.on && going ? 9.5 : 4);
   me.squash = damp(me.squash, me.on ? 0 : Math.max(-0.14, Math.min(0.05, -me.vy * 0.018)), 10, dt);
-  const hop = me.on && going && !me.blocked ? Math.abs(Math.sin(me.ph)) * 0.12 : 0;
+  const hop = me.on && going ? Math.abs(Math.sin(me.ph)) * 0.12 : 0;
+  // 歩く 方向を むく（後ろへ 歩く時も そっちを むく）
+  if (going) {
+    const want = Math.atan2(me.vx, me.vz);
+    let d = want - me.yaw;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    me.yaw += d * (1 - Math.exp(-12 * dt));
+  }
   if (nr.body) {
     nr.body.scale.set(1 + me.squash * 0.8, 1 - me.squash, 1 + me.squash * 0.8);
     nr.body.rotation.set(0, Math.sin(me.ph) * 0.05, Math.sin(me.ph) * 0.12);
@@ -423,7 +433,7 @@ function loop() {
     for (const s of [nr.starL, nr.starR]) if (s) { s.quaternion.copy(s.userData.q); s.rotateZ(Math.max(-0.7, Math.min(0.7, me.star))); }
   }
   nr.root.position.set(me.x, me.y + hop, me.z);
-  nr.root.rotation.z = Math.max(-0.3, Math.min(0.3, vx * 0.03));
+  nr.root.rotation.set(0, me.yaw, 0);
   nr.root.visible = me.wait <= 0 || Math.floor(me.wait * 12) % 2 === 0;    // やりなおし直後は ちかちか
   // 影
   let sy = null;

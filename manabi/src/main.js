@@ -3,10 +3,10 @@ import {
 } from "./config.js";
 import * as store from "./storage.js";
 import { kinderSession, kukuSession, reviewSession, makeChoices, kanaSession, kanjiSession, shuffle } from "./quiz.js";
-import { sfx, speak, stopSpeak, unlockAudio, canSpeak } from "./sound.js";
+import { sfx, speak, stopSpeak, unlockAudio, canSpeak, playBgm, setAudioPrefs, audioStatus } from "./sound.js";
 import { loadNorun3D, react, setHatColor, setPins } from "./norun3d.js";
 import { initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump, setRunPins } from "./run3d.js";
-import { initTowerView, startTower, stopTower, towerMove, towerJump, setTowerHat, setTowerPins, towerState } from "./tower3d.js";
+import { initTowerView, startTower, stopTower, towerStick, towerJump, setTowerHat, setTowerPins, towerState } from "./tower3d.js";
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = location.search.includes("debug");
@@ -24,6 +24,9 @@ function show(id) {
   document.body.dataset.screen = id;
   $(id).scrollTop = 0;
   placeNorun();
+  // BGM：あそびの ラン・塔は それぞれの曲、ほかは「まなび」の曲（結果画面は その前の曲のまま）
+  if (id === "scPlayRun" && play) playBgm(play.mode === "tower" ? "tower" : "run");
+  else if (id !== "scResult") playBgm("menu");
 }
 // マイページでは、のるんを「立つ場所」の上に重ねる
 const canvas = $("norunView");
@@ -47,6 +50,7 @@ function toast(msg, ms = 900) {
   toastTimer = setTimeout(() => t.classList.remove("show"), ms);
 }
 // さいしょのタッチで 音を使えるように
+setAudioPrefs({ bgm: store.getSettings().bgm, se: store.getSettings().se });
 addEventListener("pointerdown", unlockAudio, { capture: true });
 
 /* =========================================================
@@ -284,6 +288,8 @@ async function startPlay(mode) {
   $("pBest").textContent = `🏅${rec.best}m`;
   $("pKira").textContent = "✨0";
   $("pKira").classList.toggle("hidden", mode !== "run");
+  $("scPlayRun").classList.toggle("tower", mode === "tower");   // 塔は バーチャルパッド＋ジャンプ
+  resetStick();
   show("scPlayRun");
   if (mode === "run") {
     setRunHat(h.color);
@@ -294,12 +300,12 @@ async function startPlay(mode) {
       onTick: playTick,
       onKira: (k) => { play.kira = k; $("pKira").textContent = `✨${k}`; sfx.kira(); },
       onItem: (kind) => {
-        if (kind === "star") { sfx.power(); pMsg("ながれぼし ダッシュ！", 1000); }
+        if (kind === "star") { sfx.power(); pMsg("ながれぼし！ むてき＆キラキラ", 1100); }
         else if (kind === "bubble") { sfx.power(); pMsg("シャボンで まもる！", 1000); }
         else if (kind === "pop") { sfx.pop(); pMsg("シャボンが まもった！", 900); }
         else if (kind === "smash") sfx.pop();
       },
-      onHit: () => { sfx.ng(); pMsg("ぶつかった！", 1100); },
+      onHit: () => { sfx.bump(); pMsg("ぶつかった！", 1100); },
       onEnd: (m, k) => finishPlay(m, k),
     });
     pMsg("よーい スタート！", 900);
@@ -313,7 +319,7 @@ async function startPlay(mode) {
       onCheckpoint: () => { sfx.flag(); pMsg("🚩 チェックポイント！", 900); },
       onFall: () => { sfx.tap(); pMsg("だいじょうぶ！ はたから もういちど", 1300); },
       onPad: () => sfx.boing(),
-      onBump: () => { sfx.ng(); pMsg("バーに あたった！", 800); },
+      onBump: () => { sfx.bump(); pMsg("バーに あたった！", 800); },
     });
     pMsg("のぼろう！", 900);
   }
@@ -328,14 +334,54 @@ function playTick(m) {
   else if (m > 0 && m % 25 === 0 && play.mode === "tower") { sfx.ok(); pMsg(`${m}m！`, 700); }
 }
 function playMove(d) {
-  if (!play) return;
-  if (play.mode === "run") moveLaneBy(d); else towerMove(d);
+  if (!play || play.mode !== "run") return;
+  moveLaneBy(d);
   sfx.tap();
 }
 function playJumpNow() {
   if (!play) return;
-  if (play.mode === "run" ? playJump() : towerJump()) sfx.tap();
+  if (play.mode === "run" ? playJump() : towerJump()) sfx.jump();
 }
+/* ---------- 塔：バーチャルパッド（たおした 方向へ 歩く。はなすと 止まる） ---------- */
+const stickEl = $("pStick"), knob = $("pKnob");
+let stickId = null;
+function resetStick() {
+  stickId = null;
+  stickEl.classList.remove("on");
+  knob.style.transform = "";
+  towerStick(0, 0);
+}
+function stickAt(e) {
+  const r = stickEl.getBoundingClientRect();
+  const R = r.width / 2;
+  let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
+  const m = Math.hypot(dx, dy), lim = R * 0.62;
+  if (m > lim) { dx *= lim / m; dy *= lim / m; }
+  knob.style.transform = `translate(${dx}px,${dy}px)`;
+  let x = dx / lim, y = -dy / lim;
+  const mag = Math.hypot(x, y);
+  if (mag < 0.18) { x = 0; y = 0; }                 // まんなか ふきんは 止まる
+  towerStick(x, y);
+}
+stickEl.addEventListener("pointerdown", (e) => {
+  e.preventDefault(); e.stopPropagation();
+  stickId = e.pointerId;
+  stickEl.setPointerCapture(e.pointerId);
+  stickEl.classList.add("on");
+  stickAt(e);
+});
+stickEl.addEventListener("pointermove", (e) => { if (e.pointerId === stickId) stickAt(e); });
+for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) stickEl.addEventListener(ev, (e) => { if (e.pointerId === stickId) resetStick(); });
+// パソコン：矢印キー・WASD で 同じように
+const keys = new Set();
+function keyStick() {
+  if (!play || play.mode !== "tower" || stickId !== null) return;
+  const x = (keys.has("r") ? 1 : 0) - (keys.has("l") ? 1 : 0), y = (keys.has("u") ? 1 : 0) - (keys.has("d") ? 1 : 0);
+  towerStick(x, y);
+}
+const KEYMAP = { ArrowLeft: "l", KeyA: "l", ArrowRight: "r", KeyD: "r", ArrowUp: "u", KeyW: "u", ArrowDown: "d", KeyS: "d" };
+addEventListener("keydown", (e) => { if (screen === "scPlayRun" && play && play.mode === "tower" && KEYMAP[e.code]) { e.preventDefault(); keys.add(KEYMAP[e.code]); keyStick(); } });
+addEventListener("keyup", (e) => { if (KEYMAP[e.code]) { keys.delete(KEYMAP[e.code]); keyStick(); } });
 function finishPlay(m, kira = 0) {
   const rec = data.play[play.mode];
   const prev = rec.best;
@@ -369,7 +415,7 @@ for (const [id, fn] of [["pLeft", () => playMove(-1)], ["pRight", () => playMove
   b.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); fn(); b.classList.add("press"); setTimeout(() => b.classList.remove("press"), 120); });
 }
 let pSwipe = null;
-$("scPlayRun").addEventListener("pointerdown", (e) => { if (e.target.closest("button")) return; pSwipe = { x: e.clientX, y: e.clientY }; });
+$("scPlayRun").addEventListener("pointerdown", (e) => { if (e.target.closest("button") || e.target.closest("#pStick") || !play || play.mode !== "run") return; pSwipe = { x: e.clientX, y: e.clientY }; });
 $("scPlayRun").addEventListener("pointerup", (e) => {
   if (!pSwipe) return;
   const dx = e.clientX - pSwipe.x, dy = e.clientY - pSwipe.y;
@@ -378,10 +424,13 @@ $("scPlayRun").addEventListener("pointerup", (e) => {
   else playJumpNow();     // タップ・上スワイプは ジャンプ
 });
 addEventListener("keydown", (e) => {
-  if (screen !== "scPlayRun" || e.repeat) return;
-  if (e.code === "ArrowLeft" || e.code === "KeyA") playMove(-1);
-  if (e.code === "ArrowRight" || e.code === "KeyD") playMove(1);
-  if (e.code === "ArrowUp" || e.code === "Space" || e.code === "KeyW") { e.preventDefault(); playJumpNow(); }
+  if (screen !== "scPlayRun" || e.repeat || !play) return;
+  if (play.mode === "run") {
+    if (e.code === "ArrowLeft" || e.code === "KeyA") playMove(-1);
+    if (e.code === "ArrowRight" || e.code === "KeyD") playMove(1);
+    if (e.code === "ArrowUp" || e.code === "KeyW") { e.preventDefault(); playJumpNow(); }
+  }
+  if (e.code === "Space") { e.preventDefault(); playJumpNow(); }
 });
 
 /* =========================================================
@@ -839,9 +888,17 @@ function gradeOptions(sel) {
   return GRADES.map((g) => `<option value="${g.id}" ${g.id === sel ? "selected" : ""}>${g.name}</option>`).join("");
 }
 function renderPlaySettings() {
-  const cur = store.getSettings().runSpeed;
+  const st = store.getSettings();
+  $("setBgm").checked = st.bgm;
+  $("setSe").checked = st.se;
+  const s = audioStatus();
+  const got = Object.entries(s).filter(([, v]) => v).map(([k]) => k);
+  $("audioFiles").textContent = got.length ? `読みこめた 音の ファイル：${got.join("、")}` : "音の ファイルは まだ ありません（効果音は ブラウザの音で 鳴ります。BGM は ファイルを 入れると 鳴ります）";
+  const cur = st.runSpeed;
   $("setRunSpeed").innerHTML = RUN_SPEEDS.map((s) => `<option value="${s.id}" ${s.id === cur ? "selected" : ""}>${s.name}（${s.speed}）</option>`).join("");
 }
+$("setBgm").onchange = (e) => { store.setSettings({ bgm: e.target.checked }); setAudioPrefs({ bgm: e.target.checked }); };
+$("setSe").onchange = (e) => { store.setSettings({ se: e.target.checked }); setAudioPrefs({ se: e.target.checked }); if (e.target.checked) sfx.ok(); };
 $("setRunSpeed").onchange = (e) => { store.setSettings({ runSpeed: e.target.value }); toast("保存しました", 900); };
 function renderParent() {
   renderPlaySettings();
@@ -1038,7 +1095,7 @@ show("scTitle");
 if (DEBUG) {
   window.G = {
     store, get me() { return me; }, get data() { return data; }, get quiz() { return quiz; }, get screen() { return screen; },
-    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, get play() { return play; },
+    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, get play() { return play; },
   };
   document.title = "ready";
 }

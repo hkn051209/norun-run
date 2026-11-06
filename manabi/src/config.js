@@ -75,8 +75,9 @@ export const HAT_COLORS = [
    patterns: 障害物の ならび（L=ひくい→ジャンプ / T=たかい→よける）。from: この距離(m)から 出る */
 export const PLAY_RUN = {
   // はじめの速さは 保護者画面で えらべる（RUN_SPEEDS）。ここの speed は 「ふつう」の時の値
-  speed: 10, speedUp: 0.5, maxSpeed: 15,
-  rowGap: 14, rowGapMin: 10, gapShrinkPer100: 0.4,
+  // 速くした ぶん、障害物の 列の間かくも ひろげて 考える時間（約1.3秒）は 前と同じくらいに
+  speed: 13.5, speedUp: 0.5, maxSpeed: 18,
+  rowGap: 18, rowGapMin: 13, gapShrinkPer100: 0.4,
   jumpV: 8.6, gravity: 22, hopV: 3.4,
   patterns: [
     { w: 3, from: 0,   rows: ["L..", ".L.", "..L"] },
@@ -88,31 +89,35 @@ export const PLAY_RUN = {
   ],
 };
 /* ランの はじめの速さ（保護者画面で えらぶ。端末ごとに 保存）
-   maxSpeed は それぞれの いちばん速い値 */
+   maxSpeed は それぞれの いちばん速い値
+   （2026-11-07：アイテムなしでも じゅうぶん 速いように、ぜんぶ 引き上げ。
+     前の「ふつう＋ながれぼし」＝ 10×1.35 ≒ 13.5 が 今の「ふつう」） */
 export const RUN_SPEEDS = [
-  { id: "slow",   name: "ゆっくり", speed: 8,  maxSpeed: 13 },
-  { id: "normal", name: "ふつう",   speed: 10, maxSpeed: 15 },
-  { id: "fast",   name: "はやい",   speed: 12, maxSpeed: 17 },
+  { id: "slow",   name: "ゆっくり", speed: 11,   maxSpeed: 15 },
+  { id: "normal", name: "ふつう",   speed: 13.5, maxSpeed: 18 },
+  { id: "fast",   name: "はやい",   speed: 16,   maxSpeed: 20 },
 ];
 /* ランの アイテム
    kira（キラキラ）：ならんで出る。とると かず が ふえる（記録とバッジに）。ジャンプの 山なりに ならぶことも
-   star（ながれぼし）：とると 3秒 ダッシュ（速さ ×dash）＋ むてき（ぶつかっても 障害物が はじけとぶ）
+   star（ながれぼし）：ボーナス。とると 4秒 むてき（障害物が はじけとぶ）＋ キラキラを すいよせる。
+                     速さは ほんの少し（×dash）だけ。素の速さは アイテムなしで じゅうぶんに してある
    bubble（シャボン）：とると のるんを つつむ。1回だけ ぶつかっても だいじょうぶ
    every：だいたい この距離（マス）ごとに 1回 出る / from：この距離(m)から 出る */
 export const RUN_ITEMS = {
   kira:   { every: 22, from: 0 },
-  star:   { every: 260, from: 40, time: 3, dash: 1.35 },
+  star:   { every: 260, from: 40, time: 4, dash: 1.1, magnet: 9 },
   bubble: { every: 420, from: 80 },
 };
 
 /* 塔（タワーアスレ）：コースの部品を 自動で 上へ つないで のぼりつづける。頂上なし
-   のるんは 自動で 前へ進む。◀ ▶ で レーン、ジャンプで 段・すき間・バーを こえる
+   のるんは バーチャルパッド（まるい スティック）を たおした 方向にだけ 進む。はなすと 止まる
+   speed: いちばん たおした時の 歩く速さ。ジャンプは ボタンで 段・すき間・バーを こえる
    落ちたら すぐ 直前の チェックポイント（旗）から（何回でも OK。記録は へらない）
    speed: 前へ進む速さ（高さ1mごとに +speedUp、maxSpeed まで）
    stepUp: これより ひくい段は ジャンプなしで のぼれる（かいだん）
    parts: 部品と 出はじめる高さ(m)・出やすさ */
 export const PLAY_TOWER = {
-  laneW: 2.4, speed: 5.0, speedUp: 0.012, maxSpeed: 6.4,
+  laneW: 2.4, speed: 5.2, speedUp: 0, maxSpeed: 5.2,
   jumpV: 8.6, gravity: 22, stepUp: 0.45, padV: 12.8,
   parts: {
     stairs: { from: 0,  w: 3 },   // かいだん（自動で のぼる）

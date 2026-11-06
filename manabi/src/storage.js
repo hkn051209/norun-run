@@ -126,7 +126,7 @@ export function checkKanjiRow(r) {
 }
 
 /* ---------- 端末の設定 ---------- */
-export const getSettings = () => ({ runSpeed: "normal", ...read(K_SET, {}) });
+export const getSettings = () => ({ runSpeed: "normal", bgm: true, se: true, ...read(K_SET, {}) });
 export const setSettings = (s) => write(K_SET, { ...getSettings(), ...s });
 
 /* ---------- バックアップ ---------- */
