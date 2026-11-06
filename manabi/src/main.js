@@ -1,12 +1,12 @@
 import {
-  GRADES, gradeOf, FACES, PASS_ICONS, TEMPO, RUN, SESSION, KINDER, KUKU_MASTER_STREAK, REVIEW_GRADUATE, POINTS, HAT_COLORS, BADGES, PINS, RUN_SPEEDS,
+  GRADES, gradeOf, FACES, PASS_ICONS, TEMPO, RUN, SESSION, KINDER, KUKU_MASTER_STREAK, REVIEW_GRADUATE, POINTS, HAT_COLORS, BADGES, PINS, RUN_SPEEDS, CHARACTERS, ASMR_THEMES,
 } from "./config.js";
 import * as store from "./storage.js";
 import { kinderSession, kukuSession, reviewSession, makeChoices, kanaSession, kanjiSession, shuffle } from "./quiz.js";
-import { sfx, speak, stopSpeak, unlockAudio, canSpeak, playBgm, setAudioPrefs, audioStatus } from "./sound.js";
+import { sfx, speak, stopSpeak, unlockAudio, canSpeak, playBgm, setAudioPrefs, audioStatus, stepSound, registerStepThemes } from "./sound.js";
 import { loadNorun3D, react, setHatColor, setPins } from "./norun3d.js";
 import { initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump, setRunPins } from "./run3d.js";
-import { initTowerView, startTower, stopTower, towerStick, towerJump, setTowerHat, setTowerPins, towerState } from "./tower3d.js";
+import { initTowerView, startTower, stopTower, towerStick, towerJump, towerSkill, setTowerHat, setTowerPins, setTowerChar, charAvailable, towerState } from "./tower3d.js";
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = location.search.includes("debug");
@@ -25,7 +25,7 @@ function show(id) {
   $(id).scrollTop = 0;
   placeNorun();
   // BGM：あそびの ラン・塔は それぞれの曲、ほかは「まなび」の曲（結果画面は その前の曲のまま）
-  if (id === "scPlayRun" && play) playBgm(play.mode === "tower" ? "tower" : "run");
+  if (id === "scPlayRun" && play) playBgm(play.mode);    // run / tower（アスレ）/ asmr
   else if (id !== "scResult") playBgm("menu");
 }
 // マイページでは、のるんを「立つ場所」の上に重ねる
@@ -51,6 +51,7 @@ function toast(msg, ms = 900) {
 }
 // さいしょのタッチで 音を使えるように
 setAudioPrefs({ bgm: store.getSettings().bgm, se: store.getSettings().se });
+registerStepThemes(ASMR_THEMES.map((th) => th.id));
 addEventListener("pointerdown", unlockAudio, { capture: true });
 
 /* =========================================================
@@ -206,7 +207,7 @@ function renderMy() {
   $("revList").innerHTML = data.review.slice(0, 30).map((r) => `<span>${esc(qLabel(r.q))}${r.streak ? " ✔" : ""}</span>`).join("");
   const pr = data.play.run, pt = data.play.tower;
   $("myPlay").innerHTML = [
-    ["🏃", `${pr.best}m`, "ラン じこベスト"], ["🗼", `${pt.best}m`, "とう じこベスト"],
+    ["🏃", `${pr.best}m`, "ラン じこベスト"], ["🧗", `${pt.best}m`, "アスレ じこベスト"], ["🎧", `${data.play.asmr.best}m`, "ASMR じこベスト"],
     ["✨", `${pr.kira}こ`, "あつめた キラキラ"],
     ["👟", `${pr.plays + pt.plays}かい`, "あそんだ かいすう"],
   ].map(([i, v, l]) => `<div class="stat"><b>${i} ${v}</b><span>${l}</span></div>`).join("");
@@ -268,11 +269,35 @@ function checkBadges() {
 let play = null;     // { mode: "run" | "tower", best, newBest }
 function renderPlayMenu() {
   $("runBest").textContent = `じこベスト ${data.play.run.best}m`;
-  $("towerBest").textContent = `じこベスト ${data.play.tower.best}m`;
+  $("towerBest").textContent = `じこベスト ${data.play.tower.best}m・しかけが いっぱいの コース`;
+  $("asmrBest").textContent = `じこベスト ${data.play.asmr.best}m・${ASMR_THEMES.map((th) => th.name).join("・")}…`;
+  renderChars();
+}
+/* キャラ（変身）：unlock が ついたら その 記録バッジを もっている時だけ えらべる。モデルが ない時も えらべない */
+const charOpen = (c) => !c.unlock || data.badges.includes(c.unlock);
+function renderChars() {
+  const row = $("charRow");
+  row.innerHTML = "";
+  for (const c of CHARACTERS) {
+    const b = document.createElement("button");
+    b.className = "charBtn" + (data.play.char === c.id ? " on" : "");
+    b.innerHTML = `<i>${c.icon}</i>${c.name}<span>${c.note}</span>`;
+    b.disabled = !charOpen(c);
+    b.onclick = () => { data.play.char = c.id; save(); sfx.tap(); renderChars(); };
+    row.append(b);
+    // モデルの ファイルが あるか たしかめる（なければ「じゅんびちゅう」）
+    charAvailable(c.id).then((ok) => {
+      if (ok) return;
+      b.disabled = true;
+      b.querySelector("span").textContent = "じゅんびちゅう";
+      if (data.play.char === c.id) { data.play.char = "norun"; save(); renderChars(); }
+    });
+  }
 }
 $("playBack").onclick = () => { renderMy(); show("scMy"); };
 $("goRun").onclick = () => startPlay("run");
 $("goTower").onclick = () => startPlay("tower");
+$("goAsmr").onclick = () => startPlay("asmr");
 function pMsg(text, ms = 900) {
   const m = $("pMsg");
   m.textContent = text;
@@ -288,7 +313,8 @@ async function startPlay(mode) {
   $("pBest").textContent = `🏅${rec.best}m`;
   $("pKira").textContent = "✨0";
   $("pKira").classList.toggle("hidden", mode !== "run");
-  $("scPlayRun").classList.toggle("tower", mode === "tower");   // 塔は バーチャルパッド＋ジャンプ
+  $("scPlayRun").classList.toggle("tower", mode !== "run");   // アスレ・ASMR は バーチャルパッド＋ジャンプ
+  $("pSkill").classList.add("hidden");
   resetStick();
   show("scPlayRun");
   if (mode === "run") {
@@ -310,18 +336,25 @@ async function startPlay(mode) {
     });
     pMsg("よーい スタート！", 900);
   } else {
-    await initTowerView();
+    const c = CHARACTERS.find((x) => x.id === data.play.char) || CHARACTERS[0];
+    const got = await setTowerChar(charOpen(c) ? c.id : "norun");
     if (screen !== "scPlayRun" || !play) return;
+    const cdef = CHARACTERS.find((x) => x.id === got);
+    $("pSkill").classList.toggle("hidden", !cdef.skills.slide);
     setTowerHat(h.color);
     setTowerPins(data.pins);
     startTower({
+      mode: mode === "asmr" ? "asmr" : "athle",
+      onStep: (id, kind) => stepSound(id, kind),
+      onTheme: (th) => pMsg(`${th.name} ゾーン`, 1200),
+      onSwitch: () => { sfx.flag(); pMsg("とびらが ひらいた！", 900); },
       onHeight: playTick,
       onCheckpoint: () => { sfx.flag(); pMsg("🚩 チェックポイント！", 900); },
       onFall: () => { sfx.tap(); pMsg("だいじょうぶ！ はたから もういちど", 1300); },
       onPad: () => sfx.boing(),
       onBump: () => { sfx.bump(); pMsg("バーに あたった！", 800); },
     });
-    pMsg("のぼろう！", 900);
+    if (mode !== "asmr") pMsg(cdef.id === "norun" ? "のぼろう！" : `${cdef.name}に へんしん！`, 1000);
   }
 }
 function playTick(m) {
@@ -331,7 +364,7 @@ function playTick(m) {
   if (m > play.best && play.best > 0 && !play.newBest) { play.newBest = true; sfx.streak(); pMsg("じこベスト こうしん！", 1100); }
   if (m > play.best) $("pBest").textContent = `🏅${m}m`;
   else if (m > 0 && m % 100 === 0 && play.mode === "run") { sfx.ok(); pMsg(`${m}m！`, 700); }
-  else if (m > 0 && m % 25 === 0 && play.mode === "tower") { sfx.ok(); pMsg(`${m}m！`, 700); }
+  else if (m > 0 && m % 25 === 0 && play.mode !== "run") { sfx.ok(); pMsg(`${m}m！`, 700); }
 }
 function playMove(d) {
   if (!play || play.mode !== "run") return;
@@ -375,12 +408,12 @@ for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) stickEl.a
 // パソコン：矢印キー・WASD で 同じように
 const keys = new Set();
 function keyStick() {
-  if (!play || play.mode !== "tower" || stickId !== null) return;
+  if (!play || play.mode === "run" || stickId !== null) return;
   const x = (keys.has("r") ? 1 : 0) - (keys.has("l") ? 1 : 0), y = (keys.has("u") ? 1 : 0) - (keys.has("d") ? 1 : 0);
   towerStick(x, y);
 }
 const KEYMAP = { ArrowLeft: "l", KeyA: "l", ArrowRight: "r", KeyD: "r", ArrowUp: "u", KeyW: "u", ArrowDown: "d", KeyS: "d" };
-addEventListener("keydown", (e) => { if (screen === "scPlayRun" && play && play.mode === "tower" && KEYMAP[e.code]) { e.preventDefault(); keys.add(KEYMAP[e.code]); keyStick(); } });
+addEventListener("keydown", (e) => { if (screen === "scPlayRun" && play && play.mode !== "run" && KEYMAP[e.code]) { e.preventDefault(); keys.add(KEYMAP[e.code]); keyStick(); } });
 addEventListener("keyup", (e) => { if (KEYMAP[e.code]) { keys.delete(KEYMAP[e.code]); keyStick(); } });
 function finishPlay(m, kira = 0) {
   const rec = data.play[play.mode];
@@ -392,7 +425,7 @@ function finishPlay(m, kira = 0) {
   save();                     // 遊びは 記録だけ（バッジは 勉強でのみ）
   sfx.done();
   react("cheer");
-  const name = play.mode === "run" ? "ラン" : "とう";
+  const name = { run: "ラン", tower: "アスレ", asmr: "ASMRタワー" }[play.mode];
   $("resBig").textContent = `${name} ${m}m！`;
   const lines = [m > prev ? (prev > 0 ? `🏅 じこベスト こうしん！（まえは ${prev}m）` : "🏅 はじめての きろく！") : `🏅 じこベスト ${rec.best}m（あと ${rec.best - m + 1}m で こうしん）`];
   if (play.mode === "run") lines.push(`✨ キラキラ ${kira}こ（ぜんぶで ${rec.kira}こ）`);
@@ -410,7 +443,8 @@ $("pQuit").onclick = () => {
     finishPlay(m, k);
   } else finishPlay(stopTower());
 };
-for (const [id, fn] of [["pLeft", () => playMove(-1)], ["pRight", () => playMove(1)], ["pJump", playJumpNow]]) {
+function playSkillNow() { if (play && play.mode !== "run" && towerSkill()) sfx.boing(); }
+for (const [id, fn] of [["pLeft", () => playMove(-1)], ["pRight", () => playMove(1)], ["pJump", playJumpNow], ["pSkill", playSkillNow]]) {
   const b = $(id);
   b.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); fn(); b.classList.add("press"); setTimeout(() => b.classList.remove("press"), 120); });
 }
@@ -431,6 +465,7 @@ addEventListener("keydown", (e) => {
     if (e.code === "ArrowUp" || e.code === "KeyW") { e.preventDefault(); playJumpNow(); }
   }
   if (e.code === "Space") { e.preventDefault(); playJumpNow(); }
+  if (e.code === "ShiftLeft" || e.code === "KeyX") playSkillNow();
 });
 
 /* =========================================================
@@ -912,7 +947,7 @@ function renderParent() {
     row.className = "pRow";
     row.innerHTML = `<span class="face">${esc(p.face || "🐰")}</span>
       <div><b style="font-size:20px">${esc(p.name)}</b>
-        <div class="note">正解 ${d.totalCorrect}／${d.totalAnswered}問・おぼえた九九 ${Object.values(d.kuku).filter((v) => v.lv >= 2).length}/81・復習 ${d.review.length}・ポイント ${d.points - d.spent}・ラン ${d.play.run.best}m・とう ${d.play.tower.best}m・合言葉 ${d.pass ? "設定ずみ" : "未設定"}</div>
+        <div class="note">正解 ${d.totalCorrect}／${d.totalAnswered}問・おぼえた九九 ${Object.values(d.kuku).filter((v) => v.lv >= 2).length}/81・復習 ${d.review.length}・ポイント ${d.points - d.spent}・ラン ${d.play.run.best}m・アスレ ${d.play.tower.best}m・ASMR ${d.play.asmr.best}m・合言葉 ${d.pass ? "設定ずみ" : "未設定"}</div>
         <div class="ctl">学年 <select data-g>${gradeOptions(p.grade)}</select>
           <button class="small gray" data-pass>合言葉をリセット</button>
           <button class="small danger" data-del>データを消す</button></div>
@@ -1095,7 +1130,7 @@ show("scTitle");
 if (DEBUG) {
   window.G = {
     store, get me() { return me; }, get data() { return data; }, get quiz() { return quiz; }, get screen() { return screen; },
-    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, get play() { return play; },
+    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, towerSkill, get play() { return play; },
   };
   document.title = "ready";
 }

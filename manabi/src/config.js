@@ -127,8 +127,44 @@ export const PLAY_TOWER = {
     zigzag: { from: 8,  w: 2 },   // 1本道が 左右に ずれる
     mover:  { from: 12, w: 2 },   // 左右に 動く足場
     bar:    { from: 16, w: 2 },   // 回るバー（ジャンプで よける。当たっても 少し もどるだけ）
+    vanish: { from: 3,  w: 2 },   // 消える足場（のって 少しすると 消える → また もどる）
+    conveyor:{ from: 6, w: 2 },   // 流れる床（のると 横や 後ろへ 流される）
+    door:   { from: 5,  w: 2 },   // スイッチで 開く扉（スイッチを ふむと 開く）
+    wind:   { from: 10, w: 2 },   // 横風の 区間（風で 流される。白い すじと 扇風機で 風が 見える）
+    // とくぎの 部品（その キャラを えらんだ時だけ 出る）
+    duck:   { from: 2,  w: 3, char: "pan" },      // ひくい トンネル（パンの「すべる」で くぐる）
+    wide:   { from: 2,  w: 3, char: "kurage" },   // ひろい すき間（くらげの 二段ジャンプ・ふわり で こえる）
   },
+  vanishT: 0.9, vanishOff: 2.4,   // 消える足場：のってから 消えるまで（秒）／消えている 時間
+  conveyorV: 2.0,                 // 流れる床の 速さ（歩く速さ 5.2 より おそい）
+  windV: 2.4,                     // 横風の 強さ
+  slideT: 1.0, slideV: 7.0,       // パンの すべる：時間（秒）と 速さ
+  floatG: 0.32, floatMaxFall: 3.0,   // くらげの ふわり：落ちる時の 重力の 割合・いちばん速い 落ちる速さ
 };
+
+/* アスレで えらべる キャラ（変身）。unlock は あとで 条件を つける時に つかう（null＝はじめから）
+   例：unlock: "c200"（記録バッジ c200 を もっていたら えらべる）
+   skills：doubleJump＝空中で もう1回 ジャンプ / floatFall＝ゆっくり 落ちる / slide＝すべる（ひくい所を くぐる） */
+export const CHARACTERS = [
+  { id: "norun",  icon: "🐱", name: "のるん", model: "assets/models/norun-v7.glb",     scale: 0.8, unlock: null, skills: {}, note: "ふつうの のるん" },
+  { id: "kurage", icon: "🪼", name: "くらげ", model: "assets/models/norun-kurage.glb", scale: 0.8, unlock: null, skills: { doubleJump: true, floatFall: true }, note: "二段ジャンプ・ふわりと おちる" },
+  { id: "pan",    icon: "🍞", name: "パン",   model: "assets/models/norun-pan.glb",    scale: 0.8, unlock: null, skills: { slide: true }, note: "すべって ひくい所を くぐる" },
+];
+/* パンの すべる ポーズ（モデル担当より）：X軸まわりに +90°（顔が下・うらが上）。
+   接地の高さ：耳の ふちだけなら 0.24、顔と舌も 地面の上に 出すなら 0.33（モデルの 単位） */
+export const PAN_SLIDE = { rotX: Math.PI / 2, y: 0.33 };
+
+/* ASMRタワー：区間ごとに 素材テーマが かわる タワーアスレ
+   テーマごとに：足場の色・もよう／足音（assets/audio/step_<id>.mp3・land_<id>.mp3）／歩く速さ・ジャンプの高さ・すべり・はね・しずみこみ
+   walk：歩く速さの 倍率 / jump：ジャンプの 倍率 / grip：止まりやすさ（小さいほど つるつる すべる）
+   bounce：着地した時に 自動で はねる 強さ（0＝はねない）/ sink：着地の しずみこみ（見た目） / stepEvery：足音の 間かく（歩数）
+   ※ いまは 3テーマ（たたき台）。テーマを ふやす時は ここに 足して、tower3d.js の THEME_LOOK に 見た目を 足す */
+export const ASMR_THEMES = [
+  { id: "shari", name: "しゃりしゃり", sub: "かきごおり", walk: 1.0, jump: 1.0, grip: 3.5, bounce: 0,   sink: 0.12, stepEvery: 1 },
+  { id: "puni",  name: "ぷにぷに",     sub: "グミ",       walk: 1.0, jump: 1.3, grip: 16,  bounce: 4.2, sink: 0.38, stepEvery: 1 },
+  { id: "neba",  name: "ねばねば",     sub: "はちみつ",   walk: 0.6, jump: 0.8, grip: 30,  bounce: 0,   sink: 0.22, stepEvery: 2 },
+];
+export const ASMR = { sectionParts: 4 };   // 1テーマで いくつ 部品を つなぐか
 
 /* バッジ（決まり：ごほうびは 勉強でのみ。遊びの ラン・塔は 記録だけで、バッジは 出さない）。マイページに ならぶ */
 export const BADGES = [

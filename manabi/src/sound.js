@@ -8,8 +8,11 @@ export const AUDIO_FILES = {
   bgm: {
     menu:  "assets/audio/bgm_menu.mp3",    // まなび（タイトル・マイページ・学習の 選択ラン・結果）
     run:   "assets/audio/bgm_run.mp3",     // あそび：ラン
-    tower: "assets/audio/bgm_tower.mp3",   // あそび：とう
+    tower: "assets/audio/bgm_tower.mp3",   // あそび：アスレ（中の名前は tower のまま）
+    asmr:  "assets/audio/bgm_asmr.mp3",    // あそび：ASMRタワー（足音が 主役なので しずかな 曲）
   },
+  // ASMRタワーの 足音：テーマの id ごとに step_<id>.mp3（歩く）・land_<id>.mp3（着地）。registerStepThemes で 登録
+  step: {},
   se: {
     jump:    "assets/audio/se_jump.mp3",     // ジャンプ
     ok:      "assets/audio/se_correct.mp3",  // せいかい
@@ -65,7 +68,7 @@ async function loadOne(url) {
 function loadAll() {
   if (loading) return loading;
   // 効果音を 先に（小さい）、BGM は 今ほしい曲から
-  const se = Object.values(AUDIO_FILES.se).map(loadOne);
+  const se = [...Object.values(AUDIO_FILES.se), ...Object.values(AUDIO_FILES.step).flatMap((s) => [s.step, s.land])].map(loadOne);
   loading = Promise.all(se).then(() => {
     const order = [wantBgm, ...Object.keys(AUDIO_FILES.bgm)].filter(Boolean);
     return Promise.all([...new Set(order)].map((k) => loadOne(AUDIO_FILES.bgm[k]).then(() => { if (k === wantBgm && !cur) playBgm(k, true); })));
@@ -74,7 +77,13 @@ function loadAll() {
 }
 /* どのファイルが 見つかったか（保護者画面に 出す） */
 export const audioStatus = () => Object.fromEntries(
-  [...Object.entries(AUDIO_FILES.bgm), ...Object.entries(AUDIO_FILES.se)].map(([k, u]) => [u.split("/").pop(), u in buffers ? !!buffers[u] : null]));
+  [...Object.values(AUDIO_FILES.bgm), ...Object.values(AUDIO_FILES.se), ...Object.values(AUDIO_FILES.step).flatMap((s) => [s.step, s.land])]
+    .map((u) => [u.split("/").pop(), u in buffers ? !!buffers[u] : null]));
+/* ASMR の テーマを 登録（足音の ファイル名が きまる） */
+export function registerStepThemes(ids) {
+  for (const id of ids) AUDIO_FILES.step[id] = { step: `assets/audio/step_${id}.mp3`, land: `assets/audio/land_${id}.mp3` };
+  if (ctx) for (const s of Object.values(AUDIO_FILES.step)) { loadOne(s.step); loadOne(s.land); }
+}
 
 /* ---------- BGM ---------- */
 let wantBgm = null, cur = null;   // cur = { name, src, g }
@@ -128,6 +137,60 @@ function tone(freq, start, dur, type = "sine", vol = 0.18) {
   o.connect(g).connect(ctx.destination);
   o.start(t0);
   o.stop(t0 + dur + 0.02);
+}
+/* ノイズ（しゃりしゃり・ねばねばの 足音の もと） */
+let noiseBuf = null;
+function noise(start, dur, vol, type, freq, q = 1) {
+  if (!ctx || muted || !prefs.se) return;
+  if (!noiseBuf) {
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const t0 = ctx.currentTime + start;
+  const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+  const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  s.connect(f).connect(g).connect(ctx.destination);
+  s.start(t0, Math.random() * 0.3); s.stop(t0 + dur + 0.02);
+}
+function sweep(f0, f1, start, dur, vol, type = "sine") {
+  if (!ctx || muted || !prefs.se) return;
+  const t0 = ctx.currentTime + start;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(f0, t0);
+  o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  o.connect(g).connect(ctx.destination);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+/* ファイルが ない時の 足音（テーマごとの 代わりの 音） */
+const STEP_SYNTH = {
+  shari: { step: () => { noise(0, 0.07, 0.22, "highpass", 3500); noise(0.03, 0.05, 0.12, "bandpass", 6000, 2); },
+           land: () => { noise(0, 0.16, 0.3, "highpass", 3000); tone(2600, 0.02, 0.1, "sine", 0.05); } },
+  puni:  { step: () => sweep(220, 120, 0, 0.09, 0.14),
+           land: () => { sweep(320, 90, 0, 0.26, 0.2); sweep(500, 260, 0.05, 0.12, 0.06); } },
+  neba:  { step: () => { sweep(420, 140, 0, 0.13, 0.08, "triangle"); noise(0, 0.12, 0.12, "lowpass", 700); },
+           land: () => { sweep(500, 110, 0, 0.3, 0.12, "triangle"); noise(0, 0.25, 0.16, "lowpass", 600); } },
+};
+/* 足音を 鳴らす（kind："step"／"land"） */
+export function stepSound(id, kind = "step") {
+  if (!ctx || muted || !prefs.se) return;
+  const f = AUDIO_FILES.step[id];
+  const buf = f && buffers[f[kind]];
+  if (buf) {
+    const s = ctx.createBufferSource();
+    s.buffer = buf;
+    s.playbackRate.value = 0.92 + Math.random() * 0.16;   // 1歩ずつ 少し ちがう 音に
+    s.connect(seGain);
+    s.start();
+  } else if (STEP_SYNTH[id]) STEP_SYNTH[id][kind]();
+  else tone(500, 0, 0.04, "sine", 0.05);
 }
 /* ファイルが あれば それを、なければ synth を 鳴らす */
 function play(name, synth) {
