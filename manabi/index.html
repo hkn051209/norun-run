@@ -108,6 +108,16 @@ h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
 .playCard{display:flex;align-items:center;gap:14px;text-align:left}
 .playCard .ic{font-size:54px}
 .playCard .big{flex:1}
+.pinSlots{display:flex;gap:10px;justify-content:center;margin-bottom:12px}
+.pinSlot{width:64px;height:64px;border-radius:50%;border:3px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:34px;background:#fff;position:relative}
+.pinSlot.on{border-style:solid;border-color:#ffd86b;background:#fff7e0}
+.pinSlot small{position:absolute;bottom:-18px;font-size:11px;color:#7d6b9c}
+.pinGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+.pinBtn{border:2px solid var(--line);background:#fff;border-radius:14px;padding:8px 4px;font-size:13px;font-weight:800;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:2px}
+.pinBtn i{font-style:normal;font-size:30px}
+.pinBtn.on{border-color:#ffb800;background:#fff3c4}
+.pinBtn:disabled{opacity:.45;filter:grayscale(1)}
+.pinBtn span{font-size:10px;font-weight:700;color:#7d6b9c}
 .badgeRow{display:flex;gap:8px;flex-wrap:wrap}
 .badge{display:flex;flex-direction:column;align-items:center;width:76px;padding:6px 2px;border-radius:14px;background:#fff7e0;border:2px solid #ffd86b;font-size:11px;font-weight:800;text-align:center}
 .badge i{font-style:normal;font-size:30px}
@@ -234,7 +244,7 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
           </div>
           <div class="row">
             <button class="big alt" id="btnReview">🔁 ふくしゅう</button>
-            <button class="big alt" id="btnShop">👒 ぼうし</button>
+            <button class="big alt" id="btnShop">👒 きせかえ</button>
           </div>
           <button class="big gray" id="btnPlay">🎮 あそぶ（ラン・とう）</button>
         </div>
@@ -325,6 +335,7 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
   <div class="pbar">
     <button class="back" id="pQuit">✕</button>
     <div id="pDist">0m</div>
+    <span class="pill" id="pKira">✨0</span>
     <span class="pill" id="pBest">🏅0m</span>
   </div>
   <div id="pMsg"></div>
@@ -370,7 +381,14 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
 <div id="scShop" class="screen hidden">
   <button class="back" id="shopBack">← もどる</button>
   <div class="wrap" style="padding-top:44px">
-    <h2 class="center">ぼうしの いろ</h2>
+    <h2 class="center">きせかえ</h2>
+    <div class="card">
+      <h3 style="margin-top:0">ぼうしの バッジ（3こまで）</h3>
+      <div class="pinSlots" id="pinSlots"></div>
+      <div class="pinGrid" id="pinGrid"></div>
+      <p class="note">タップで つける／はずす。バッジは きろくを のばすと ふえるよ</p>
+    </div>
+    <h3 class="center">ぼうしの いろ</h3>
     <p class="note center" id="shopPts"></p>
     <div id="hatGrid"></div>
     <div style="height:260px"></div>
@@ -401,6 +419,14 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
       <div class="faces" id="newFaces"></div>
       <button class="big" id="btnAdd" style="margin-top:10px">追加する</button>
       <p class="note">合言葉（絵3つ）は、お子さまが最初に入るときに自分で選びます。</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">あそびの せってい（この端末）</h3>
+      <div class="row" style="align-items:center">
+        <span>ランの はじめの速さ</span>
+        <select id="setRunSpeed" style="padding:8px;border-radius:10px;border:2px solid var(--line)"></select>
+      </div>
+      <p class="note">走りだしの速さです。走るほど 少しずつ速くなります（config.js の RUN_SPEEDS で数値を変えられます）</p>
     </div>
     <div class="card">
       <h3 style="margin-top:0">こくご（漢字）の 出題データ</h3>
