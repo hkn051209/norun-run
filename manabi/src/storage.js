@@ -1,3 +1,4 @@
+import { DEFAULT_KANJI } from "./kokugo-data.js";
 /* =========================================================
    保存（端末内の localStorage だけ。外には送らない）
    - プロフィールの一覧： norunmanabi.v1.profiles  [{ id, name, grade, face }]
@@ -8,6 +9,7 @@
 const PREFIX = "norunmanabi.v1.";
 const K_PROFILES = PREFIX + "profiles";
 const K_PARENT = PREFIX + "parent";
+const K_KANJI = PREFIX + "kanji";        // 保護者が編集した 漢字の出題データ（なければ 最初のデータを使う）
 const kData = (id) => PREFIX + "p." + id;
 
 function read(key, fallback) {
@@ -46,6 +48,7 @@ export function newData() {
     hats: ["default"], hat: "default",
     kuku: {},                // "3x4": { lv: 0〜2, streak, c, w }  lv 1=正解したことがある 2=おぼえた
     kinder: { correct1: 0, correct2: 0 },   // 年長コース：レベルごとの正解数
+    kokugo: { kana: 0, kanji: 0 },          // 国語コース：正解数
     review: [],              // [{ key, q, streak }]
     defeated: 0,             // 復習で「やっつけた」数
     days: {},                // "2026-11-06": 正解数
@@ -74,7 +77,7 @@ export function loadData(id) {
   const d = read(kData(id), null);
   const base = newData();
   if (!d || typeof d !== "object") return base;
-  return { ...base, ...d, kinder: { ...base.kinder, ...(d.kinder || {}) } };
+  return { ...base, ...d, kinder: { ...base.kinder, ...(d.kinder || {}) }, kokugo: { ...base.kokugo, ...(d.kokugo || {}) } };
 }
 
 export function saveData(id, data) {
@@ -91,11 +94,38 @@ export function resetPass(id) {               // 保護者画面から：合言�
 export const getParentPin = () => read(K_PARENT, null);
 export const setParentPin = (pin) => write(K_PARENT, String(pin));
 
+/* ---------- 漢字の出題データ（保護者画面で 表として編集） ----------
+   1行 = { g:学年, k:配当漢字, w:ことば, y:よみ, o:送り仮名（熟語は ""） } */
+const clean = (r) => ({ g: Number(r.g) || 0, k: String(r.k || "").trim(), w: String(r.w || "").trim(), y: String(r.y || "").trim(), o: String(r.o || "").trim() });
+export function getKanji() {
+  const v = read(K_KANJI, null);
+  return Array.isArray(v) ? v.map(clean) : DEFAULT_KANJI.map((r) => ({ ...r }));
+}
+export const isKanjiCustom = () => Array.isArray(read(K_KANJI, null));
+export function setKanji(rows) { return write(K_KANJI, rows.map(clean)); }
+export function resetKanji() { remove(K_KANJI); }
+const HIRA_RE = /^[\u3041-\u3096\u30fc]+$/;
+/* 1行の チェック。問題がなければ ""、あれば 理由 */
+export function checkKanjiRow(r) {
+  if (!(r.g >= 1 && r.g <= 6)) return "学年は 1〜6";
+  if (!r.w) return "ことばが 空です";
+  if (!r.y || !HIRA_RE.test(r.y)) return "よみは ひらがなで";
+  if (r.k && !r.w.includes(r.k)) return "配当漢字が ことばに入っていません";
+  if (r.o) {
+    if (!HIRA_RE.test(r.o)) return "送り仮名は ひらがなで";
+    if (!r.w.endsWith(r.o) || !r.y.endsWith(r.o)) return "送り仮名は ことば・よみの 最後と同じに";
+    if (r.w.length <= r.o.length) return "ことばに 漢字がありません";
+  }
+  if (r.w.length > 6 || r.y.length > 8) return "長すぎます（ことば6字・よみ8字まで）";
+  return "";
+}
+
 /* ---------- バックアップ ---------- */
 export function exportAll() {
   const out = { app: "norun-manabi", version: 1, exported: new Date().toISOString(), profiles: listProfiles(), data: {} };
   for (const p of out.profiles) out.data[p.id] = loadData(p.id);
   out.parent = getParentPin();
+  if (isKanjiCustom()) out.kanji = getKanji();
   return out;
 }
 
@@ -106,4 +136,5 @@ export function importAll(obj) {
   saveProfiles(obj.profiles);
   for (const p of obj.profiles) write(kData(p.id), { ...newData(), ...(obj.data && obj.data[p.id] || {}) });
   if (obj.parent) setParentPin(obj.parent);
+  if (Array.isArray(obj.kanji)) setKanji(obj.kanji); else resetKanji();
 }

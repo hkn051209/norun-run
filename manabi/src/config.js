@@ -31,12 +31,14 @@ export const TEMPO = {
 export const RUN = {
   kinder: { speed: 7, gap: 50, first: 42 },
   kuku:   { speed: 9, gap: 50, first: 42 },
+  kana:   { speed: 7, gap: 50, first: 42 },   // 国語：ひらがな・カタカナ（年長）
+  kanji:  { speed: 8, gap: 52, first: 44 },   // 国語：漢字（ことばを 読む時間を すこし長めに）
   laneW: 2.4,            // レーンの はば
   endRun: 1.4,           // さいごの門のあと、結果が出るまでの秒数
 };
 
 /* 1回の問題の数 */
-export const SESSION = { kinder: 10, kuku: 9, review: 10 };
+export const SESSION = { kinder: 10, kuku: 9, review: 10, kana: 10, kanji: 10 };
 
 /* 年長コース：レベル1=5まで / レベル2=10まで。レベル2は レベル1で unlock 問 正解すると あく */
 export const KINDER = { levels: [{ id: 1, max: 5 }, { id: 2, max: 10 }], unlock: 20 };

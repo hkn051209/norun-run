@@ -142,7 +142,7 @@ export function setRunHat(color) {
 
 /* ---------- 門 ---------- */
 const DOOR_COLORS = [["#fff3c4", "#ffd27a"], ["#e3f6ff", "#9fd8ff"], ["#ffe3f0", "#ffb3d4"]];
-function doorTex(value, dots, ci) {
+function doorTex(value, dots, ci, size) {
   return canvasTex(256, 360, (x, w, h) => {
     const [c1, c2] = DOOR_COLORS[ci];
     const g = x.createLinearGradient(0, 0, 0, h);
@@ -151,6 +151,7 @@ function doorTex(value, dots, ci) {
     x.beginPath(); x.roundRect(6, 6, w - 12, h - 12, 28); x.fill();
     x.lineWidth = 10; x.strokeStyle = "#8a5fbf"; x.stroke();
     x.fillStyle = "#3b2a5a"; x.textAlign = "center"; x.textBaseline = "middle";
+    if (typeof value === "string") { drawWord(x, value, w, h, size); return; }
     x.font = `bold ${dots ? 130 : 150}px ${FONT}`;
     x.fillText(String(value), w / 2, dots ? 120 : h / 2 + 6);
     if (dots) {
@@ -160,6 +161,29 @@ function doorTex(value, dots, ci) {
       }
     }
   });
+}
+// 文字の門（国語）：3字までは 1行、4字からは 2行（小さい「ゃ・っ」などが 行のはじめに来ないように）
+const SMALL = "ゃゅょっぁぃぅぇぉャュョッァィゥェォー";
+function splitWord(s) {
+  const a = [...s];
+  if (a.length <= 3) return [s];
+  let k = Math.ceil(a.length / 2);
+  if (SMALL.includes(a[k])) k++;
+  if (k >= a.length) k = Math.ceil(a.length / 2) - 1;
+  return [a.slice(0, k).join(""), a.slice(k).join("")];
+}
+// 同じ門の3つは 同じ大きさの文字にする（大きさで 答えが わからないように）
+const DOOR_W = 256;
+function wordSize(s) {
+  const lines = splitWord(s);
+  const per = Math.max(...lines.map((l) => [...l].length));
+  return Math.min(lines.length > 1 ? 112 : 160, Math.floor((DOOR_W - 34) / per));
+}
+function drawWord(x, s, w, h, size = wordSize(s)) {
+  const lines = splitWord(s);
+  x.font = `bold ${size}px ${FONT}`;
+  const lh = size * 1.12;
+  lines.forEach((l, i) => x.fillText(l, w / 2, h / 2 + 6 + (i - (lines.length - 1) / 2) * lh));
 }
 // 門の上の 問題の看板（年長はドット：ピンク＝はじめの数、水色＝たす数）
 function boardTex(q) {
@@ -179,6 +203,10 @@ function boardTex(q) {
       dot(q.a, 130, "#ff7eb6");
       x.fillStyle = "#7d6b9c"; x.font = `bold 80px ${FONT}`; x.fillText("＋", w / 2, h / 2 + 4);
       dot(q.b, 382, "#5bc0eb");
+    } else if (q.board != null) {
+      const n = [...q.board].length;
+      x.fillStyle = "#3b2a5a"; x.font = `bold ${Math.min(130, Math.floor(450 / Math.max(1, n)))}px ${FONT}`;
+      x.fillText(q.board, w / 2, h / 2 + 6);
     } else {
       x.fillStyle = "#3b2a5a"; x.font = `bold 110px ${FONT}`;
       x.fillText(`${q.text} = ?`, w / 2, h / 2 + 6);
@@ -209,12 +237,13 @@ function makeGate(q, values) {
   board.rotation.y = Math.PI;
   g.add(board);
   const doors = [], glows = [], marks = [];
+  const size = values.every((v) => typeof v === "string") ? Math.min(...values.map(wordSize)) : undefined;
   values.forEach((v, lane) => {
     const x = LANE_X[lane];
     const glow = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({ color: 0x3cc98a, transparent: true, opacity: 0, depthWrite: false }));
     glow.position.set(x, 1.3, 0.04);
     glow.rotation.y = Math.PI;
-    const door = new THREE.Mesh(doorGeo, new THREE.MeshBasicMaterial({ map: doorTex(v, q.dots, lane), transparent: true, side: THREE.DoubleSide }));
+    const door = new THREE.Mesh(doorGeo, new THREE.MeshBasicMaterial({ map: doorTex(v, q.dots, lane, size), transparent: true, side: THREE.DoubleSide }));
     door.position.set(x, 1.3, 0);
     door.rotation.y = Math.PI;
     const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: markOk, transparent: true, depthTest: false }));
