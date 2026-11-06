@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>怜央とおためし会話（v13テスト）</title>
+<style>
+  :root { --bg:#17141f; --panel:#221d30; --me:#4a3a6b; --reo:#2e2a3d; --text:#f0ead9; --sub:#a99fc0; --accent:#c9a86a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui, sans-serif; }
+  header { position:sticky; top:0; background:var(--panel); padding:10px 14px; display:flex; gap:8px; align-items:center; z-index:5; }
+  header .title { font-weight:700; font-size:15px; }
+  header .status { font-size:11px; color:var(--sub); }
+  header button { margin-left:auto; background:none; border:1px solid var(--sub); color:var(--sub); border-radius:8px; padding:5px 10px; font-size:12px; }
+  #log { padding:14px 12px 90px; display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width:88%; padding:9px 12px; border-radius:14px; line-height:1.75; font-size:15px; white-space:pre-wrap; word-break:break-word; }
+  .msg.reo { background:var(--reo); align-self:flex-start; border-bottom-left-radius:4px; }
+  .msg.me { background:var(--me); align-self:flex-end; border-bottom-right-radius:4px; }
+  .msg .nar { color:#cbbfd9; }
+  .name { font-size:11px; color:var(--sub); margin:0 4px 2px; }
+  .name.me { text-align:right; }
+  #bar { position:fixed; left:0; right:0; bottom:0; background:var(--panel); padding:10px; display:flex; gap:8px; }
+  #inp { flex:1; border:none; border-radius:10px; padding:11px; font-size:15px; background:#17141f; color:var(--text); resize:none; height:44px; }
+  #send { background:var(--accent); color:#241a08; border:none; border-radius:10px; padding:0 18px; font-weight:700; font-size:15px; }
+  #send:disabled { opacity:.45; }
+  .warn { background:#3a2c14; color:#ffd98a; font-size:12px; padding:8px 12px; border-radius:10px; align-self:center; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="title">九条怜央（v13テスト）</div>
+    <div class="status" id="status">接続先を確認中…</div>
+  </div>
+  <button id="reset">最初から</button>
+</header>
+<div id="log"></div>
+<div id="bar">
+  <textarea id="inp" placeholder="湊として入力…" rows="1"></textarea>
+  <button id="send">送信</button>
+</div>
+<script>
+const SYS = "あなたは物語の登場人物として、小説形式で返事をします。台詞と地の文（情景・動作・心情）を使い分け、一貫した記憶と世界観で応答してください。\n\n生成ルール（厳守）:\n- 相手役（ユーザー側の人物）のセリフ・行動・内心は書かない。担当キャラクター自身のセリフ・行動・心情だけを書く。\n- 設定に書かれた名前・性別・職業・口調を正確に守り、設定にない人物や名前を登場させない。\n- 地の文（情景・動作・心情）を十分に入れ、短い数行で終わらせない。\n\nキャラクター設定:\n性別：男性\n一人称：俺\n職業：女性下着デザイナー\n27歳\n\n華やかで整った顔立ちの美青年。地毛は赤系の髪。男性の格好でも目を引くほど容姿が整っている。ファッションや美容に関心が高く、自分に似合う服装を熟知している。女装時は必ずウィッグを着用し、髪色や長さは服装に合わせて変える。メイクや着こなしが上手く、女性と見間違われることもある。男性の格好も女装も楽しむ。\n\n自己肯定感が非常に高く、自分の美しさや魅力を理解している。自由奔放でマイペース。他人の評価に振り回されず、自分の好きなものを堂々と楽しむ。社交的で人当たりがよく、冗談や軽口を好む。余裕があり、多少の悪口や挑発には動じないが、必要ならはっきり反論する。頭の回転が速く、観察力もあるが、他人の本心を必ず見抜けるわけではない。自分の価値観を大切にし、相手に合わせるためだけに趣味や人格を変えない。気に入った相手には積極的になるが、常にからかったり強引に距離を詰めたりするわけではない。\n\n女性になりたいわけではなく、綺麗なものが好きで、自分に似合う服を着たいだけ。「男だから女物を着てはいけない」という考えを持たない。女装は秘密でも恥でもなく、自分のファッションの一つ。女装中も人格や一人称、基本的な口調は変わらない。否定されても簡単には傷つかず、自分の価値観を堂々と伝える。\n\n恋愛においても自分らしさを失わず、相手を独立した人間として尊重する。初対面から強い恋愛感情や執着を抱くことはなく、交流を重ねる中で徐々に興味や好意が芽生える。";
+const INTRO = "*午後の街中。行き交う人々の間を、九条怜央は買い物袋を片手に歩いていた。\n\n今日は淡い色のワンピースに、長い髪のウィッグ。慣れた足取りで歩きながら、バッグからスマートフォンを取り出す。\n\nその拍子に、バッグの口元に挟まっていた白いハンカチがするりと抜け落ちた。\n\nハンカチは風にわずかに揺れ、歩道の上に落ちる。\n\n怜央は気づかないまま、スマートフォンに視線を落として歩き続けていた。*";
+const PARTNER_NAME = "湊";
+let BASE = null;
+let messages = [];
+const log = document.getElementById('log');
+const inp = document.getElementById('inp');
+const sendBtn = document.getElementById('send');
+const statusEl = document.getElementById('status');
+
+function disp(text) { return text.split("{{user}}").join(PARTNER_NAME); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function renderMsg(role, text) {
+  const nm = document.createElement('div');
+  nm.className = 'name' + (role === 'user' ? ' me' : '');
+  nm.textContent = role === 'user' ? PARTNER_NAME : '怜央';
+  const el = document.createElement('div');
+  el.className = 'msg ' + (role === 'user' ? 'me' : 'reo');
+  el.innerHTML = esc(disp(text)).replace(/\*([^*]+)\*/g, '<span class="nar">$1</span>');
+  log.appendChild(nm); log.appendChild(el);
+  window.scrollTo(0, document.body.scrollHeight);
+}
+function warn(text) {
+  const el = document.createElement('div');
+  el.className = 'warn'; el.textContent = text;
+  log.appendChild(el); window.scrollTo(0, document.body.scrollHeight);
+}
+function init() {
+  messages = [ { role: 'system', content: SYS }, { role: 'assistant', content: INTRO } ];
+  log.innerHTML = '';
+  renderMsg('assistant', INTRO);
+}
+async function checkEndpoint() {
+  try {
+    const r = await fetch('endpoint.txt?ts=' + Date.now(), { cache: 'no-store' });
+    const t = (await r.text()).trim();
+    if (t.startsWith('http')) {
+      BASE = t;
+      const h = await fetch(BASE + '/health');
+      const j = await h.json();
+      statusEl.textContent = j.ok ? '接続OK（v13稼働中）' : 'サーバー応答なし';
+    } else {
+      statusEl.textContent = 'サーバー準備中（12時ごろ開始）';
+    }
+  } catch (e) { statusEl.textContent = '接続先を確認できませんでした'; }
+}
+async function send() {
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!BASE) { warn('サーバーがまだ準備中です。12時ごろに開き直してください'); return; }
+  inp.value = '';
+  messages.push({ role: 'user', content: text });
+  renderMsg('user', text);
+  sendBtn.disabled = true; sendBtn.textContent = '考え中…';
+  try {
+    const r = await fetch(BASE + '/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages }) });
+    const j = await r.json();
+    if (j.reply) { messages.push({ role: 'assistant', content: j.reply }); renderMsg('assistant', j.reply); }
+    else warn('返事が取れませんでした: ' + (j.error || '不明なエラー'));
+  } catch (e) { warn('通信に失敗しました。少し待って再送してください'); }
+  sendBtn.disabled = false; sendBtn.textContent = '送信';
+}
+sendBtn.addEventListener('click', send);
+document.getElementById('reset').addEventListener('click', init);
+init(); checkEndpoint();
+</script>
+</body>
+</html>
