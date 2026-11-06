@@ -7,15 +7,16 @@
 - 保護者画面「あそびの せってい」で **BGM／効果音を別々にオン・オフ** できます（端末ごとに保存）。読みこめたファイル名もそこに表示されます。
 - ファイル名を変えたいときは `src/sound.js` の `AUDIO_FILES` を直します。音量は同じファイルの `VOL`（BGM 0.32、効果音 0.85）。
 
-## BGM（3曲・ループ再生）
+## BGM（4曲・ループ再生）
 
 | ファイル名 | 流れる場面 | 長さ | テンポ |
 |---|---|---|---|
 | `bgm_menu.mp3` | まなび（タイトル・マイページ・学習の選択ラン・保護者画面など） | 30〜60秒 | 90〜100 BPM |
 | `bgm_run.mp3` | あそび：ラン | 30〜60秒 | 140〜150 BPM |
-| `bgm_tower.mp3` | あそび：とう（タワーアスレ） | 30〜60秒 | 110〜120 BPM |
+| `bgm_tower.mp3` | あそび：アスレ | 30〜60秒 | 110〜120 BPM |
+| `bgm_asmr.mp3` | あそび：ASMRタワー（足音が主役） | 60秒 | 70〜80 BPM |
 
-- 3曲とも **歌なし（インスト）**・**ループ前提**。曲の終わりから頭へ、切れ目なくつながるのが理想です。
+- どの曲も **歌なし（インスト）**・**ループ前提**。曲の終わりから頭へ、切れ目なくつながるのが理想です。
 - 結果画面では、直前の曲がそのまま続きます。
 - ループのつなぎ目で「プツッ」と鳴る場合は、曲の頭と終わりを0.05秒ほど短くフェードさせると目立たなくなります。
 
@@ -50,7 +51,7 @@ Chiptune-style synth lead, bass, bright four-on-the-floor drums with snare, hand
 30-60 seconds, seamless loop, no fade in/out, no silence at either end.
 ```
 
-### プロンプト：bgm_tower（とう）
+### プロンプト：bgm_tower（アスレ）
 ```
 子ども向けタワーアスレチック（空に浮かぶ足場や階段、動く床をジャンプしながら登っていく）のBGM。歌なしのインストゥルメンタル。
 ふわふわした空の上の冒険。少しずつ高く登っていくワクワク感と、落ち着いて考えられる余裕のある曲。こわくない。
@@ -63,6 +64,21 @@ Chiptune-style synth lead, bass, bright four-on-the-floor drums with snare, hand
 Instrumental BGM for a kids' sky tower obstacle course game (floating platforms, stairs, moving floors, climbing up). No vocals. Airy, floating, adventurous and hopeful, relaxed enough to think, never scary.
 Pizzicato strings, flute, xylophone, bright synth pad, light bouncy drums, rising arpeggios. 115 BPM, major key.
 30-60 seconds, seamless loop, no fade in/out, no silence at either end.
+```
+
+### プロンプト：bgm_asmr（ASMRタワー）
+```
+子ども向けの「ASMRタワー」ゲームのBGM。歌なしのインストゥルメンタル。
+主役は足音（しゃりしゃり・ぷにぷに・ねばねば）なので、BGMはとても静かで、すき間の多い、ふんわりした曲。
+楽器：やわらかいシンセパッド、オルゴール、遠くで鳴るような電子ピアノ。打楽器はほとんどなし。低音は控えめ。
+テンポ 75 BPM、長調、ゆったり。眠くなりすぎない、ほっとする空気感。
+長さ 60秒、最初と最後が自然につながる「シームレスループ」。フェードイン・フェードアウトなし、無音の余白なし。
+```
+（英語）
+```
+Very quiet, sparse, dreamy instrumental BGM for a kids' "ASMR tower" game where footstep sounds are the star. No vocals.
+Soft synth pad, music box, distant electric piano, almost no percussion, minimal bass. 75 BPM, major key, relaxed but not sleepy.
+60 seconds, seamless loop, no fade in/out, no silence at either end.
 ```
 
 ## 効果音（ゲームの中で鳴る音）
@@ -107,3 +123,31 @@ Pizzicato strings, flute, xylophone, bright synth pad, light bouncy drums, risin
 1. mp3 にして、上のファイル名で `assets/audio/` に入れる
 2. 保護者画面の「読みこめた 音の ファイル」に名前が出ればOK
 3. 音量のバランスがおかしいときは、ファイル名と「大きい・小さい」を教えてください（`VOL` か、ファイルごとの音量で調整します）
+
+## ASMRタワーの 足音（素材ごと）
+
+ファイル名は `step_<テーマid>.mp3`（歩く1歩）と `land_<テーマid>.mp3`（ジャンプから着地）。
+テーマid は `src/config.js` の `ASMR_THEMES`（いまは shari / puni / neba）。テーマを増やしたら、同じ決まりでファイルを足すだけで鳴ります。
+ファイルがない時は、ブラウザの音で作った代わりの足音が鳴ります（しゃりしゃり＝高いザッ、ぷにぷに＝ポヨ、ねばねば＝ヌチャ）。
+1歩ずつ少し音の高さを変えて鳴らすので、同じ音でも単調になりにくいです。
+
+| ファイル名 | 素材 | 長さ | イメージ |
+|---|---|---|---|
+| `step_shari.mp3` | しゃりしゃり（かきごおり） | 0.1〜0.2秒 | 細かい氷を ふむ「シャクッ」 |
+| `land_shari.mp3` | 〃 着地 | 0.3〜0.5秒 | 氷の山に 着地する「ザクッ シャラ」 |
+| `step_puni.mp3` | ぷにぷに（グミ） | 0.1〜0.2秒 | やわらかい グミを ふむ「ぷにっ」 |
+| `land_puni.mp3` | 〃 着地 | 0.3〜0.5秒 | グミに 着地して はねる「ぽよん」 |
+| `step_neba.mp3` | ねばねば（はちみつ） | 0.2〜0.3秒 | 足が すこし くっつく「ぬちゃっ」 |
+| `land_neba.mp3` | 〃 着地 | 0.4〜0.6秒 | はちみつに 着地する「ぬちょ〜」 |
+
+共通の前置き（毎回つける）：
+```
+子ども向けASMRゲームの足音を1つ。声なし、BGMなし。頭に無音を入れず、すぐ音が始まるように。耳に心地よい、気持ちいい質感の音。こわくない、大きすぎない。
+```
+- **step_shari**：かき氷やシャーベットを1歩ふむ「シャクッ」。細かい氷のつぶがこすれる、高めで軽い音。0.15秒。
+- **land_shari**：かき氷の山に着地する「ザクッ、シャラ…」。少しだけ氷がくずれる余韻。0.4秒。
+- **step_puni**：やわらかいグミやスライムを1歩ふむ「ぷにっ」。低めで丸い、弾力のある音。0.15秒。
+- **land_puni**：グミのクッションに着地して「ぽよん」とはねる音。0.4秒。
+- **step_neba**：はちみつの上を歩く「ぬちゃっ」。足がくっついてはがれる、ねばっとした音（汚く聞こえないように）。0.25秒。
+- **land_neba**：はちみつに着地して沈む「ぬちょ〜」。0.5秒。
+（次のテーマの案：ざくざく＝クッキー、ふわふわ＝わたあめ、ぱりぱり＝せんべい、ころころ＝ビーズ。作ったら同じ決まりで step_<id> / land_<id>）

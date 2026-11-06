@@ -4,9 +4,10 @@
 |---|---|---|---|
 | キャラクター「のるん」 | — | ひこのさんのオリジナルキャラクター | 権利はひこのさん |
 | のるんの3Dモデル | assets/models/norun-v7.glb | ひこのさんから 受けとった v7（帽子の バッジ 3スロット×6種 入り） | ひこのさんのキャラクターに基づく制作物 |
+| くらげ・パンの3Dモデル | assets/models/norun-kurage.glb, norun-pan.glb | ひこのさん側で 公開ずみの ファイル（この ZIP には ふくまれない。更新の時に 消さないこと） | ひこのさんのキャラクターに基づく制作物 |
 | 3D描画ライブラリ | lib/three.module.min.js, lib/addons/*.js | three.js r160 | MIT（lib/THREE-LICENSE.txt） |
-| 遊びのラン・塔の 障害物・アイテム・コースの部品・旗・遠くの塔 | src/run3d.js, src/tower3d.js | three.js の 基本の形と その場で描いた模様で クロドが制作（外部素材なし） | — |
-| 効果音 | assets/audio/se_jump.mp3, se_correct.mp3, se_wrong.mp3, se_kira.mp3, se_item.mp3, se_flag.mp3, se_goal.mp3（主要7つ）, src/sound.js | Kenney（www.kenney.nl）の CC0 パック Interface Sounds／Digital Audio／Music Jingles から選定し、長さと音量を調整。ファイルがない音は ブラウザの音源で その場で合成 | CC0（Creative Commons Zero） |
+| 遊びのラン・アスレ・ASMRタワーの 障害物・アイテム・コースの部品・しかけ・素材の もよう・看板 | src/run3d.js, src/tower3d.js | three.js の 基本の形と その場で描いた模様で クロドが制作（外部素材なし） | — |
+| 効果音 | src/sound.js | ブラウザの音源で その場で合成（音声ファイルなし） | — |
 | 読み上げ | — | 端末の読み上げ機能（Web Speech API） | 端末の機能を使うだけ |
 | 漢字の出題データ（最初のデータ） | src/kokugo-data.js | 文部科学省「学年別漢字配当表」（2020年度〜）の 小4（202字）・小5（193字）を もとに、ことば・よみ・送り仮名を クロドが作成。熟語は1字につき2語（2語目は 音読み／訓読みが ちがう読みを優先）。並び順は 光村図書『国語』令和6年度版の 新出漢字の順（kodomoprint.com の「令和6年改訂版対応」の 学期別一覧を参照）。一部のことばは 光村図書の 教材名・単元名（同社「令和6年度版 小学校『国語』出典一覧」など）から | 漢字表は公的な資料。ことばの選び方・読みは 保護者の方の確認をおすすめします（保護者画面で直せます） |
 | 合言葉の絵・アイコン | 絵文字 | 端末の絵文字フォント | 表示は端末依存。販売時は自前の絵に差し替え推奨 |

@@ -111,6 +111,16 @@ h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
 #scPlayRun.tower #pStick{display:block}
 #scPlayRun.tower .laneBtn{display:none}
 #scPlayRun.tower .jumpBtn{margin-bottom:10px}
+.pRight{display:flex;flex-direction:column;align-items:center;gap:10px}
+.skillBtn{pointer-events:auto;width:clamp(84px,20vw,116px);height:clamp(84px,20vw,116px);border:0;border-radius:50%;background:rgba(143,211,255,.95);box-shadow:0 6px 0 rgba(59,42,90,.25);font-size:clamp(15px,3.8vw,20px);font-weight:900;color:#1d4f7a;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;touch-action:none}
+.skillBtn b{font-size:clamp(28px,7vw,40px)}
+.skillBtn.press{transform:translateY(4px);box-shadow:0 2px 0 rgba(59,42,90,.25)}
+.charRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.charBtn{border:3px solid var(--line);background:#fff;border-radius:16px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:900;color:var(--ink);font-size:15px}
+.charBtn i{font-style:normal;font-size:38px}
+.charBtn span{font-size:11px;font-weight:700;color:#7d6b9c;text-align:center}
+.charBtn.on{border-color:#ff7eb6;background:#fff0f7}
+.charBtn:disabled{opacity:.45;filter:grayscale(1)}
 #pMsg{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font-size:clamp(40px,10vw,72px);font-weight:900;color:#fff;text-shadow:0 4px 0 rgba(59,42,90,.5);z-index:4;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .2s}
 #pMsg.show{opacity:1}
 .playCard{display:flex;align-items:center;gap:14px;text-align:left}
@@ -196,7 +206,7 @@ textarea{width:100%;min-height:90px;border-radius:12px;border:2px solid var(--li
 /* 応援ののるん（1つのキャンバスを 画面ごとに 場所と大きさを変えて使う） */
 #norunView{position:fixed;z-index:3;pointer-events:none;width:240px;height:260px;left:0;bottom:0;display:block;transition:none}
 body[data-screen="scTitle"] #norunView{width:260px;height:280px;left:8px;bottom:8px}
-body[data-screen="scQuiz"] #norunView,body[data-screen="scPlayRun"] #norunView,body[data-screen="scKokugo"] #norunView{display:none}
+body[data-screen="scQuiz"] #norunView,body[data-screen="scPlayRun"] #norunView,body[data-screen="scKokugo"] #norunView,body[data-screen="scPlay"] #norunView{display:none}
 body[data-screen="scResult"] #norunView{width:280px;height:300px;left:50%;transform:translateX(-50%);bottom:4px}
 body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,body[data-screen="scPin"] #norunView,body[data-screen="scConfirm"] #norunView,body[data-screen="loading"] #norunView{display:none}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;z-index:9;background:#f6f0ff;white-space:pre-line;text-align:center}
@@ -254,7 +264,7 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
             <button class="big alt" id="btnReview">🔁 ふくしゅう</button>
             <button class="big alt" id="btnShop">👒 きせかえ</button>
           </div>
-          <button class="big gray" id="btnPlay">🎮 あそぶ（ラン・とう）</button>
+          <button class="big gray" id="btnPlay">🎮 あそぶ（ラン・アスレ・ASMR）</button>
         </div>
         <div class="card">
           <h3 style="margin-top:0">きろく</h3>
@@ -333,8 +343,13 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
   <div class="wrap" style="padding-top:44px">
     <h2 class="center">なにで あそぶ？</h2>
     <div class="card playCard"><span class="ic">🏃</span><div style="flex:1"><button class="big" id="goRun">ラン</button><div class="note" id="runBest"></div></div></div>
-    <div class="card playCard"><span class="ic">🗼</span><div style="flex:1"><button class="big alt" id="goTower">とう</button><div class="note" id="towerBest"></div></div></div>
-    <p class="note center">◀ ▶ で うごく ・ 🦘 ジャンプ ・ タップでも ジャンプ</p>
+    <div class="card playCard"><span class="ic">🧗</span><div style="flex:1"><button class="big alt" id="goTower">アスレ</button><div class="note" id="towerBest"></div></div></div>
+    <div class="card playCard"><span class="ic">🎧</span><div style="flex:1"><button class="big kokugo" id="goAsmr">ASMRタワー</button><div class="note" id="asmrBest"></div></div></div>
+    <div class="card">
+      <h3 style="margin-top:0">だれで あそぶ？ <small class="note">（アスレ・ASMRタワー）</small></h3>
+      <div class="charRow" id="charRow"></div>
+    </div>
+    <p class="note center">ラン：◀ ▶ と ジャンプ ／ アスレ・ASMR：まるい パッドで あるく・ジャンプ</p>
   </div>
 </div>
 
@@ -350,7 +365,10 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
   <div id="pCtl">
     <div id="pStick" aria-label="いどうの パッド"><div id="pKnob"></div></div>
     <button class="laneBtn" id="pLeft" aria-label="ひだりへ">◀</button>
-    <button class="jumpBtn" id="pJump" aria-label="ジャンプ"><b>⤒</b>ジャンプ</button>
+    <div class="pRight">
+      <button class="skillBtn hidden" id="pSkill" aria-label="すべる"><b>🛷</b>すべる</button>
+      <button class="jumpBtn" id="pJump" aria-label="ジャンプ"><b>⤒</b>ジャンプ</button>
+    </div>
     <button class="laneBtn" id="pRight" aria-label="みぎへ">▶</button>
   </div>
 </div>
