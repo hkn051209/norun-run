@@ -103,6 +103,14 @@ h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
 .jumpBtn{pointer-events:auto;width:clamp(116px,28vw,170px);height:clamp(116px,28vw,170px);border:0;border-radius:50%;background:rgba(255,216,77,.94);box-shadow:0 7px 0 rgba(59,42,90,.28);font-size:clamp(20px,5vw,28px);font-weight:900;color:#5a3d00;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;touch-action:none;margin-bottom:22px}
 .jumpBtn b{font-size:clamp(40px,10vw,62px)}
 .jumpBtn:active,.jumpBtn.press{transform:translateY(5px);box-shadow:0 2px 0 rgba(59,42,90,.28);background:#fff3c4}
+#pStick{pointer-events:auto;position:relative;width:clamp(150px,38vw,200px);height:clamp(150px,38vw,200px);border-radius:50%;background:rgba(255,255,255,.55);border:4px solid rgba(255,255,255,.95);box-shadow:0 6px 0 rgba(59,42,90,.18),inset 0 0 0 10px rgba(255,158,199,.25);touch-action:none;display:none}
+#pStick::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,transparent 58%,rgba(255,255,255,.0) 59%),
+  conic-gradient(from -8deg,rgba(255,126,182,.55) 0 16deg,transparent 0 74deg,rgba(255,126,182,.55) 0 106deg,transparent 0 164deg,rgba(255,126,182,.55) 0 196deg,transparent 0 254deg,rgba(255,126,182,.55) 0 286deg,transparent 0);border-radius:50%;-webkit-mask:radial-gradient(circle,transparent 70%,#000 71%);mask:radial-gradient(circle,transparent 70%,#000 71%)}
+#pKnob{position:absolute;left:50%;top:50%;width:44%;height:44%;margin:-22% 0 0 -22%;border-radius:50%;background:#ff7eb6;box-shadow:0 5px 0 #d65a94,inset 0 -6px 0 rgba(0,0,0,.08);transition:transform .08s}
+#pStick.on #pKnob{transition:none}
+#scPlayRun.tower #pStick{display:block}
+#scPlayRun.tower .laneBtn{display:none}
+#scPlayRun.tower .jumpBtn{margin-bottom:10px}
 #pMsg{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font-size:clamp(40px,10vw,72px);font-weight:900;color:#fff;text-shadow:0 4px 0 rgba(59,42,90,.5);z-index:4;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .2s}
 #pMsg.show{opacity:1}
 .playCard{display:flex;align-items:center;gap:14px;text-align:left}
@@ -340,6 +348,7 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
   </div>
   <div id="pMsg"></div>
   <div id="pCtl">
+    <div id="pStick" aria-label="いどうの パッド"><div id="pKnob"></div></div>
     <button class="laneBtn" id="pLeft" aria-label="ひだりへ">◀</button>
     <button class="jumpBtn" id="pJump" aria-label="ジャンプ"><b>⤒</b>ジャンプ</button>
     <button class="laneBtn" id="pRight" aria-label="みぎへ">▶</button>
@@ -427,6 +436,11 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
         <select id="setRunSpeed" style="padding:8px;border-radius:10px;border:2px solid var(--line)"></select>
       </div>
       <p class="note">走りだしの速さです。走るほど 少しずつ速くなります（config.js の RUN_SPEEDS で数値を変えられます）</p>
+      <h3>音（この端末）</h3>
+      <label class="row" style="align-items:center;gap:10px"><input type="checkbox" id="setBgm" style="width:26px;height:26px"> BGM を ながす</label>
+      <label class="row" style="align-items:center;gap:10px"><input type="checkbox" id="setSe" style="width:26px;height:26px"> 効果音を ならす</label>
+      <p class="note" id="audioFiles"></p>
+      <p class="note">曲・効果音は assets/audio/ に 決まった名前の ファイルを おくと 差しかわります（くわしくは AUDIO.md）。読み上げ（年長の 問題）は どちらを 切っても ながれます。</p>
     </div>
     <div class="card">
       <h3 style="margin-top:0">こくご（漢字）の 出題データ</h3>
