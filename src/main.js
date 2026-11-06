@@ -486,6 +486,7 @@ const KIT_RECOLOR = {
   leafsDark: 0x3f9d55,
   grass: 0x72c45e,
   leafsFall: 0xf2a646,
+  woodBark: 0x8e5a2f,   // 丸太が 石だたみの色に まぎれないよう 濃い茶色に
 };
 
 async function loadKit(names) {
@@ -564,7 +565,96 @@ const KIT_THEMES = {
     small: ["rock_smallA", "stump_round", "log"], mushrooms: [],
   },
 };
-const KIT_NAMES = [...new Set(Object.values(KIT_THEMES).flatMap((k) => [...k.near, ...k.far, ...k.flowers, ...k.bushes, ...k.small, ...k.mushrooms]).concat(["fence_simple", "grass", "grass_large", "sign"]))];
+/* 障害物の見た目（テーマごと）。L=ひくい（ジャンプ）/ T=たかい（よける）
+   当たり判定は 種類とレーンだけで決まるので、ここを変えても 判定は変わらない。
+   s は [横, 高さ, 奥行き] の倍率。今までの図形の障害物と ほぼ同じ大きさになるように合わせてある
+   （丸太：幅2.0・高さ0.6 / きりかぶ：直径1.4・高さ0.6 / 岩：幅2.1・高さ2.3 / 木：高さ3.4〜4.4）
+   ry: 向き（丸太は横向きに寝かせる）、rot: 向きのばらつき */
+const KIT_OBSTACLES = {
+  field: {
+    L: [{ m: "log", s: [3.6, 3.6, 2.8], ry: Math.PI / 2, rot: 0.06 }],
+    T: [{ m: "stone_tallA", s: [2.15, 2.3, 2.2], rot: 0.5 }, { m: "stone_tallB", s: [2.7, 2.6, 2.6], rot: 3 }],
+  },
+  forest: {
+    L: [{ m: "stump_roundDetailed", s: [4.0, 2.8, 4.0], rot: 3 }],
+    T: [{ m: "tree_fat_darkh", s: [3.0, 3.0, 3.0], rot: 3 }, { m: "tree_pineRoundA", s: [3.2, 3.2, 3.2], rot: 3 }],
+  },
+  sunset: {
+    L: [{ m: "log", s: [3.6, 3.6, 2.8], ry: Math.PI / 2, rot: 0.06 }],
+    T: [{ m: "stone_tallA", s: [2.15, 2.3, 2.2], rot: 0.5 }, { m: "stone_tallB", s: [2.7, 2.6, 2.6], rot: 3 }],
+  },
+};
+const KIT_NAMES = [...new Set(Object.values(KIT_THEMES).flatMap((k) => [...k.near, ...k.far, ...k.flowers, ...k.bushes, ...k.small, ...k.mushrooms])
+  .concat(["fence_simple", "grass", "grass_large", "sign"])
+  .concat(Object.values(KIT_OBSTACLES).flatMap((o) => [...o.L, ...o.T].map((v) => v.m))))];
+
+/* 障害物の「まとめて描く入れ物」：モデルの部品ごとに InstancedMesh を1つ。
+   毎フレーム、見えている障害物の位置だけを書きこむ（障害物が いくつあっても 描画の回数は増えない） */
+const OBS_CAP = 40;
+const obsPools = {};      // モデル名 → [InstancedMesh]
+let obsShadowPool = null;
+function setupObstaclePools() {
+  const names = [...new Set(Object.values(KIT_OBSTACLES).flatMap((o) => [...o.L, ...o.T].map((v) => v.m)))];
+  for (const n of names) {
+    obsPools[n] = (KIT[n] || []).map((part) => {
+      const im = new THREE.InstancedMesh(part.geometry, part.material, OBS_CAP);
+      im.count = 0;
+      im.frustumCulled = false;
+      im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      scene.add(im);
+      return im;
+    });
+  }
+  obsShadowPool = new THREE.InstancedMesh(blobGeo, blobMat, OBS_CAP);
+  obsShadowPool.count = 0;
+  obsShadowPool.frustumCulled = false;
+  obsShadowPool.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  scene.add(obsShadowPool);
+}
+const useKitObstacles = () => kitReady && !CLASSIC;
+function kitObstacleLook(kind) {   // 新しく出す障害物の見た目を決める
+  const set = KIT_OBSTACLES[themeName(theme)] || KIT_OBSTACLES.field;
+  const list = set[kind];
+  if (!list) return null;
+  const v = list[randInt(0, list.length - 1)];
+  return { m: v.m, s: v.s, ry: (v.ry || 0) + rand(-v.rot, v.rot), kind };
+}
+const _obsDummy = new THREE.Object3D();
+function drawKitObstacles() {
+  if (!useKitObstacles()) return;
+  const counts = {};
+  let ns = 0;
+  for (const n in obsPools) counts[n] = 0;
+  if (run) {
+    for (const it of run.active) {
+      const lk = it.type === "obs" && it.obj.userData.kit;
+      if (!lk || !it.obj.visible) continue;
+      const pool = obsPools[lk.m];
+      if (!pool || counts[lk.m] >= OBS_CAP) continue;
+      const p = it.obj.position;
+      _obsDummy.position.set(p.x, 0, p.z);
+      _obsDummy.rotation.set(0, lk.ry, 0);
+      _obsDummy.scale.set(lk.s[0], lk.s[1], lk.s[2]);
+      _obsDummy.updateMatrix();
+      for (const im of pool) im.setMatrixAt(counts[lk.m], _obsDummy.matrix);
+      counts[lk.m]++;
+      // 足もとの影
+      if (ns < OBS_CAP) {
+        const r = lk.kind === "L" ? 1.0 : 1.15;
+        _obsDummy.position.set(p.x, 0.015, p.z);
+        _obsDummy.rotation.set(-Math.PI / 2, 0, 0);
+        _obsDummy.scale.set(r * (lk.kind === "L" && lk.m.startsWith("log") ? 1.05 : 1), r * (lk.kind === "L" && lk.m.startsWith("log") ? 0.5 : 0.85), 1);
+        _obsDummy.updateMatrix();
+        obsShadowPool.setMatrixAt(ns++, _obsDummy.matrix);
+      }
+    }
+  }
+  for (const n in obsPools) {
+    for (const im of obsPools[n]) { im.count = counts[n]; im.instanceMatrix.needsUpdate = true; }
+  }
+  obsShadowPool.count = ns;
+  obsShadowPool.instanceMatrix.needsUpdate = true;
+}
 
 /* 1テーマぶんの道ばた（場所はテーマごとに少しずつ違う並びになる） */
 function buildKitSet(themeName) {
@@ -620,8 +710,10 @@ function buildKitSet(themeName) {
 async function setupRoadside() {
   if (CLASSIC) return;
   try {
+    if (location.search.includes("nokit")) throw new Error("nokit（確認用）");   // 素材が無い時の動きを確かめる用
     await loadKit(KIT_NAMES);
     for (const name of Object.keys(KIT_THEMES)) buildKitSet(name);
+    setupObstaclePools();
     kitReady = true;
   } catch (e) {
     console.warn("Nature Kit を読めなかったので、図形の道ばたを使います", e);
@@ -1095,6 +1187,14 @@ const MAT = {
 
 function makeObstacle(kind) {
   const g = new THREE.Group();
+  // Nature Kit の見た目：形は まとめて描く入れ物で描くので、ここでは位置と表示だけ持つ
+  if (useKitObstacles()) {
+    const lk = kitObstacleLook(kind);
+    if (lk && obsPools[lk.m] && obsPools[lk.m].length) {
+      g.userData.kit = lk;
+      return g;
+    }
+  }
   if (kind === "L" && theme.obsL === "stump") {   // きりかぶ：ジャンプでこえる
     const s = new THREE.Mesh(GEO.stump, MAT.log);
     s.position.y = 0.29;
@@ -2138,6 +2238,7 @@ function tick() {
     speed = 0.8;   // メニューでも景色をゆっくり流す
   }
   updateWorld(dt, speed);
+  drawKitObstacles();
   const { ax, ay } = updateMe(dt);
   updateNorunLook(dt, t, ax, ay);
   updateParticles(dt);
