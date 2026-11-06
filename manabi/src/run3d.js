@@ -7,7 +7,7 @@
    ========================================================= */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/GLTFLoader.js";
-import { RUN, TEMPO } from "./config.js";
+import { RUN, TEMPO, PLAY_RUN } from "./config.js";
 const TEMPO_NG = TEMPO.ngShow / 1000;
 
 const W = RUN.laneW;
@@ -289,6 +289,51 @@ function clearGhost() {
   R.ghost = null;
 }
 
+/* ---------- 障害物（遊びのラン） ----------
+   L=ひくい丸太・きりかぶ（ジャンプで こえる） / T=岩・大きな木（よける） */
+const OBS_GEO = {
+  log: new THREE.CylinderGeometry(0.32, 0.32, W - 0.4, 14), logEnd: new THREE.CircleGeometry(0.3, 14),
+  stump: new THREE.CylinderGeometry(0.62, 0.72, 0.58, 16), stumpTop: new THREE.CircleGeometry(0.62, 16),
+  rock: new THREE.DodecahedronGeometry(1.0, 1),
+  trunk: new THREE.CylinderGeometry(0.5, 0.65, 2.4, 12), crown: new THREE.SphereGeometry(1.05, 14, 10),
+  shadow: new THREE.CircleGeometry(1, 20),
+};
+const OBS_MAT = {
+  log: lambert(0xb0753f), logEnd: lambert(0xe8c48c), bark: lambert(0x8a5a33), leaves: lambert(0x3f9a4f),
+  rock: new THREE.MeshLambertMaterial({ color: 0xa3a8b8, flatShading: true }),
+  shadow: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false }),
+};
+function makeObstacle(kind) {
+  const g = new THREE.Group();
+  const add = (geo, mat, setup) => { const m = new THREE.Mesh(geo, mat); setup(m); g.add(m); return m; };
+  if (kind === "L") {
+    if (Math.random() < 0.5) {
+      add(OBS_GEO.log, OBS_MAT.log, (m) => { m.rotation.z = Math.PI / 2; m.position.y = 0.32; });
+      for (const sx of [1, -1]) add(OBS_GEO.logEnd, OBS_MAT.logEnd, (m) => { m.position.set(sx * ((W - 0.4) / 2 + 0.001), 0.32, 0); m.rotation.y = sx * Math.PI / 2; });
+    } else {
+      add(OBS_GEO.stump, OBS_MAT.log, (m) => { m.position.y = 0.29; });
+      add(OBS_GEO.stumpTop, OBS_MAT.logEnd, (m) => { m.rotation.x = -Math.PI / 2; m.position.y = 0.585; });
+    }
+    add(OBS_GEO.shadow, OBS_MAT.shadow, (m) => { m.rotation.x = -Math.PI / 2; m.position.y = 0.012; m.scale.set(1.05, 0.6, 1); });
+  } else {
+    if (Math.random() < 0.5) {
+      add(OBS_GEO.rock, OBS_MAT.rock, (m) => { m.scale.set(1.05, 1.25, 0.9); m.position.y = 1.05; m.rotation.y = rand(0, 3); });
+    } else {
+      add(OBS_GEO.trunk, OBS_MAT.bark, (m) => { m.position.y = 1.2; });
+      add(OBS_GEO.crown, OBS_MAT.leaves, (m) => { m.position.y = 2.9; });
+    }
+    add(OBS_GEO.shadow, OBS_MAT.shadow, (m) => { m.rotation.x = -Math.PI / 2; m.position.y = 0.012; m.scale.set(1.15, 0.85, 1); });
+  }
+  scene.add(g);
+  return g;
+}
+function pickPattern(dist) {
+  const list = PLAY_RUN.patterns.filter((p) => dist >= p.from);
+  let r = Math.random() * list.reduce((s, p) => s + p.w, 0);
+  for (const p of list) if ((r -= p.w) <= 0) return p.rows;
+  return list[0].rows;
+}
+
 /* ---------- 走る ---------- */
 let R = null;          // いまのラン
 const me = { lane: 1, x: 0, y: 0, vy: 0, squash: 0, sway: 0, swayPh: 0, star: 0, starV: 0 };
@@ -304,8 +349,74 @@ export function startRunView(opts) {
   clock.getDelta();
   loop();
 }
+/* 遊びのラン：onTick(m) 毎フレーム / onEnd(m) ぶつかって おわった時 */
+export function startPlayRun(opts) {
+  stopRunView();
+  R = {
+    mode: "play", ...opts, dist: 0, speed: PLAY_RUN.speed, obs: [], rowD: 26, last: "",
+    ready: 1.0, over: false, overT: 0, bounce: 0, shake: 0,
+  };
+  Object.assign(me, { lane: 1, x: 0, y: 0, vy: 0, jumps: 0 });
+  canvas.style.display = "block";
+  clock.getDelta();
+  loop();
+}
+export function playJump() {
+  if (!R || R.mode !== "play" || R.over || me.jumps >= 1) return false;
+  me.jumps = 1;
+  me.vy = PLAY_RUN.jumpV;
+  me.squash = -0.2;
+  return true;
+}
+const meters = () => Math.floor(R.dist / 2);   // 2マス ＝ 1m（のるんランと同じ 見え方の 目安）
+function playStep(dt) {
+  if (R.ready > 0) R.ready -= dt;
+  const moving = R.ready <= 0 && !R.over;
+  if (moving) {
+    R.speed = Math.min(PLAY_RUN.maxSpeed, PLAY_RUN.speed + (meters() / 100) * PLAY_RUN.speedUp);
+    R.dist += R.speed * dt;
+  }
+  if (R.bounce > 0) { const b = Math.min(R.bounce, dt * 9); R.bounce -= b; R.dist -= b; }
+  // 先の障害物を つくる
+  while (R.rowD - R.dist < 90) {
+    const gap = Math.max(PLAY_RUN.rowGapMin, PLAY_RUN.rowGap - (R.rowD / 200) * PLAY_RUN.gapShrinkPer100);
+    R.rowD += gap;
+    const rows = pickPattern(R.rowD / 2);
+    let v = rows[Math.floor(Math.random() * rows.length)];
+    if (v === R.last && rows.length > 1) v = rows[(rows.indexOf(v) + 1) % rows.length];
+    R.last = v;
+    [...v].forEach((ch, lane) => { if (ch !== ".") R.obs.push({ kind: ch, lane, d: R.rowD, obj: null }); });
+  }
+  for (const o of R.obs) {
+    const z = o.d - R.dist;
+    if (!o.obj && z < 85) { o.obj = makeObstacle(o.kind); o.obj.position.x = LANE_X[o.lane]; }
+    if (!o.obj) continue;
+    o.obj.position.z = z;
+    if (o !== R.hit) o.obj.visible = z > -0.9;    // 通りすぎた物は 消す（カメラの前を ふさがない）
+    if (moving && !o.passed && Math.abs(z) < 0.75 && Math.abs(me.x - LANE_X[o.lane]) < 0.95 && (o.kind === "T" || me.y < 0.62)) {
+      R.hit = o; R.over = true; R.overT = 1.3; R.bounce = 2.2; R.shake = 0.35; me.vy = 5;
+      if (R.onHit) R.onHit(meters());
+    }
+    if (z < -0.75) o.passed = true;
+  }
+  R.obs = R.obs.filter((o) => {
+    if (o.obj && o.obj.position.z < -12) { scene.remove(o.obj); return false; }
+    return true;
+  });
+  // 景色
+  roadTex.offset.y = -((R.dist * roadTex.repeat.y) / 400) % 1;
+  if (moving) for (const o of deco) { o.position.z -= R.speed * dt; if (o.position.z < -10) placeDeco(o, false); }
+  if (R.onTick) R.onTick(meters(), R.speed);
+  if (R.over) {
+    R.overT -= dt;
+    if (R.overT <= 0) { const end = R.onEnd, m = meters(); stopRunView(); end(m); return false; }
+  }
+  return true;
+}
+
 export function stopRunView() {
   if (!R) return;
+  if (R.mode === "play") { for (const o of R.obs) if (o.obj) scene.remove(o.obj); R = null; canvas.style.display = "none"; return; }
   clearGhost();
   for (const gt of R.gates) if (gt) disposeGate(gt);
   R = null;
@@ -337,6 +448,7 @@ function loop() {
   raf = requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
+  if (R.mode === "play") { if (playStep(dt)) moveNorun(dt, true); return; }
   R.dist += R.speed * dt;
 
   // 景色を流す
@@ -392,16 +504,21 @@ function loop() {
     if (R.endT < 0) { const end = R.onEnd; stopRunView(); end(); return; }
   }
 
-  // のるん：レーン移動・ぷにぷに跳ね・ゆらゆら
+  moveNorun(dt, false);
+}
+
+/* のるん：レーン移動・ぷにぷに跳ね・ゆらゆら（play=遊びのラン：ジャンプあり・重力つよめ） */
+function moveNorun(dt, play) {
   const px = me.x;
   me.x = damp(me.x, LANE_X[me.lane], 12, dt);
   const vx = (me.x - px) / Math.max(dt, 1e-4);
-  me.vy -= 20 * dt;
+  me.vy -= (play ? PLAY_RUN.gravity : 20) * dt;
   me.y += me.vy * dt;
   if (me.y <= 0) {
     if (me.vy < -2) me.squash = Math.min(0.3, -me.vy * 0.03);
     me.y = 0;
-    me.vy = 3.4;
+    me.jumps = 0;
+    me.vy = play && R.over ? 0 : play ? PLAY_RUN.hopV : 3.4;
   }
   me.squash = damp(me.squash, me.y > 0.05 ? -0.05 : 0, 10, dt);
   me.swayPh += dt * 9.5;
@@ -418,8 +535,10 @@ function loop() {
   shadow.position.x = me.x;
   shadow.scale.setScalar(1 - Math.min(me.y / 3, 0.5));
 
-  // カメラ：後ろから
-  camera.position.set(me.x * 0.5, 2.7, -5.2);
+  // カメラ：後ろから（ぶつかった時は 少し ゆれる）
+  let sx = 0;
+  if (play && R.shake > 0) { R.shake -= dt; sx = Math.sin(R.shake * 70) * R.shake * 0.5; }
+  camera.position.set(me.x * 0.5 + sx, 2.7, -5.2);
   camera.lookAt(me.x * 0.3, 1.1, 14);
   renderer.render(scene, camera);
 }

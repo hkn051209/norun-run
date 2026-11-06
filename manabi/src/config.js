@@ -65,3 +65,49 @@ export const HAT_COLORS = [
   { id: "white",   name: "しろ",     color: 0xffffff, swatch: "#f4f0ff", cost: 50 },
   { id: "black",   name: "くろ",     color: 0x3a3a44, swatch: "#3a3a44", cost: 60 },
 ];
+
+/* =========================================================
+   遊びモード（問題なし）
+   ========================================================= */
+/* ラン：のるんランと同じ 3レーン・障害物・ジャンプ。ぶつかるまで エンドレス
+   speed: はじめの速さ / speedUp: 100m ごとに 上がる速さ / maxSpeed: いちばん速い
+   rowGap: 障害物の列の間かく（はじめ）→ rowGapMin まで だんだん せまく
+   patterns: 障害物の ならび（L=ひくい→ジャンプ / T=たかい→よける）。from: この距離(m)から 出る */
+export const PLAY_RUN = {
+  speed: 8, speedUp: 0.45, maxSpeed: 13,
+  rowGap: 14, rowGapMin: 10, gapShrinkPer100: 0.4,
+  jumpV: 8.6, gravity: 22, hopV: 3.4,
+  patterns: [
+    { w: 3, from: 0,   rows: ["L..", ".L.", "..L"] },
+    { w: 3, from: 0,   rows: ["T..", ".T.", "..T"] },
+    { w: 2, from: 60,  rows: ["TT.", "T.T", ".TT"] },
+    { w: 1, from: 120, rows: ["LLL"] },
+    { w: 2, from: 250, rows: ["TL.", "LT.", ".TL", ".LT", "T.L", "L.T"] },
+    { w: 1, from: 400, rows: ["TLT", "LTT", "TTL"] },
+  ],
+};
+/* 塔：足場を のぼりつづける。頂上なし。下から くもが せまってくる
+   rowDy: 足場の段の高さ（ジャンプで とどく はんい）/ jumpV: ジャンプの強さ
+   cloud: くもの 上がる速さ（start → 高さ1mごとに +per、max まで）。grace: はじめの まち時間(秒)
+   crumble: くずれる足場が出る高さ(m)と 割合（さいだい） */
+export const PLAY_TOWER = {
+  laneW: 2.3, rowDy: [1.5, 1.9], jumpV: 10.2, gravity: 22,
+  cloud: { start: 0.35, per: 0.004, max: 1.1, grace: 4 },
+  crumble: { from: 25, rate: 0.12, maxRate: 0.35 }, crumbleT: 0.6,
+};
+
+/* バッジ（学習・遊び どちらでも もらえる。マイページに ならぶ） */
+export const BADGES = [
+  { id: "c50",   icon: "🌱", name: "せいかい 50",   test: (d) => d.totalCorrect >= 50 },
+  { id: "c200",  icon: "🌳", name: "せいかい 200",  test: (d) => d.totalCorrect >= 200 },
+  { id: "c500",  icon: "🏆", name: "せいかい 500",  test: (d) => d.totalCorrect >= 500 },
+  { id: "st10",  icon: "🔥", name: "10れんぞく",    test: (d) => d.bestStreak >= 10 },
+  { id: "def10", icon: "⚔️", name: "ふくしゅう 10", test: (d) => d.defeated >= 10 },
+  { id: "kuku",  icon: "🌸", name: "くく ぜんぶ",   test: (d) => Object.values(d.kuku).filter((v) => v.lv >= 2).length >= 81 },
+  { id: "r100",  icon: "👟", name: "ラン 100m",     test: (d) => d.play.run.best >= 100 },
+  { id: "r300",  icon: "🏃", name: "ラン 300m",     test: (d) => d.play.run.best >= 300 },
+  { id: "r1000", icon: "🚀", name: "ラン 1000m",    test: (d) => d.play.run.best >= 1000 },
+  { id: "t20",   icon: "🪜", name: "とう 20m",      test: (d) => d.play.tower.best >= 20 },
+  { id: "t50",   icon: "🗼", name: "とう 50m",      test: (d) => d.play.tower.best >= 50 },
+  { id: "t100",  icon: "🌙", name: "とう 100m",     test: (d) => d.play.tower.best >= 100 },
+];

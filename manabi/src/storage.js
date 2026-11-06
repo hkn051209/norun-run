@@ -48,9 +48,11 @@ export function newData() {
     hats: ["default"], hat: "default",
     kuku: {},                // "3x4": { lv: 0〜2, streak, c, w }  lv 1=正解したことがある 2=おぼえた
     kinder: { correct1: 0, correct2: 0 },   // 年長コース：レベルごとの正解数
-    kokugo: { kana: 0, kanji: 0 },          // 国語コース：正解数
+    kokugo: { kana: 0, kanji: 0, upto: {} },   // 国語コース：正解数 / upto: 学年ごとの「ならった ところまで」（配当漢字の数）
     review: [],              // [{ key, q, streak }]
     defeated: 0,             // 復習で「やっつけた」数
+    play: { run: { best: 0, last: 0, plays: 0, total: 0 }, tower: { best: 0, last: 0, plays: 0 } },   // 遊びモードの記録（m）
+    badges: [],              // もらった バッジの id
     days: {},                // "2026-11-06": 正解数
   };
 }
@@ -77,7 +79,8 @@ export function loadData(id) {
   const d = read(kData(id), null);
   const base = newData();
   if (!d || typeof d !== "object") return base;
-  return { ...base, ...d, kinder: { ...base.kinder, ...(d.kinder || {}) }, kokugo: { ...base.kokugo, ...(d.kokugo || {}) } };
+  return { ...base, ...d, kinder: { ...base.kinder, ...(d.kinder || {}) }, kokugo: { ...base.kokugo, ...(d.kokugo || {}) },
+    play: { run: { ...base.play.run, ...((d.play || {}).run || {}) }, tower: { ...base.play.tower, ...((d.play || {}).tower || {}) } } };
 }
 
 export function saveData(id, data) {

@@ -1,11 +1,12 @@
 import {
-  GRADES, gradeOf, FACES, PASS_ICONS, TEMPO, RUN, SESSION, KINDER, KUKU_MASTER_STREAK, REVIEW_GRADUATE, POINTS, HAT_COLORS,
+  GRADES, gradeOf, FACES, PASS_ICONS, TEMPO, RUN, SESSION, KINDER, KUKU_MASTER_STREAK, REVIEW_GRADUATE, POINTS, HAT_COLORS, BADGES,
 } from "./config.js";
 import * as store from "./storage.js";
 import { kinderSession, kukuSession, reviewSession, makeChoices, kanaSession, kanjiSession, shuffle } from "./quiz.js";
 import { sfx, speak, stopSpeak, unlockAudio, canSpeak } from "./sound.js";
 import { loadNorun3D, react, setHatColor } from "./norun3d.js";
-import { initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow } from "./run3d.js";
+import { initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump } from "./run3d.js";
+import { initTowerView, startTower, stopTower, towerMove, towerJump, setTowerHat, towerState } from "./tower3d.js";
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = location.search.includes("debug");
@@ -15,7 +16,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 /* =========================================================
    画面の切り替え
    ========================================================= */
-const SCREENS = ["scTitle", "scPass", "scMy", "scKuku", "scKinder", "scKokugo", "scQuiz", "scResult", "scShop", "scPin", "scParent", "scConfirm"];
+const SCREENS = ["scTitle", "scPass", "scMy", "scKuku", "scKinder", "scKokugo", "scPlay", "scPlayRun", "scQuiz", "scResult", "scShop", "scPin", "scParent", "scConfirm"];
 let screen = "loading";
 function show(id) {
   screen = id;
@@ -193,6 +194,16 @@ function renderMy() {
     ? `まちがえた もんだい ${data.review.length}こ。${REVIEW_GRADUATE}かい つづけて せいかいすると やっつけられるよ（やっつけた数 ${data.defeated}）`
     : `いまは ありません。やっつけた数 ${data.defeated}`;
   $("revList").innerHTML = data.review.slice(0, 30).map((r) => `<span>${esc(qLabel(r.q))}${r.streak ? " ✔" : ""}</span>`).join("");
+  const pr = data.play.run, pt = data.play.tower;
+  $("myPlay").innerHTML = [
+    ["🏃", `${pr.best}m`, "ラン じこベスト"], ["🗼", `${pt.best}m`, "とう じこベスト"],
+    ["👟", `${pr.plays + pt.plays}かい`, "あそんだ かいすう"],
+  ].map(([i, v, l]) => `<div class="stat"><b>${i} ${v}</b><span>${l}</span></div>`).join("");
+  checkBadges();
+  $("myBadges").innerHTML = BADGES.map((b) => {
+    const has = data.badges.includes(b.id);
+    return `<span class="badge ${has ? "" : "off"}" title="${esc(b.name)}"><i>${b.icon}</i>${esc(b.name)}</span>`;
+  }).join("");
   $("myHats").innerHTML = data.hats.map((id) => {
     const h = HAT_COLORS.find((x) => x.id === id);
     return h ? `<span class="hatSw" title="${h.name}" style="background:${h.swatch}"></span>` : "";
@@ -230,6 +241,110 @@ function qLabel(q) {
   return q.text;
 }
 $("btnShop").onclick = () => { renderShop(); show("scShop"); };
+$("btnPlay").onclick = () => { renderPlayMenu(); show("scPlay"); };
+
+/* バッジ：条件を みたしたら もらえる。新しく もらった ものを かえす */
+function checkBadges() {
+  const got = [];
+  for (const b of BADGES) if (!data.badges.includes(b.id) && b.test(data)) { data.badges.push(b.id); got.push(b); }
+  if (got.length) save();
+  return got;
+}
+
+/* =========================================================
+   遊びモード（問題なし）：ラン・塔
+   ========================================================= */
+let play = null;     // { mode: "run" | "tower", best, newBest }
+function renderPlayMenu() {
+  $("runBest").textContent = `じこベスト ${data.play.run.best}m`;
+  $("towerBest").textContent = `じこベスト ${data.play.tower.best}m`;
+}
+$("playBack").onclick = () => { renderMy(); show("scMy"); };
+$("goRun").onclick = () => startPlay("run");
+$("goTower").onclick = () => startPlay("tower");
+function pMsg(text, ms = 900) {
+  const m = $("pMsg");
+  m.textContent = text;
+  m.classList.add("show");
+  clearTimeout(pMsg.t);
+  pMsg.t = setTimeout(() => m.classList.remove("show"), ms);
+}
+async function startPlay(mode) {
+  const rec = data.play[mode];
+  play = { mode, best: rec.best, newBest: false, last: 0 };
+  const h = HAT_COLORS.find((x) => x.id === data.hat) || HAT_COLORS[0];
+  $("pDist").textContent = "0m";
+  $("pBest").textContent = `🏅${rec.best}m`;
+  show("scPlayRun");
+  if (mode === "run") {
+    setRunHat(h.color);
+    startPlayRun({ onTick: playTick, onHit: () => { sfx.ng(); pMsg("ぶつかった！", 1100); }, onEnd: (m) => finishPlay(m) });
+    pMsg("よーい スタート！", 900);
+  } else {
+    await initTowerView();
+    if (screen !== "scPlayRun" || !play) return;
+    setTowerHat(h.color);
+    startTower({ onHeight: playTick, onFall: () => { sfx.ng(); pMsg("おちちゃった！", 1100); }, onEnd: (m) => finishPlay(m) });
+    pMsg("のぼろう！", 900);
+  }
+}
+function playTick(m) {
+  if (!play || m === play.last) return;
+  play.last = m;
+  $("pDist").textContent = `${m}m`;
+  if (m > play.best && play.best > 0 && !play.newBest) { play.newBest = true; sfx.streak(); pMsg("じこベスト こうしん！", 1100); }
+  if (m > play.best) $("pBest").textContent = `🏅${m}m`;
+  else if (m > 0 && m % 100 === 0 && play.mode === "run") { sfx.ok(); pMsg(`${m}m！`, 700); }
+  else if (m > 0 && m % 25 === 0 && play.mode === "tower") { sfx.ok(); pMsg(`${m}m！`, 700); }
+}
+function playMove(d) {
+  if (!play) return;
+  if (play.mode === "run") moveLaneBy(d); else towerMove(d);
+  sfx.tap();
+}
+function playJumpNow() {
+  if (!play) return;
+  if (play.mode === "run" ? playJump() : towerJump()) sfx.tap();
+}
+function finishPlay(m) {
+  const rec = data.play[play.mode];
+  const prev = rec.best;
+  rec.last = m;
+  rec.plays++;
+  if (play.mode === "run") rec.total += m;
+  if (m > rec.best) rec.best = m;
+  const got = checkBadges();
+  save();
+  sfx.done();
+  react("cheer");
+  const name = play.mode === "run" ? "ラン" : "とう";
+  $("resBig").textContent = `${name} ${m}m！`;
+  const lines = [m > prev ? (prev > 0 ? `🏅 じこベスト こうしん！（まえは ${prev}m）` : "🏅 はじめての きろく！") : `🏅 じこベスト ${rec.best}m（あと ${rec.best - m + 1}m で こうしん）`];
+  for (const b of got) lines.push(`${b.icon} バッジ「${b.name}」を もらった！`);
+  $("resText").textContent = lines.join("\n");
+  quiz = null;
+  show("scResult");
+}
+$("pQuit").onclick = () => { stopRunView(); stopTower(); play = null; renderMy(); show("scMy"); };
+for (const [id, fn] of [["pLeft", () => playMove(-1)], ["pRight", () => playMove(1)], ["pJump", playJumpNow]]) {
+  const b = $(id);
+  b.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); fn(); b.classList.add("press"); setTimeout(() => b.classList.remove("press"), 120); });
+}
+let pSwipe = null;
+$("scPlayRun").addEventListener("pointerdown", (e) => { if (e.target.closest("button")) return; pSwipe = { x: e.clientX, y: e.clientY }; });
+$("scPlayRun").addEventListener("pointerup", (e) => {
+  if (!pSwipe) return;
+  const dx = e.clientX - pSwipe.x, dy = e.clientY - pSwipe.y;
+  pSwipe = null;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) playMove(dx < 0 ? -1 : 1);
+  else playJumpNow();     // タップ・上スワイプは ジャンプ
+});
+addEventListener("keydown", (e) => {
+  if (screen !== "scPlayRun" || e.repeat) return;
+  if (e.code === "ArrowLeft" || e.code === "KeyA") playMove(-1);
+  if (e.code === "ArrowRight" || e.code === "KeyD") playMove(1);
+  if (e.code === "ArrowUp" || e.code === "Space" || e.code === "KeyW") { e.preventDefault(); playJumpNow(); }
+});
 
 /* =========================================================
    九九の段えらび
@@ -281,6 +396,16 @@ const KANJI_MODES = [
   { t: "mix",   label: "🎲 ミックス", note: "3つの もんだいが まざる" },
 ];
 const kanjiGrade = () => (me.grade === "k" ? 0 : Number(me.grade.slice(1)));
+/* 出題データの 並び順（教科書に 出てくる順）で、その学年の 配当漢字を ならべる */
+function kanjiOrder(rows) { return [...new Set(rows.map((r) => r.k).filter(Boolean))]; }
+/* 「ならった ところまで」の 行だけ（配当漢字が 空の行は いつも 出す） */
+function kanjiRowsUpTo(gn) {
+  const rows = store.getKanji().filter((r) => r.g === gn);
+  const order = kanjiOrder(rows);
+  const n = Math.min(order.length, data.kokugo.upto[gn] || order.length);
+  const ok = new Set(order.slice(0, n));
+  return { rows: rows.filter((r) => !r.k || ok.has(r.k)), order, n };
+}
 function renderKokugo() {
   const g = gradeOf(me.grade);
   const box = $("kokuBtns");
@@ -298,7 +423,7 @@ function renderKokugo() {
     if (!canSpeak()) note = "この たんまつでは よみあげが つかえないので、ひらがなは あそべません";
   } else {
     const gn = kanjiGrade();
-    const rows = store.getKanji().filter((r) => r.g === gn);
+    const { rows, order, n } = kanjiRowsUpTo(gn);
     const words = rows.filter((r) => !r.o).length, okuri = rows.filter((r) => r.o).length;
     $("kokuTitle").textContent = `${gn}ねんせいの かんじ`;
     if (words < 3) {
@@ -309,6 +434,18 @@ function renderKokugo() {
         add(`${m.label}<small>${m.note}</small>`, ["", "alt", "kokugo", "gray"][i], () => startQuiz({ type: "kanji", grade: gn, kanji: m.t }), off);
       });
       note = `ことば ${words}こ・おくりがな ${okuri}こ から でるよ`;
+      // ならった ところまで（教科書の じゅんばん）
+      const wrap = document.createElement("div");
+      wrap.className = "card";
+      wrap.innerHTML = `<b>📚 ならった ところまで</b>
+        <input type="range" id="kUpto" min="${Math.min(3, order.length)}" max="${order.length}" value="${n}" style="width:100%;margin:12px 0">
+        <div class="note" id="kUptoNote"></div>`;
+      box.append(wrap);
+      const r = wrap.querySelector("#kUpto");
+      const label = (v) => `きょうかしょの はじめから「${order[v - 1]}」まで（${v} / ${order.length}じ）${Number(v) === order.length ? "＝ ぜんぶ" : ""}`;
+      wrap.querySelector("#kUptoNote").textContent = label(n);
+      r.oninput = () => { wrap.querySelector("#kUptoNote").textContent = label(r.value); };
+      r.onchange = () => { data.kokugo.upto[gn] = Number(r.value); save(); renderKokugo(); };
     }
   }
   $("kokuNote").textContent = note;
@@ -325,7 +462,7 @@ function startQuiz(opts) {
   if (opts.type === "kinder") qs = kinderSession(KINDER.levels[opts.level - 1].max, SESSION.kinder);
   else if (opts.type === "kuku") qs = kukuSession(opts.dan, opts.order);
   else if (opts.type === "kana") qs = kanaSession(opts.kana, SESSION.kana);
-  else if (opts.type === "kanji") qs = kanjiSession(store.getKanji(), opts.grade, opts.kanji, SESSION.kanji);
+  else if (opts.type === "kanji") qs = kanjiSession(kanjiRowsUpTo(opts.grade).rows, opts.grade, opts.kanji, SESSION.kanji);
   else qs = reviewSession(data.review, SESSION.review);
   if (!qs.length) return;
   quiz = { opts, qs, i: -1, correct: 0, earned: 0, streak: 0, marks: [], mastered: [], defeated: 0, added: 0 };
@@ -507,14 +644,17 @@ function finishQuiz() {
   if (quiz.added) lines.push(`🔁 ${quiz.added}こ ふくしゅうリストに いれたよ`);
   const nextHat = HAT_COLORS.find((h) => !data.hats.includes(h.id));
   if (nextHat) lines.push(points() >= nextHat.cost ? "👒 ぼうしの いろと こうかんできるよ！" : `👒 あと ${nextHat.cost - points()}ポイントで ぼうしの いろと こうかんできるよ`);
+  for (const b of checkBadges()) lines.push(`${b.icon} バッジ「${b.name}」を もらった！`);
   $("resText").textContent = lines.join("\n");
+  play = null;
   show("scResult");
 }
 $("resAgain").onclick = () => {
+  if (play) { startPlay(play.mode); return; }
   if (quiz.opts.type === "review" && !data.review.length) { renderMy(); show("scMy"); return; }
   startQuiz(quiz.opts);
 };
-$("resMy").onclick = () => { quiz = null; renderMy(); show("scMy"); };
+$("resMy").onclick = () => { quiz = null; play = null; renderMy(); show("scMy"); };
 $("qQuit").onclick = () => { stopSpeak(); stopRunView(); quiz = null; renderMy(); show("scMy"); };
 
 /* =========================================================
@@ -635,7 +775,7 @@ function renderParent() {
     row.className = "pRow";
     row.innerHTML = `<span class="face">${esc(p.face || "🐰")}</span>
       <div><b style="font-size:20px">${esc(p.name)}</b>
-        <div class="note">正解 ${d.totalCorrect}／${d.totalAnswered}問・おぼえた九九 ${Object.values(d.kuku).filter((v) => v.lv >= 2).length}/81・復習 ${d.review.length}・ポイント ${d.points - d.spent}・合言葉 ${d.pass ? "設定ずみ" : "未設定"}</div>
+        <div class="note">正解 ${d.totalCorrect}／${d.totalAnswered}問・おぼえた九九 ${Object.values(d.kuku).filter((v) => v.lv >= 2).length}/81・復習 ${d.review.length}・ポイント ${d.points - d.spent}・ラン ${d.play.run.best}m・とう ${d.play.tower.best}m・合言葉 ${d.pass ? "設定ずみ" : "未設定"}</div>
         <div class="ctl">学年 <select data-g>${gradeOptions(p.grade)}</select>
           <button class="small gray" data-pass>合言葉をリセット</button>
           <button class="small danger" data-del>データを消す</button></div>
@@ -818,7 +958,7 @@ show("scTitle");
 if (DEBUG) {
   window.G = {
     store, get me() { return me; }, get data() { return data; }, get quiz() { return quiz; }, get screen() { return screen; },
-    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo,
+    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, get play() { return play; },
   };
   document.title = "ready";
 }
