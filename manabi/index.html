@@ -27,6 +27,8 @@ h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
 .card{background:var(--card);border-radius:24px;padding:16px 18px;box-shadow:0 6px 0 var(--line);margin:12px 0}
 .big{display:block;width:100%;margin:10px 0;padding:16px;border:0;border-radius:20px;font-size:22px;font-weight:900;color:#fff;background:var(--pink);box-shadow:0 5px 0 var(--pinkd)}
 .big:active{transform:translateY(3px);box-shadow:0 2px 0 var(--pinkd)}
+.big.kokugo{background:#5fbf7f;box-shadow:0 5px 0 #3f9a5d}
+.big small{display:block;font-size:14px;font-weight:700;opacity:.9;margin-top:2px}
 .big.alt{background:var(--sky);box-shadow:0 5px 0 var(--skyd)}
 .big.gray{background:#ddd5ea;box-shadow:0 5px 0 #bdb3cf;color:var(--ink)}
 .big.danger{background:var(--ng);box-shadow:0 5px 0 #c94a4a}
@@ -110,8 +112,10 @@ h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
 .plus{font-size:clamp(30px,6vw,46px);font-weight:900;color:var(--sub)}
 #qSub{font-size:clamp(20px,3.6vw,28px);font-weight:900;color:var(--sub)}
 #btnSpeak{border:0;border-radius:999px;background:#f1ecf9;padding:6px 16px;font-size:19px;font-weight:900}
-#laneHint{position:fixed;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));display:flex;justify-content:space-around;z-index:3;pointer-events:none}
-#laneHint span{background:rgba(255,255,255,.7);border-radius:999px;padding:8px 16px;font-weight:900;font-size:17px;color:var(--sub)}
+/* レーン移動の 大きな矢印ボタン（走っているあいだ ずっと出ている） */
+#laneBtns{position:fixed;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;padding:0 max(14px,env(safe-area-inset-left));z-index:5;pointer-events:none}
+.laneBtn{pointer-events:auto;width:clamp(104px,24vw,150px);height:clamp(104px,24vw,150px);border:0;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 7px 0 rgba(59,42,90,.28);font-size:clamp(52px,12vw,76px);font-weight:900;color:var(--pink);display:flex;align-items:center;justify-content:center;line-height:1;touch-action:none}
+.laneBtn:active,.laneBtn.press{transform:translateY(5px);box-shadow:0 2px 0 rgba(59,42,90,.28);background:#fff3c4}
 #judge{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%) scale(.6);font-size:120px;font-weight:900;opacity:0;z-index:4;pointer-events:none;transition:transform .12s,opacity .12s}
 #judge.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #flash{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity .2s}
@@ -137,6 +141,18 @@ h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
 .pRow select{padding:6px;border-radius:10px;border:2px solid var(--line)}
 .field{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
 .field input,.field select{padding:10px;border-radius:12px;border:2px solid var(--line)}
+.kjTools select,.kjTools input{padding:8px;border-radius:10px;border:2px solid var(--line)}
+.kjTools input{flex:1;min-width:120px}
+.kjWrap{max-height:60vh;overflow:auto;margin:10px 0;border-radius:12px;border:2px solid var(--line);-webkit-overflow-scrolling:touch}
+.kjTable{border-collapse:collapse;width:100%;font-size:16px}
+.kjTable th{position:sticky;top:0;background:#f1ecf8;padding:6px 4px;font-size:13px;z-index:1}
+.kjTable td{border-top:1px solid #eee6f6;padding:2px}
+.kjTable input{width:100%;box-sizing:border-box;padding:6px 4px;border:1px solid transparent;border-radius:8px;font-size:16px;background:transparent}
+.kjTable input:focus{border-color:var(--sky);background:#fff}
+.kjTable td:nth-child(1){width:15%}.kjTable td:nth-child(2){width:28%}.kjTable td:nth-child(3){width:30%}.kjTable td:nth-child(4){width:18%}
+.kjTable tr.bad td{background:#ffe8e8}
+.kjTable tr.changed td{background:#fff8dc}
+.kjDel{border:0;background:none;font-size:18px;color:#c94a4a;padding:4px 8px}
 textarea{width:100%;min-height:90px;border-radius:12px;border:2px solid var(--line);padding:8px;font-size:12px}
 .faces{display:flex;gap:6px;flex-wrap:wrap}
 .faces button{font-size:28px;border:3px solid transparent;border-radius:12px;background:#fff;padding:2px 6px}
@@ -194,7 +210,10 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
       <div>
         <div class="card">
           <div class="myHead"><span class="face" id="myFace"></span><div><div class="name" id="myName"></div><div class="note" id="myGrade"></div></div></div>
-          <button class="big" id="btnStudy">✏️ さんすう</button>
+          <div class="row">
+            <button class="big" id="btnStudy">✏️ さんすう</button>
+            <button class="big kokugo" id="btnKokugo">📖 こくご</button>
+          </div>
           <div class="row">
             <button class="big alt" id="btnReview">🔁 ふくしゅう</button>
             <button class="big alt" id="btnShop">👒 ぼうし</button>
@@ -253,6 +272,16 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
   </div>
 </div>
 
+<!-- 国語：コースえらび -->
+<div id="scKokugo" class="screen hidden">
+  <button class="back" id="kokuBack">← もどる</button>
+  <div class="wrap center" style="padding-top:44px">
+    <h2 id="kokuTitle">こくご</h2>
+    <div id="kokuBtns"></div>
+    <p class="note" id="kokuNote"></p>
+  </div>
+</div>
+
 <!-- 選択ラン（学習） -->
 <div id="scQuiz" class="screen hidden">
   <div class="qbar">
@@ -267,7 +296,7 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
     <div id="qSub"></div>
     <button id="btnSpeak">🔊 よむ</button>
   </div>
-  <div id="laneHint"><span>◀ ひだり</span><span>まんなか</span><span>みぎ ▶</span></div>
+  <div id="laneBtns"><button class="laneBtn" id="btnLeft" aria-label="ひだりへ">◀</button><button class="laneBtn" id="btnRight" aria-label="みぎへ">▶</button></div>
   <div id="judge"></div>
 </div>
 
@@ -319,6 +348,25 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
       <div class="faces" id="newFaces"></div>
       <button class="big" id="btnAdd" style="margin-top:10px">追加する</button>
       <p class="note">合言葉（絵3つ）は、お子さまが最初に入るときに自分で選びます。</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">こくご（漢字）の 出題データ</h3>
+      <p class="note">学年別漢字配当表（2020年度〜）の漢字から つくった 最初のデータです。ことば・よみ・送り仮名は ここで確認・直せます。<br>送り仮名の行は「おくりがなクイズ」、空の行は「よみ」「かんじえらび」に出ます。</p>
+      <div class="row kjTools">
+        <select id="kjGrade"></select>
+        <input id="kjFilter" placeholder="さがす（漢字・よみ）">
+        <span class="note" id="kjCount"></span>
+      </div>
+      <div class="kjWrap"><table class="kjTable"><thead><tr><th>配当漢字</th><th>ことば</th><th>よみ</th><th>送り仮名</th><th></th></tr></thead><tbody id="kjBody"></tbody></table></div>
+      <div class="row">
+        <button class="small" id="kjAdd">＋ 行を追加</button>
+        <button class="small" id="kjMore">もっと表示</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="big" id="kjSave">保存する</button>
+        <button class="big gray" id="kjReset">最初のデータに戻す</button>
+      </div>
+      <p class="note" id="kjMsg"></p>
     </div>
     <div class="card">
       <h3 style="margin-top:0">バックアップ</h3>
