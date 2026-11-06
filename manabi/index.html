@@ -94,7 +94,24 @@ h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
 .chip:disabled{opacity:.55}
 
 /* 選択ラン（学習）：3Dの走る画面の上に 問題と進みぐあいを重ねる */
-#runView{position:fixed;inset:0;width:100%;height:100%;display:none;z-index:1}
+#runView,#towerView{position:fixed;inset:0;width:100%;height:100%;display:none;z-index:1}
+#scPlayRun{background:transparent;padding-top:max(10px,env(safe-area-inset-top));overflow:hidden;touch-action:none}
+.pbar{display:flex;align-items:center;gap:10px;position:relative;z-index:3}
+.pbar .back{position:static;box-shadow:0 3px 0 var(--line)}
+#pDist{font-size:clamp(30px,7vw,48px);font-weight:900;color:#fff;text-shadow:0 3px 0 rgba(59,42,90,.45);margin-left:auto;margin-right:auto}
+#pCtl{position:fixed;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:flex-end;padding:0 max(14px,env(safe-area-inset-left));z-index:5;pointer-events:none}
+.jumpBtn{pointer-events:auto;width:clamp(116px,28vw,170px);height:clamp(116px,28vw,170px);border:0;border-radius:50%;background:rgba(255,216,77,.94);box-shadow:0 7px 0 rgba(59,42,90,.28);font-size:clamp(20px,5vw,28px);font-weight:900;color:#5a3d00;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;touch-action:none;margin-bottom:22px}
+.jumpBtn b{font-size:clamp(40px,10vw,62px)}
+.jumpBtn:active,.jumpBtn.press{transform:translateY(5px);box-shadow:0 2px 0 rgba(59,42,90,.28);background:#fff3c4}
+#pMsg{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font-size:clamp(40px,10vw,72px);font-weight:900;color:#fff;text-shadow:0 4px 0 rgba(59,42,90,.5);z-index:4;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .2s}
+#pMsg.show{opacity:1}
+.playCard{display:flex;align-items:center;gap:14px;text-align:left}
+.playCard .ic{font-size:54px}
+.playCard .big{flex:1}
+.badgeRow{display:flex;gap:8px;flex-wrap:wrap}
+.badge{display:flex;flex-direction:column;align-items:center;width:76px;padding:6px 2px;border-radius:14px;background:#fff7e0;border:2px solid #ffd86b;font-size:11px;font-weight:800;text-align:center}
+.badge i{font-style:normal;font-size:30px}
+.badge.off{background:#f3f0f7;border-color:#e2dcea;filter:grayscale(1);opacity:.45}
 #scQuiz{background:transparent;padding-top:max(10px,env(safe-area-inset-top));overflow:hidden;touch-action:none}
 .qbar{display:flex;align-items:center;gap:10px;position:relative;z-index:3}
 .qbar .back{position:static;box-shadow:0 3px 0 var(--line)}
@@ -161,7 +178,7 @@ textarea{width:100%;min-height:90px;border-radius:12px;border:2px solid var(--li
 /* 応援ののるん（1つのキャンバスを 画面ごとに 場所と大きさを変えて使う） */
 #norunView{position:fixed;z-index:3;pointer-events:none;width:240px;height:260px;left:0;bottom:0;display:block;transition:none}
 body[data-screen="scTitle"] #norunView{width:260px;height:280px;left:8px;bottom:8px}
-body[data-screen="scQuiz"] #norunView{display:none}
+body[data-screen="scQuiz"] #norunView,body[data-screen="scPlayRun"] #norunView,body[data-screen="scKokugo"] #norunView{display:none}
 body[data-screen="scResult"] #norunView{width:280px;height:300px;left:50%;transform:translateX(-50%);bottom:4px}
 body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,body[data-screen="scPin"] #norunView,body[data-screen="scConfirm"] #norunView,body[data-screen="loading"] #norunView{display:none}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;z-index:9;background:#f6f0ff;white-space:pre-line;text-align:center}
@@ -173,6 +190,7 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
 <body data-screen="loading">
 <div id="loading">よみこみちゅう…</div>
 <canvas id="runView"></canvas>
+<canvas id="towerView"></canvas>
 <canvas id="norunView"></canvas>
 <div id="flash"></div>
 <div id="toast"></div>
@@ -218,6 +236,7 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
             <button class="big alt" id="btnReview">🔁 ふくしゅう</button>
             <button class="big alt" id="btnShop">👒 ぼうし</button>
           </div>
+          <button class="big gray" id="btnPlay">🎮 あそぶ（ラン・とう）</button>
         </div>
         <div class="card">
           <h3 style="margin-top:0">きろく</h3>
@@ -236,6 +255,14 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
           <h3 style="margin-top:0">ふくしゅう リスト</h3>
           <p class="note" id="revInfo"></p>
           <div class="revList" id="revList"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">あそびの きろく</h3>
+          <div class="stats" id="myPlay"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">バッジ</h3>
+          <div class="badgeRow" id="myBadges"></div>
         </div>
         <div class="card">
           <h3 style="margin-top:0">もっている もの</h3>
@@ -279,6 +306,32 @@ body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,bo
     <h2 id="kokuTitle">こくご</h2>
     <div id="kokuBtns"></div>
     <p class="note" id="kokuNote"></p>
+  </div>
+</div>
+
+<!-- 遊び：えらぶ -->
+<div id="scPlay" class="screen hidden">
+  <button class="back" id="playBack">← もどる</button>
+  <div class="wrap" style="padding-top:44px">
+    <h2 class="center">なにで あそぶ？</h2>
+    <div class="card playCard"><span class="ic">🏃</span><div style="flex:1"><button class="big" id="goRun">ラン</button><div class="note" id="runBest"></div></div></div>
+    <div class="card playCard"><span class="ic">🗼</span><div style="flex:1"><button class="big alt" id="goTower">とう</button><div class="note" id="towerBest"></div></div></div>
+    <p class="note center">◀ ▶ で うごく ・ 🦘 ジャンプ ・ タップでも ジャンプ</p>
+  </div>
+</div>
+
+<!-- 遊び：プレイ中（ラン・塔 共通） -->
+<div id="scPlayRun" class="screen hidden">
+  <div class="pbar">
+    <button class="back" id="pQuit">✕</button>
+    <div id="pDist">0m</div>
+    <span class="pill" id="pBest">🏅0m</span>
+  </div>
+  <div id="pMsg"></div>
+  <div id="pCtl">
+    <button class="laneBtn" id="pLeft" aria-label="ひだりへ">◀</button>
+    <button class="jumpBtn" id="pJump" aria-label="ジャンプ"><b>⤒</b>ジャンプ</button>
+    <button class="laneBtn" id="pRight" aria-label="みぎへ">▶</button>
   </div>
 </div>
 
