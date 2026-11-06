@@ -10,6 +10,7 @@ const PREFIX = "norunmanabi.v1.";
 const K_PROFILES = PREFIX + "profiles";
 const K_PARENT = PREFIX + "parent";
 const K_KANJI = PREFIX + "kanji";        // 保護者が編集した 漢字の出題データ（なければ 最初のデータを使う）
+const K_SET = PREFIX + "settings";       // 端末の 設定（ランの はやさ など）
 const kData = (id) => PREFIX + "p." + id;
 
 function read(key, fallback) {
@@ -51,8 +52,9 @@ export function newData() {
     kokugo: { kana: 0, kanji: 0, upto: {} },   // 国語コース：正解数 / upto: 学年ごとの「ならった ところまで」（配当漢字の数）
     review: [],              // [{ key, q, streak }]
     defeated: 0,             // 復習で「やっつけた」数
-    play: { run: { best: 0, last: 0, plays: 0, total: 0 }, tower: { best: 0, last: 0, plays: 0 } },   // 遊びモードの記録（m）
+    play: { run: { best: 0, last: 0, plays: 0, total: 0, kira: 0, bestKira: 0 }, tower: { best: 0, last: 0, plays: 0 } },   // 遊びモードの記録（m）
     badges: [],              // もらった バッジの id
+    pins: ["panda", null, null],   // 帽子の バッジ（スロット1〜3 に つけている もの）
     days: {},                // "2026-11-06": 正解数
   };
 }
@@ -123,12 +125,17 @@ export function checkKanjiRow(r) {
   return "";
 }
 
+/* ---------- 端末の設定 ---------- */
+export const getSettings = () => ({ runSpeed: "normal", ...read(K_SET, {}) });
+export const setSettings = (s) => write(K_SET, { ...getSettings(), ...s });
+
 /* ---------- バックアップ ---------- */
 export function exportAll() {
   const out = { app: "norun-manabi", version: 1, exported: new Date().toISOString(), profiles: listProfiles(), data: {} };
   for (const p of out.profiles) out.data[p.id] = loadData(p.id);
   out.parent = getParentPin();
   if (isKanjiCustom()) out.kanji = getKanji();
+  out.settings = getSettings();
   return out;
 }
 
@@ -140,4 +147,5 @@ export function importAll(obj) {
   for (const p of obj.profiles) write(kData(p.id), { ...newData(), ...(obj.data && obj.data[p.id] || {}) });
   if (obj.parent) setParentPin(obj.parent);
   if (Array.isArray(obj.kanji)) setKanji(obj.kanji); else resetKanji();
+  if (obj.settings) write(K_SET, obj.settings);
 }

@@ -74,7 +74,8 @@ export const HAT_COLORS = [
    rowGap: 障害物の列の間かく（はじめ）→ rowGapMin まで だんだん せまく
    patterns: 障害物の ならび（L=ひくい→ジャンプ / T=たかい→よける）。from: この距離(m)から 出る */
 export const PLAY_RUN = {
-  speed: 8, speedUp: 0.45, maxSpeed: 13,
+  // はじめの速さは 保護者画面で えらべる（RUN_SPEEDS）。ここの speed は 「ふつう」の時の値
+  speed: 10, speedUp: 0.5, maxSpeed: 15,
   rowGap: 14, rowGapMin: 10, gapShrinkPer100: 0.4,
   jumpV: 8.6, gravity: 22, hopV: 3.4,
   patterns: [
@@ -86,17 +87,45 @@ export const PLAY_RUN = {
     { w: 1, from: 400, rows: ["TLT", "LTT", "TTL"] },
   ],
 };
-/* 塔：足場を のぼりつづける。頂上なし。下から くもが せまってくる
-   rowDy: 足場の段の高さ（ジャンプで とどく はんい）/ jumpV: ジャンプの強さ
-   cloud: くもの 上がる速さ（start → 高さ1mごとに +per、max まで）。grace: はじめの まち時間(秒)
-   crumble: くずれる足場が出る高さ(m)と 割合（さいだい） */
-export const PLAY_TOWER = {
-  laneW: 2.3, rowDy: [1.5, 1.9], jumpV: 10.2, gravity: 22,
-  cloud: { start: 0.35, per: 0.004, max: 1.1, grace: 4 },
-  crumble: { from: 25, rate: 0.12, maxRate: 0.35 }, crumbleT: 0.6,
+/* ランの はじめの速さ（保護者画面で えらぶ。端末ごとに 保存）
+   maxSpeed は それぞれの いちばん速い値 */
+export const RUN_SPEEDS = [
+  { id: "slow",   name: "ゆっくり", speed: 8,  maxSpeed: 13 },
+  { id: "normal", name: "ふつう",   speed: 10, maxSpeed: 15 },
+  { id: "fast",   name: "はやい",   speed: 12, maxSpeed: 17 },
+];
+/* ランの アイテム
+   kira（キラキラ）：ならんで出る。とると かず が ふえる（記録とバッジに）。ジャンプの 山なりに ならぶことも
+   star（ながれぼし）：とると 3秒 ダッシュ（速さ ×dash）＋ むてき（ぶつかっても 障害物が はじけとぶ）
+   bubble（シャボン）：とると のるんを つつむ。1回だけ ぶつかっても だいじょうぶ
+   every：だいたい この距離（マス）ごとに 1回 出る / from：この距離(m)から 出る */
+export const RUN_ITEMS = {
+  kira:   { every: 22, from: 0 },
+  star:   { every: 260, from: 40, time: 3, dash: 1.35 },
+  bubble: { every: 420, from: 80 },
 };
 
-/* バッジ（学習・遊び どちらでも もらえる。マイページに ならぶ） */
+/* 塔（タワーアスレ）：コースの部品を 自動で 上へ つないで のぼりつづける。頂上なし
+   のるんは 自動で 前へ進む。◀ ▶ で レーン、ジャンプで 段・すき間・バーを こえる
+   落ちたら すぐ 直前の チェックポイント（旗）から（何回でも OK。記録は へらない）
+   speed: 前へ進む速さ（高さ1mごとに +speedUp、maxSpeed まで）
+   stepUp: これより ひくい段は ジャンプなしで のぼれる（かいだん）
+   parts: 部品と 出はじめる高さ(m)・出やすさ */
+export const PLAY_TOWER = {
+  laneW: 2.4, speed: 5.0, speedUp: 0.012, maxSpeed: 6.4,
+  jumpV: 8.6, gravity: 22, stepUp: 0.45, padV: 12.8,
+  parts: {
+    stairs: { from: 0,  w: 3 },   // かいだん（自動で のぼる）
+    gaps:   { from: 0,  w: 3 },   // すき間を ジャンプ
+    steps:  { from: 2,  w: 3 },   // はしごの ような 高い段（ジャンプで のぼる）
+    pad:    { from: 4,  w: 2 },   // ジャンプ台 → 高いかべの 上へ
+    zigzag: { from: 8,  w: 2 },   // 1本道が 左右に ずれる
+    mover:  { from: 12, w: 2 },   // 左右に 動く足場
+    bar:    { from: 16, w: 2 },   // 回るバー（ジャンプで よける。当たっても 少し もどるだけ）
+  },
+};
+
+/* バッジ（決まり：ごほうびは 勉強でのみ。遊びの ラン・塔は 記録だけで、バッジは 出さない）。マイページに ならぶ */
 export const BADGES = [
   { id: "c50",   icon: "🌱", name: "せいかい 50",   test: (d) => d.totalCorrect >= 50 },
   { id: "c200",  icon: "🌳", name: "せいかい 200",  test: (d) => d.totalCorrect >= 200 },
@@ -104,10 +133,16 @@ export const BADGES = [
   { id: "st10",  icon: "🔥", name: "10れんぞく",    test: (d) => d.bestStreak >= 10 },
   { id: "def10", icon: "⚔️", name: "ふくしゅう 10", test: (d) => d.defeated >= 10 },
   { id: "kuku",  icon: "🌸", name: "くく ぜんぶ",   test: (d) => Object.values(d.kuku).filter((v) => v.lv >= 2).length >= 81 },
-  { id: "r100",  icon: "👟", name: "ラン 100m",     test: (d) => d.play.run.best >= 100 },
-  { id: "r300",  icon: "🏃", name: "ラン 300m",     test: (d) => d.play.run.best >= 300 },
-  { id: "r1000", icon: "🚀", name: "ラン 1000m",    test: (d) => d.play.run.best >= 1000 },
-  { id: "t20",   icon: "🪜", name: "とう 20m",      test: (d) => d.play.tower.best >= 20 },
-  { id: "t50",   icon: "🗼", name: "とう 50m",      test: (d) => d.play.tower.best >= 50 },
-  { id: "t100",  icon: "🌙", name: "とう 100m",     test: (d) => d.play.tower.best >= 100 },
+  { id: "kok100", icon: "📖", name: "こくご 100",  test: (d) => d.kokugo.kana + d.kokugo.kanji >= 100 },
+];
+
+/* 帽子に つける バッジ（モデルの Slot_1〜3 に 入っている 6種）。最大3こ つけられる
+   badge：この 記録バッジを もらうと つかえる（null は はじめから）。条件は 勉強だけ（遊びでは もらえない） */
+export const PINS = [
+  { id: "panda", icon: "🐼", name: "パンダ",   badge: null,      hint: "はじめから" },
+  { id: "star",  icon: "⭐", name: "ほし",     badge: "c50",     hint: "せいかい 50で" },
+  { id: "heart", icon: "💗", name: "ハート",   badge: "def10",   hint: "ふくしゅうで 10こ やっつけると" },
+  { id: "paw",   icon: "🐾", name: "あしあと", badge: "c200",    hint: "せいかい あわせて 200で" },
+  { id: "moon",  icon: "🌙", name: "つき",     badge: "c500",    hint: "せいかい あわせて 500で" },
+  { id: "fish",  icon: "🐟", name: "さかな",   badge: "kok100",  hint: "こくごで 100もん せいかいすると" },
 ];

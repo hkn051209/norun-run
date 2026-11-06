@@ -1,10 +1,11 @@
 /* =========================================================
-   応援ののるん（norun-v4.glb）
+   応援ののるん（norun-v7.glb）
    ふだん：ぷにぷに跳ねて ゆらゆら / 正解：ジャンプ / まちがい：「お」の口で 首をふる / 終わり：よろこぶ
    画面ごとの大きさ・場所は CSS（#norunView）で決める。描画は1つのキャンバスだけ
    ========================================================= */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/GLTFLoader.js";
+import { MODEL_URL, findPinSlots, applyPins } from "./norun-model.js";
 
 const canvas = document.getElementById("norunView");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -30,7 +31,7 @@ const N = { body: null, hat: null, mouth: null, eyeL: null, eyeR: null, starL: n
 let ready = false;
 
 export async function loadNorun3D() {
-  const g = await new GLTFLoader().loadAsync("assets/models/norun-v4.glb");
+  const g = await new GLTFLoader().loadAsync(MODEL_URL);
   const m = g.scene;
   const get = (n) => m.getObjectByName(n);
   Object.assign(N, { body: get("Body"), hat: get("Hat"), mouth: get("Mouth"), eyeL: get("Eye_L"), eyeR: get("Eye_R"), starL: get("Star_L"), starR: get("Star_R") });
@@ -55,10 +56,13 @@ export async function loadNorun3D() {
   om.visible = false;
   N.mouth.add(om);
   N.openMouth = om;
+  N.pins = findPinSlots(m);
   root.add(m);
   ready = true;
 }
 
+/* バッジ（pins：スロットごとの badgeId。null なら モデルの 初期の見た目） */
+export function setPins(pins) { if (N.pins) applyPins(N.pins, pins); }
 export function setHatColor(color) {
   for (const mat of N.hatMats) {
     if (color == null) mat.color.copy(mat.userData.baseColor);

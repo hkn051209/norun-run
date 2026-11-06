@@ -1,12 +1,12 @@
 import {
-  GRADES, gradeOf, FACES, PASS_ICONS, TEMPO, RUN, SESSION, KINDER, KUKU_MASTER_STREAK, REVIEW_GRADUATE, POINTS, HAT_COLORS, BADGES,
+  GRADES, gradeOf, FACES, PASS_ICONS, TEMPO, RUN, SESSION, KINDER, KUKU_MASTER_STREAK, REVIEW_GRADUATE, POINTS, HAT_COLORS, BADGES, PINS, RUN_SPEEDS,
 } from "./config.js";
 import * as store from "./storage.js";
 import { kinderSession, kukuSession, reviewSession, makeChoices, kanaSession, kanjiSession, shuffle } from "./quiz.js";
 import { sfx, speak, stopSpeak, unlockAudio, canSpeak } from "./sound.js";
-import { loadNorun3D, react, setHatColor } from "./norun3d.js";
-import { initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump } from "./run3d.js";
-import { initTowerView, startTower, stopTower, towerMove, towerJump, setTowerHat, towerState } from "./tower3d.js";
+import { loadNorun3D, react, setHatColor, setPins } from "./norun3d.js";
+import { initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump, setRunPins } from "./run3d.js";
+import { initTowerView, startTower, stopTower, towerMove, towerJump, setTowerHat, setTowerPins, towerState } from "./tower3d.js";
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = location.search.includes("debug");
@@ -73,6 +73,7 @@ function renderTitle() {
     list.append(b);
   }
   setHatColor(null);
+  setPins(null);
 }
 
 /* =========================================================
@@ -160,9 +161,14 @@ function enter(p) {
    マイページ
    ========================================================= */
 function applyHat() {
+  const pins = data.pins.map((id) => { const p = PINS.find((x) => x.id === id); return p && hasPin(p) ? id : null; });
+  if (pins.join() !== data.pins.join()) { data.pins = pins; save(); }
   const h = HAT_COLORS.find((x) => x.id === data.hat) || HAT_COLORS[0];
   setHatColor(h.color);
+  setPins(data.pins);
 }
+/* 帽子の バッジ：持っているか（記録バッジを もらうと つかえる） */
+const hasPin = (p) => !p.badge || data.badges.includes(p.badge);
 function renderMy() {
   const g = gradeOf(me.grade);
   $("myFace").textContent = me.face || "🐰";
@@ -197,6 +203,7 @@ function renderMy() {
   const pr = data.play.run, pt = data.play.tower;
   $("myPlay").innerHTML = [
     ["🏃", `${pr.best}m`, "ラン じこベスト"], ["🗼", `${pt.best}m`, "とう じこベスト"],
+    ["✨", `${pr.kira}こ`, "あつめた キラキラ"],
     ["👟", `${pr.plays + pt.plays}かい`, "あそんだ かいすう"],
   ].map(([i, v, l]) => `<div class="stat"><b>${i} ${v}</b><span>${l}</span></div>`).join("");
   checkBadges();
@@ -271,20 +278,43 @@ function pMsg(text, ms = 900) {
 }
 async function startPlay(mode) {
   const rec = data.play[mode];
-  play = { mode, best: rec.best, newBest: false, last: 0 };
+  play = { mode, best: rec.best, newBest: false, last: 0, kira: 0 };
   const h = HAT_COLORS.find((x) => x.id === data.hat) || HAT_COLORS[0];
   $("pDist").textContent = "0m";
   $("pBest").textContent = `🏅${rec.best}m`;
+  $("pKira").textContent = "✨0";
+  $("pKira").classList.toggle("hidden", mode !== "run");
   show("scPlayRun");
   if (mode === "run") {
     setRunHat(h.color);
-    startPlayRun({ onTick: playTick, onHit: () => { sfx.ng(); pMsg("ぶつかった！", 1100); }, onEnd: (m) => finishPlay(m) });
+    setRunPins(data.pins);
+    const sp = RUN_SPEEDS.find((s) => s.id === store.getSettings().runSpeed) || RUN_SPEEDS[1];
+    startPlayRun({
+      speed: sp.speed, maxSpeed: sp.maxSpeed,
+      onTick: playTick,
+      onKira: (k) => { play.kira = k; $("pKira").textContent = `✨${k}`; sfx.kira(); },
+      onItem: (kind) => {
+        if (kind === "star") { sfx.power(); pMsg("ながれぼし ダッシュ！", 1000); }
+        else if (kind === "bubble") { sfx.power(); pMsg("シャボンで まもる！", 1000); }
+        else if (kind === "pop") { sfx.pop(); pMsg("シャボンが まもった！", 900); }
+        else if (kind === "smash") sfx.pop();
+      },
+      onHit: () => { sfx.ng(); pMsg("ぶつかった！", 1100); },
+      onEnd: (m, k) => finishPlay(m, k),
+    });
     pMsg("よーい スタート！", 900);
   } else {
     await initTowerView();
     if (screen !== "scPlayRun" || !play) return;
     setTowerHat(h.color);
-    startTower({ onHeight: playTick, onFall: () => { sfx.ng(); pMsg("おちちゃった！", 1100); }, onEnd: (m) => finishPlay(m) });
+    setTowerPins(data.pins);
+    startTower({
+      onHeight: playTick,
+      onCheckpoint: () => { sfx.flag(); pMsg("🚩 チェックポイント！", 900); },
+      onFall: () => { sfx.tap(); pMsg("だいじょうぶ！ はたから もういちど", 1300); },
+      onPad: () => sfx.boing(),
+      onBump: () => { sfx.ng(); pMsg("バーに あたった！", 800); },
+    });
     pMsg("のぼろう！", 900);
   }
 }
@@ -306,26 +336,34 @@ function playJumpNow() {
   if (!play) return;
   if (play.mode === "run" ? playJump() : towerJump()) sfx.tap();
 }
-function finishPlay(m) {
+function finishPlay(m, kira = 0) {
   const rec = data.play[play.mode];
   const prev = rec.best;
   rec.last = m;
   rec.plays++;
-  if (play.mode === "run") rec.total += m;
+  if (play.mode === "run") { rec.total += m; rec.kira += kira; rec.bestKira = Math.max(rec.bestKira, kira); }
   if (m > rec.best) rec.best = m;
-  const got = checkBadges();
-  save();
+  save();                     // 遊びは 記録だけ（バッジは 勉強でのみ）
   sfx.done();
   react("cheer");
   const name = play.mode === "run" ? "ラン" : "とう";
   $("resBig").textContent = `${name} ${m}m！`;
   const lines = [m > prev ? (prev > 0 ? `🏅 じこベスト こうしん！（まえは ${prev}m）` : "🏅 はじめての きろく！") : `🏅 じこベスト ${rec.best}m（あと ${rec.best - m + 1}m で こうしん）`];
-  for (const b of got) lines.push(`${b.icon} バッジ「${b.name}」を もらった！`);
+  if (play.mode === "run") lines.push(`✨ キラキラ ${kira}こ（ぜんぶで ${rec.kira}こ）`);
   $("resText").textContent = lines.join("\n");
   quiz = null;
   show("scResult");
 }
-$("pQuit").onclick = () => { stopRunView(); stopTower(); play = null; renderMy(); show("scMy"); };
+/* ✕：そこまでの 記録を のこして おわる（塔は ここで おわる。ランも 走った分は 記録） */
+$("pQuit").onclick = () => {
+  if (!play) { renderMy(); show("scMy"); return; }
+  if (play.mode === "run") {
+    const R = runState();
+    const m = R && R.mode === "play" ? Math.floor(R.dist / 2) : play.last, k = R && R.mode === "play" ? R.kira : play.kira;
+    stopRunView();
+    finishPlay(m, k);
+  } else finishPlay(stopTower());
+};
 for (const [id, fn] of [["pLeft", () => playMove(-1)], ["pRight", () => playMove(1)], ["pJump", playJumpNow]]) {
   const b = $(id);
   b.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); fn(); b.classList.add("press"); setTimeout(() => b.classList.remove("press"), 120); });
@@ -469,6 +507,7 @@ function startQuiz(opts) {
   const cfg = runCfg(qs);
   const h = HAT_COLORS.find((x) => x.id === data.hat) || HAT_COLORS[0];
   setRunHat(h.color);
+  setRunPins(data.pins);
   $("qBox").classList.add("off");
   show("scQuiz");
   updateBar();
@@ -644,7 +683,11 @@ function finishQuiz() {
   if (quiz.added) lines.push(`🔁 ${quiz.added}こ ふくしゅうリストに いれたよ`);
   const nextHat = HAT_COLORS.find((h) => !data.hats.includes(h.id));
   if (nextHat) lines.push(points() >= nextHat.cost ? "👒 ぼうしの いろと こうかんできるよ！" : `👒 あと ${nextHat.cost - points()}ポイントで ぼうしの いろと こうかんできるよ`);
-  for (const b of checkBadges()) lines.push(`${b.icon} バッジ「${b.name}」を もらった！`);
+  for (const b of checkBadges()) {
+    lines.push(`${b.icon} バッジ「${b.name}」を もらった！`);
+    const pin = PINS.find((p) => p.badge === b.id);
+    if (pin) lines.push(`${pin.icon} ぼうしの バッジ「${pin.name}」が つけられるように なった！`);
+  }
   $("resText").textContent = lines.join("\n");
   play = null;
   show("scResult");
@@ -660,7 +703,38 @@ $("qQuit").onclick = () => { stopSpeak(); stopRunView(); quiz = null; renderMy()
 /* =========================================================
    帽子の色と交換
    ========================================================= */
+function renderPins() {
+  $("pinSlots").innerHTML = data.pins.map((id, i) => {
+    const p = PINS.find((x) => x.id === id);
+    return `<div class="pinSlot ${p ? "on" : ""}">${p ? p.icon : ""}<small>${i + 1}</small></div>`;
+  }).join("");
+  const g = $("pinGrid");
+  g.innerHTML = "";
+  for (const p of PINS) {
+    const has = hasPin(p), on = data.pins.includes(p.id);
+    const b = document.createElement("button");
+    b.className = "pinBtn" + (on ? " on" : "");
+    b.disabled = !has;
+    b.innerHTML = `<i>${p.icon}</i>${p.name}<span>${on ? "つけてる" : has ? "つける" : p.hint}</span>`;
+    b.onclick = () => {
+      const i = data.pins.indexOf(p.id);
+      if (i >= 0) data.pins[i] = null;                     // はずす
+      else {
+        const free = data.pins.indexOf(null);
+        if (free < 0) { toast("3こまで だよ。どれかを はずしてね", 1200); return; }
+        data.pins[free] = p.id;                             // あいている スロットへ
+      }
+      sfx.tap();
+      save();
+      applyHat();
+      react("ok");
+      renderPins();
+    };
+    g.append(b);
+  }
+}
 function renderShop() {
+  renderPins();
   $("shopPts").textContent = `⭐ ポイント ${points()}（せいかいすると たまるよ）`;
   const g = $("hatGrid");
   g.innerHTML = "";
@@ -764,7 +838,13 @@ function openParent() {
 function gradeOptions(sel) {
   return GRADES.map((g) => `<option value="${g.id}" ${g.id === sel ? "selected" : ""}>${g.name}</option>`).join("");
 }
+function renderPlaySettings() {
+  const cur = store.getSettings().runSpeed;
+  $("setRunSpeed").innerHTML = RUN_SPEEDS.map((s) => `<option value="${s.id}" ${s.id === cur ? "selected" : ""}>${s.name}（${s.speed}）</option>`).join("");
+}
+$("setRunSpeed").onchange = (e) => { store.setSettings({ runSpeed: e.target.value }); toast("保存しました", 900); };
 function renderParent() {
+  renderPlaySettings();
   const list = $("pList");
   list.innerHTML = "";
   const profs = store.listProfiles();

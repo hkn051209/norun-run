@@ -7,7 +7,8 @@
    ========================================================= */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/GLTFLoader.js";
-import { RUN, TEMPO, PLAY_RUN } from "./config.js";
+import { MODEL_URL, findPinSlots, applyPins } from "./norun-model.js";
+import { RUN, TEMPO, PLAY_RUN, RUN_ITEMS } from "./config.js";
 const TEMPO_NG = TEMPO.ngShow / 1000;
 
 const W = RUN.laneW;
@@ -121,7 +122,7 @@ shadow.position.y = 0.01;
 scene.add(shadow);
 
 export async function initRunView() {
-  const g = await new GLTFLoader().loadAsync("assets/models/norun-v4.glb");
+  const g = await new GLTFLoader().loadAsync(MODEL_URL);
   const m = g.scene;
   m.scale.setScalar(0.85);
   const get = (n) => m.getObjectByName(n);
@@ -134,8 +135,10 @@ export async function initRunView() {
       nr.hatMats.push(o.material);
     }
   });
+  nr.pins = findPinSlots(m);
   nr.root.add(m);
 }
+export function setRunPins(pins) { if (nr.pins) applyPins(nr.pins, pins); }
 export function setRunHat(color) {
   for (const m of nr.hatMats) { if (color == null) m.color.copy(m.userData.base); else m.color.set(color); }
 }
@@ -327,6 +330,45 @@ function makeObstacle(kind) {
   scene.add(g);
   return g;
 }
+/* ---------- アイテム（遊びのラン） ---------- */
+const kiraGeo = new THREE.OctahedronGeometry(0.26, 0);
+const kiraMat = new THREE.MeshLambertMaterial({ color: 0xffe066, emissive: 0xffb800, emissiveIntensity: 0.55 });
+const starShape = new THREE.Shape();
+for (let i = 0; i < 10; i++) {
+  const r = i % 2 ? 0.26 : 0.6, a = (i / 10) * Math.PI * 2 + Math.PI / 2;
+  if (i === 0) starShape.moveTo(Math.cos(a) * r, Math.sin(a) * r); else starShape.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+}
+const starGeo = new THREE.ExtrudeGeometry(starShape, { depth: 0.18, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05, bevelSegments: 2 });
+starGeo.center();
+const starMat = new THREE.MeshLambertMaterial({ color: 0xffd84d, emissive: 0xff9f1a, emissiveIntensity: 0.6 });
+const bubbleGeo = new THREE.SphereGeometry(0.55, 20, 14);
+const bubbleMat = new THREE.MeshLambertMaterial({ color: 0x9fe3ff, emissive: 0x6cc0ff, emissiveIntensity: 0.35, transparent: true, opacity: 0.55, depthWrite: false });
+function makeItem(kind) {
+  const g = new THREE.Group();
+  if (kind === "kira") g.add(new THREE.Mesh(kiraGeo, kiraMat));
+  else if (kind === "star") g.add(new THREE.Mesh(starGeo, starMat));
+  else {
+    g.add(new THREE.Mesh(bubbleGeo, bubbleMat));
+    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    shine.position.set(-0.22, 0.24, -0.4);
+    g.add(shine);
+  }
+  scene.add(g);
+  return g;
+}
+// のるんを つつむ シャボン（とった時に 見える）
+const shieldMesh = new THREE.Mesh(new THREE.SphereGeometry(1.15, 24, 16), new THREE.MeshLambertMaterial({ color: 0xbfeaff, emissive: 0x6cc0ff, emissiveIntensity: 0.3, transparent: true, opacity: 0.32, depthWrite: false }));
+shieldMesh.visible = false;
+scene.add(shieldMesh);
+// ダッシュ中の キラキラの あと
+const trail = [];
+for (let i = 0; i < 14; i++) {
+  const m = new THREE.Mesh(kiraGeo, new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0 }));
+  m.scale.setScalar(0.5);
+  scene.add(m);
+  trail.push({ m, t: 0 });
+}
+
 function pickPattern(dist) {
   const list = PLAY_RUN.patterns.filter((p) => dist >= p.from);
   let r = Math.random() * list.reduce((s, p) => s + p.w, 0);
@@ -352,10 +394,14 @@ export function startRunView(opts) {
 /* 遊びのラン：onTick(m) 毎フレーム / onEnd(m) ぶつかって おわった時 */
 export function startPlayRun(opts) {
   stopRunView();
+  const base = opts.speed || PLAY_RUN.speed, maxSpeed = opts.maxSpeed || PLAY_RUN.maxSpeed;
   R = {
-    mode: "play", ...opts, dist: 0, speed: PLAY_RUN.speed, obs: [], rowD: 26, last: "",
+    mode: "play", ...opts, base, maxSpeed, dist: 0, speed: base, obs: [], items: [], rowD: 26, last: "",
     ready: 1.0, over: false, overT: 0, bounce: 0, shake: 0,
+    kira: 0, dashT: 0, shield: false, safeT: 0, trailI: 0, trailT: 0,
+    nextKira: 34, nextStar: RUN_ITEMS.star.from * 2 + 40, nextBubble: RUN_ITEMS.bubble.from * 2 + 60,
   };
+  shieldMesh.visible = false;
   Object.assign(me, { lane: 1, x: 0, y: 0, vy: 0, jumps: 0 });
   canvas.style.display = "block";
   clock.getDelta();
@@ -369,22 +415,58 @@ export function playJump() {
   return true;
 }
 const meters = () => Math.floor(R.dist / 2);   // 2マス ＝ 1m（のるんランと同じ 見え方の 目安）
+/* 障害物を はじきとばす（ダッシュ中・シャボン） */
+function knockAway(o) {
+  o.fly = { vy: 7, vx: (Math.random() < 0.5 ? -1 : 1) * 5, spin: rand(-8, 8) };
+  o.passed = true;
+}
+/* 障害物の列の あいだに アイテムを おく。safe=その列で 通れるレーン */
+function placeItems(fromD, toD, rowStr) {
+  const free = [0, 1, 2].filter((l) => rowStr[l] === ".");
+  const low = [0, 1, 2].filter((l) => rowStr[l] === "L");
+  const mid = (fromD + toD) / 2;
+  if (R.nextStar <= toD && free.length) {
+    R.items.push({ kind: "star", lane: free[Math.floor(Math.random() * free.length)], d: mid, y: 1.0 });
+    R.nextStar = toD + RUN_ITEMS.star.every * rand(0.8, 1.3);
+    return;
+  }
+  if (R.nextBubble <= toD && free.length) {
+    R.items.push({ kind: "bubble", lane: free[Math.floor(Math.random() * free.length)], d: mid, y: 1.0 });
+    R.nextBubble = toD + RUN_ITEMS.bubble.every * rand(0.8, 1.3);
+    return;
+  }
+  if (R.nextKira > toD) return;
+  R.nextKira = toD + RUN_ITEMS.kira.every * rand(0.6, 1.4);
+  if (low.length && Math.random() < 0.4) {
+    // ひくい障害物の 上に 山なりに（ジャンプで とれる）
+    const l = low[Math.floor(Math.random() * low.length)];
+    [-1.6, -0.8, 0, 0.8, 1.6].forEach((dz) => R.items.push({ kind: "kira", lane: l, d: toD + dz, y: 0.55 + (1.7 - Math.abs(dz)) * 0.75 }));
+  } else if (free.length) {
+    // 通れる レーンに 1列（そのまま 走れば とれる）
+    const l = free[Math.floor(Math.random() * free.length)];
+    for (let d = toD - 6.5; d > fromD + 1.5 && d > toD - 14; d -= 1.6) R.items.push({ kind: "kira", lane: l, d, y: 0.6 });
+  }
+}
 function playStep(dt) {
   if (R.ready > 0) R.ready -= dt;
   const moving = R.ready <= 0 && !R.over;
+  if (R.dashT > 0) R.dashT -= dt;
+  if (R.safeT > 0) R.safeT -= dt;
   if (moving) {
-    R.speed = Math.min(PLAY_RUN.maxSpeed, PLAY_RUN.speed + (meters() / 100) * PLAY_RUN.speedUp);
+    R.speed = Math.min(R.maxSpeed, R.base + (meters() / 100) * PLAY_RUN.speedUp) * (R.dashT > 0 ? RUN_ITEMS.star.dash : 1);
     R.dist += R.speed * dt;
   }
   if (R.bounce > 0) { const b = Math.min(R.bounce, dt * 9); R.bounce -= b; R.dist -= b; }
   // 先の障害物を つくる
   while (R.rowD - R.dist < 90) {
     const gap = Math.max(PLAY_RUN.rowGapMin, PLAY_RUN.rowGap - (R.rowD / 200) * PLAY_RUN.gapShrinkPer100);
+    const prevD = R.rowD;
     R.rowD += gap;
     const rows = pickPattern(R.rowD / 2);
     let v = rows[Math.floor(Math.random() * rows.length)];
     if (v === R.last && rows.length > 1) v = rows[(rows.indexOf(v) + 1) % rows.length];
     R.last = v;
+    placeItems(prevD, R.rowD, v);
     [...v].forEach((ch, lane) => { if (ch !== ".") R.obs.push({ kind: ch, lane, d: R.rowD, obj: null }); });
   }
   for (const o of R.obs) {
@@ -392,8 +474,23 @@ function playStep(dt) {
     if (!o.obj && z < 85) { o.obj = makeObstacle(o.kind); o.obj.position.x = LANE_X[o.lane]; }
     if (!o.obj) continue;
     o.obj.position.z = z;
+    if (o.fly) {   // はじきとばされた 障害物
+      o.fly.vy -= 20 * dt;
+      o.obj.position.y += o.fly.vy * dt;
+      o.obj.position.x += o.fly.vx * dt;
+      o.obj.rotation.z += o.fly.spin * dt;
+      o.obj.visible = z > -0.9 && o.obj.position.y > -3;
+      continue;
+    }
     if (o !== R.hit) o.obj.visible = z > -0.9;    // 通りすぎた物は 消す（カメラの前を ふさがない）
     if (moving && !o.passed && Math.abs(z) < 0.75 && Math.abs(me.x - LANE_X[o.lane]) < 0.95 && (o.kind === "T" || me.y < 0.62)) {
+      if (R.dashT > 0 || R.safeT > 0) { knockAway(o); R.shake = 0.15; if (R.onItem) R.onItem("smash"); continue; }
+      if (R.shield) {
+        R.shield = false; R.safeT = 0.8; shieldMesh.visible = false;
+        knockAway(o); R.shake = 0.2;
+        if (R.onItem) R.onItem("pop");
+        continue;
+      }
       R.hit = o; R.over = true; R.overT = 1.3; R.bounce = 2.2; R.shake = 0.35; me.vy = 5;
       if (R.onHit) R.onHit(meters());
     }
@@ -403,20 +500,60 @@ function playStep(dt) {
     if (o.obj && o.obj.position.z < -12) { scene.remove(o.obj); return false; }
     return true;
   });
+  // アイテム
+  const tt = clock.elapsedTime;
+  for (const it of R.items) {
+    const z = it.d - R.dist;
+    if (!it.obj && z < 80) { it.obj = makeItem(it.kind); it.obj.position.set(LANE_X[it.lane], it.y, z); }
+    if (!it.obj) continue;
+    it.obj.position.z = z;
+    it.obj.rotation.y = tt * (it.kind === "kira" ? 3 : 1.6);
+    if (it.kind !== "kira") it.obj.position.y = it.y + Math.sin(tt * 3 + it.d) * 0.15;
+    if (it.got) { it.obj.position.y += dt * 6; it.obj.scale.multiplyScalar(1 - dt * 5); }
+    else if (!R.over && Math.abs(z) < 0.8 && Math.abs(me.x - LANE_X[it.lane]) < 0.9 && Math.abs(me.y + 0.6 - it.y) < 0.95) {
+      it.got = true;
+      if (it.kind === "kira") { R.kira++; if (R.onKira) R.onKira(R.kira); }
+      else if (it.kind === "star") { R.dashT = RUN_ITEMS.star.time; if (R.onItem) R.onItem("star"); }
+      else { R.shield = true; shieldMesh.visible = true; if (R.onItem) R.onItem("bubble"); }
+    }
+  }
+  R.items = R.items.filter((it) => {
+    if (it.obj && (it.obj.position.z < -6 || it.obj.scale.x < 0.08)) { scene.remove(it.obj); return false; }
+    return true;
+  });
+  // シャボン・ダッシュの 見た目
+  shieldMesh.position.set(me.x, me.y + 0.6, 0);
+  shieldMesh.scale.setScalar(1 + Math.sin(tt * 6) * 0.04);
+  R.trailT -= dt;
+  if (R.dashT > 0 && R.trailT <= 0) {
+    R.trailT = 0.04;
+    const p = trail[R.trailI++ % trail.length];
+    p.t = 0.5; p.m.position.set(me.x + rand(-0.4, 0.4), me.y + rand(0.2, 1.1), rand(-0.3, 0.3));
+  }
+  for (const p of trail) {
+    if (p.t > 0) { p.t -= dt; p.m.position.z -= R.speed * dt; }
+    p.m.material.opacity = Math.max(0, p.t * 2);
+  }
   // 景色
   roadTex.offset.y = -((R.dist * roadTex.repeat.y) / 400) % 1;
   if (moving) for (const o of deco) { o.position.z -= R.speed * dt; if (o.position.z < -10) placeDeco(o, false); }
   if (R.onTick) R.onTick(meters(), R.speed);
   if (R.over) {
     R.overT -= dt;
-    if (R.overT <= 0) { const end = R.onEnd, m = meters(); stopRunView(); end(m); return false; }
+    if (R.overT <= 0) { const end = R.onEnd, m = meters(), k = R.kira; stopRunView(); end(m, k); return false; }
   }
   return true;
 }
 
 export function stopRunView() {
   if (!R) return;
-  if (R.mode === "play") { for (const o of R.obs) if (o.obj) scene.remove(o.obj); R = null; canvas.style.display = "none"; return; }
+  if (R.mode === "play") {
+    for (const o of R.obs) if (o.obj) scene.remove(o.obj);
+    for (const it of R.items) if (it.obj) scene.remove(it.obj);
+    shieldMesh.visible = false;
+    for (const p of trail) { p.t = 0; p.m.material.opacity = 0; }
+    R = null; canvas.style.display = "none"; return;
+  }
   clearGhost();
   for (const gt of R.gates) if (gt) disposeGate(gt);
   R = null;
@@ -539,6 +676,7 @@ function moveNorun(dt, play) {
   let sx = 0;
   if (play && R.shake > 0) { R.shake -= dt; sx = Math.sin(R.shake * 70) * R.shake * 0.5; }
   camera.position.set(me.x * 0.5 + sx, 2.7, -5.2);
-  camera.lookAt(me.x * 0.3, 1.1, 14);
+  // 遊びの ランを よこ長の 画面で：のるんが まんなかの ジャンプボタンに かくれないように 少し上に うつす
+  camera.lookAt(me.x * 0.3, play && camera.aspect > 1 ? -1.9 : 1.1, 14);
   renderer.render(scene, camera);
 }
