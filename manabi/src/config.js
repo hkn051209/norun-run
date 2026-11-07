@@ -134,6 +134,7 @@ export const PLAY_TOWER = {
     // とくぎの 部品（その キャラを えらんだ時だけ 出る）
     duck:   { from: 2,  w: 3, char: "pan" },      // ひくい トンネル（パンの「すべる」で くぐる）
     wide:   { from: 2,  w: 3, char: "kurage" },   // ひろい すき間（くらげの 二段ジャンプ・ふわり で こえる）
+    ghost:  { from: 2,  w: 3, char: "obake" },    // すりぬけの かべ（おばけで とおりぬける）
   },
   vanishT: 0.9, vanishOff: 2.4,   // 消える足場：のってから 消えるまで（秒）／消えている 時間
   conveyorV: 2.0,                 // 流れる床の 速さ（歩く速さ 5.2 より おそい）
@@ -149,22 +150,48 @@ export const CHARACTERS = [
   { id: "norun",  icon: "🐱", name: "のるん", model: "assets/models/norun-v7.glb",     scale: 0.8, unlock: null, skills: {}, note: "ふつうの のるん" },
   { id: "kurage", icon: "🪼", name: "くらげ", model: "assets/models/norun-kurage.glb", scale: 0.8, unlock: null, skills: { doubleJump: true, floatFall: true }, note: "二段ジャンプ・ふわりと おちる" },
   { id: "pan",    icon: "🍞", name: "パン",   model: "assets/models/norun-pan.glb",    scale: 0.8, unlock: null, skills: { slide: true }, note: "すべって ひくい所を くぐる" },
+  { id: "obake",  icon: "👻", name: "おばけ", model: "assets/models/norun-obake.glb",  scale: 0.8, unlock: null, skills: { phase: true }, note: "かべを すりぬける" },
+  { id: "penguin",icon: "🐧", name: "ペンギン", model: "assets/models/norun-penguin.glb", scale: 0.8, unlock: null, skills: {}, note: "よちよち あるく（とくぎは これから）" },
 ];
+/* おばけ（モデル担当より）：すそが 地面から 0.07 うく のが 基準。ゆれは ルートの position.y で。
+   すりぬけ中は M_Ghost・M_Face を opacity 0.45 に、Ghost_Outline は かくす（りんかくの からが すけて 紫っぽく なるため） */
+export const OBAKE = { phaseT: 1.6, opacity: 0.45, bob: 0.06 };
+/* ペンギン（モデル担当より）：羽は 外がわに 34° ひらいた のが 基準。うごきは 基準に 足す */
+export const PENGUIN = { flap: 0.45, sway: 0.12 };
 /* パンの すべる ポーズ（モデル担当より）：X軸まわりに +90°（顔が下・うらが上）。
    接地の高さ：耳の ふちだけなら 0.24、顔と舌も 地面の上に 出すなら 0.33（モデルの 単位） */
 export const PAN_SLIDE = { rotX: Math.PI / 2, y: 0.33 };
 
-/* ASMRタワー：区間ごとに 素材テーマが かわる タワーアスレ
-   テーマごとに：足場の色・もよう／足音（assets/audio/step_<id>.mp3・land_<id>.mp3）／歩く速さ・ジャンプの高さ・すべり・はね・しずみこみ
-   walk：歩く速さの 倍率 / jump：ジャンプの 倍率 / grip：止まりやすさ（小さいほど つるつる すべる）
-   bounce：着地した時に 自動で はねる 強さ（0＝はねない）/ sink：着地の しずみこみ（見た目） / stepEvery：足音の 間かく（歩数）
-   ※ いまは 3テーマ（たたき台）。テーマを ふやす時は ここに 足して、tower3d.js の THEME_LOOK に 見た目を 足す */
+/* ASMRタワー（2026-11-07 第4弾で 作り直し）
+   四角い 部屋（フロア）を 1かいずつ 上がっていく。1フロア ＝ 1つの 素材テーマ（かべ・床・足場が その素材）
+   - 足場は「物の形」（キーボードの キー・ボタン・スプーン・クッキー…）。部屋の かべぞいに らせん状に ならぶ
+   - 天井の 穴（＝上の フロアの 床の 穴）から 上の フロアへ。チェックポイントは ない
+   - 落ちたら ほんとうに 落ちる。とちゅうの 足場や 下の フロアの 床に 着地したら そこから つづき。1かいの 床まで 落ちたら さいしょから
+   テーマの こうもく：
+     walk：歩く速さの 倍率 / jump：ジャンプの 倍率 / grip：止まりやすさ（小さいほど つるつる。ふつう 16）
+     bounce：着地で はねる いちばん低い 速さ（0＝はねない）/ keep：着地の いきおいを どれだけ はねかえすか
+     grav：重力の 倍率（ふわふわは 小さい）/ sinkRate：立っていると しずむ 速さ（ねばねば）
+     breakT：のってから われるまで（秒。ぱりぱり）/ press：ふむと しずむ 深さ（キーボード）/ wobble：足場が ゆれる（スライム）
+     drift：すべる床で 少し ころがされる（ころころ）/ stepEvery：足音の 間かく（歩数）/ shapes：足場の 形 */
 export const ASMR_THEMES = [
-  { id: "shari", name: "しゃりしゃり", sub: "かきごおり", walk: 1.0, jump: 1.0, grip: 3.5, bounce: 0,   sink: 0.12, stepEvery: 1 },
-  { id: "puni",  name: "ぷにぷに",     sub: "グミ",       walk: 1.0, jump: 1.3, grip: 16,  bounce: 4.2, sink: 0.38, stepEvery: 1 },
-  { id: "neba",  name: "ねばねば",     sub: "はちみつ",   walk: 0.6, jump: 0.8, grip: 30,  bounce: 0,   sink: 0.22, stepEvery: 2 },
+  { id: "key",   name: "キーボード", sub: "カチャカチャ",   walk: 1.0,  jump: 1.0,  grip: 16, press: 0.16, stepEvery: 1, shapes: ["key", "key", "spacebar"] },
+  { id: "puni",  name: "ぷにぷに",   sub: "グミ",           walk: 1.0,  jump: 1.45, grip: 14, bounce: 6.0, keep: 0.82, stepEvery: 1, shapes: ["gumdrop", "button"] },
+  { id: "shari", name: "しゃりしゃり", sub: "かきごおり",   walk: 1.15, jump: 1.0,  grip: 0.9, stepEvery: 1, shapes: ["icecube", "spoon"] },
+  { id: "neba",  name: "ねばねば",   sub: "はちみつ",       walk: 0.35, jump: 0.72, grip: 45, sinkRate: 0.35, sinkMax: 0.5, stepEvery: 2, shapes: ["jar", "spoon"] },
+  { id: "zaku",  name: "ざくざく",   sub: "クッキー",       walk: 0.95, jump: 1.0,  grip: 18, crumbs: true, stepEvery: 1, shapes: ["cookie", "button"] },
+  { id: "slime", name: "スライム",   sub: "ぷるんぷるん",   walk: 0.9,  jump: 1.7,  grip: 10, bounce: 8.0, keep: 0.9, wobble: true, stepEvery: 1, shapes: ["blob", "gumdrop"] },
+  { id: "fuwa",  name: "ふわふわ",   sub: "わたあめ",       walk: 0.9,  jump: 1.1,  grip: 8,  grav: 0.4, stepEvery: 2, shapes: ["cotton"] },
+  { id: "pari",  name: "ぱりぱり",   sub: "おせんべい",     walk: 1.0,  jump: 1.0,  grip: 16, breakT: 0.6, stepEvery: 1, shapes: ["senbei"] },
+  { id: "koro",  name: "ころころ",   sub: "ビーズ",         walk: 1.2,  jump: 1.0,  grip: 0.5, drift: 1.2, stepEvery: 1, shapes: ["bead", "button"] },
 ];
-export const ASMR = { sectionParts: 4 };   // 1テーマで いくつ 部品を つなぐか
+export const ASMR = {
+  room: 13,          // 部屋の 1辺（m）
+  floorH: 7,         // 1フロアの 高さ（m）
+  tile: 2.6,         // 床の タイル（穴は タイル1まいぶん）
+  ring: 4.3,         // 足場を ならべる らせんの 半径
+  pariBack: 5,       // われた せんべいが もどるまで（秒）
+  traps: 1,          // 2かい より上の 床に あける よけいな 穴（落とし穴）の 数
+};
 
 /* バッジ（決まり：ごほうびは 勉強でのみ。遊びの ラン・塔は 記録だけで、バッジは 出さない）。マイページに ならぶ */
 export const BADGES = [

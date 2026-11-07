@@ -6,7 +6,7 @@ import { kinderSession, kukuSession, reviewSession, makeChoices, kanaSession, ka
 import { sfx, speak, stopSpeak, unlockAudio, canSpeak, playBgm, setAudioPrefs, audioStatus, stepSound, registerStepThemes } from "./sound.js";
 import { loadNorun3D, react, setHatColor, setPins } from "./norun3d.js";
 import { initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump, setRunPins } from "./run3d.js";
-import { initTowerView, startTower, stopTower, towerStick, towerJump, towerSkill, setTowerHat, setTowerPins, setTowerChar, charAvailable, towerState } from "./tower3d.js";
+import { initTowerView, startTower, stopTower, towerStick, towerJump, towerSkill, towerTeleport, setTowerHat, setTowerPins, setTowerChar, charAvailable, towerState } from "./tower3d.js";
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = location.search.includes("debug");
@@ -340,13 +340,16 @@ async function startPlay(mode) {
     const got = await setTowerChar(charOpen(c) ? c.id : "norun");
     if (screen !== "scPlayRun" || !play) return;
     const cdef = CHARACTERS.find((x) => x.id === got);
-    $("pSkill").classList.toggle("hidden", !cdef.skills.slide);
+    $("pSkill").classList.toggle("hidden", !cdef.skills.slide && !cdef.skills.phase);
+    $("pSkill").innerHTML = cdef.skills.phase ? "<b>👻</b>すりぬけ" : "<b>🛷</b>すべる";
     setTowerHat(h.color);
     setTowerPins(data.pins);
     startTower({
       mode: mode === "asmr" ? "asmr" : "athle",
       onStep: (id, kind) => stepSound(id, kind),
-      onTheme: (th) => pMsg(`${th.name} ゾーン`, 1200),
+      onTheme: (th, fl) => pMsg(`${fl}かい ${th.name}`, 1300),
+      onDrop: (fl, th, bottom) => { sfx.bump(); pMsg(fl === 1 && bottom ? "1かいまで おちた… さいしょから！" : `${fl}かいに おちた！ ここから つづき`, 1600); },
+      onBigBounce: () => sfx.boing(),
       onSwitch: () => { sfx.flag(); pMsg("とびらが ひらいた！", 900); },
       onHeight: playTick,
       onCheckpoint: () => { sfx.flag(); pMsg("🚩 チェックポイント！", 900); },
@@ -1130,7 +1133,7 @@ show("scTitle");
 if (DEBUG) {
   window.G = {
     store, get me() { return me; }, get data() { return data; }, get quiz() { return quiz; }, get screen() { return screen; },
-    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, towerSkill, get play() { return play; },
+    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, towerSkill, towerTeleport, get play() { return play; },
   };
   document.title = "ready";
 }

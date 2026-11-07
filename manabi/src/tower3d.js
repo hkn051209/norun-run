@@ -11,7 +11,8 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/GLTFLoader.js";
 import { findPinSlots, applyPins } from "./norun-model.js";
-import { PLAY_TOWER as P, CHARACTERS, PAN_SLIDE, ASMR_THEMES, ASMR } from "./config.js";
+import { PLAY_TOWER as P, CHARACTERS, PAN_SLIDE, ASMR_THEMES, ASMR, OBAKE, PENGUIN } from "./config.js";
+import { buildRoom, LOOK, themeOf } from "./asmr-rooms.js";
 
 const W = P.laneW;
 const LANE_X = [W, 0, -W];            // 0=画面の左（カメラは 後ろから +Z を見る）
@@ -77,55 +78,6 @@ const farTower = new THREE.Group();
 farTower.traverse((o) => { if (o.material) { o.material = o.material.clone(); o.material.fog = false; o.material.transparent = true; o.material.opacity = 0.55; } });
 scene.add(farTower);
 
-/* ---------- ASMR の 素材の 見た目 ---------- */
-const THEME_LOOK = {
-  shari: {   // かきごおり：水色に 白い つぶと きらきら
-    color: 0x9fd8ff, sky: 0xd8f1ff,
-    tex: canvasTex(256, 256, (x, w, h) => {
-      x.fillStyle = "#cdeeff"; x.fillRect(0, 0, w, h);
-      for (let i = 0; i < 520; i++) { x.fillStyle = `rgba(255,255,255,${rand(0.4, 1)})`; x.fillRect(rand(0, w), rand(0, h), rand(2, 5), rand(2, 5)); }
-      x.strokeStyle = "#fff"; x.lineWidth = 3;
-      for (let i = 0; i < 10; i++) { const cx = rand(10, w - 10), cy = rand(10, h - 10), r = rand(5, 9); x.beginPath(); x.moveTo(cx - r, cy); x.lineTo(cx + r, cy); x.moveTo(cx, cy - r); x.lineTo(cx, cy + r); x.stroke(); }
-    }),
-  },
-  puni: {    // グミ：ピンクで すけて、まるい あわ
-    color: 0xff8fc4, sky: 0xffe3f0, opacity: 0.86,
-    tex: canvasTex(256, 256, (x, w, h) => {
-      x.fillStyle = "#ffb3d9"; x.fillRect(0, 0, w, h);
-      for (let i = 0; i < 26; i++) {
-        const cx = rand(0, w), cy = rand(0, h), r = rand(8, 26);
-        const g = x.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 1, cx, cy, r);
-        g.addColorStop(0, "rgba(255,255,255,.95)"); g.addColorStop(0.5, "rgba(255,220,240,.5)"); g.addColorStop(1, "rgba(255,150,200,0)");
-        x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
-      }
-    }),
-  },
-  neba: {    // はちみつ：こはく色に たれる もようと つや
-    color: 0xf2b134, sky: 0xfff0c8,
-    tex: canvasTex(256, 256, (x, w, h) => {
-      x.fillStyle = "#ffcc4d"; x.fillRect(0, 0, w, h);
-      x.fillStyle = "#e89a1c";
-      for (let i = 0; i < 9; i++) { const cx = i * 30 + rand(0, 14), len = rand(40, 150); x.beginPath(); x.roundRect(cx, -10, rand(12, 20), len, 10); x.fill(); x.beginPath(); x.arc(cx + 8, len - 8, 11, 0, Math.PI * 2); x.fill(); }
-      x.strokeStyle = "rgba(255,255,255,.55)"; x.lineWidth = 6; x.lineCap = "round";
-      for (let i = 0; i < 7; i++) { const cx = rand(10, w - 40), cy = rand(60, h - 10); x.beginPath(); x.moveTo(cx, cy); x.quadraticCurveTo(cx + 15, cy - 8, cx + 34, cy); x.stroke(); }
-    }),
-  },
-};
-const themeOf = (id) => ASMR_THEMES.find((t) => t.id === id);
-const themeMats = new Map();
-function themeMat(id, top) {
-  const key = id + (top ? ":top" : "");
-  if (!themeMats.has(key)) {
-    const L = THEME_LOOK[id];
-    const m = top
-      ? new THREE.MeshLambertMaterial({ map: L.tex, emissive: 0xffffff, emissiveIntensity: 0.12 })
-      : new THREE.MeshLambertMaterial({ color: L.color, emissive: L.color, emissiveIntensity: 0.25 });
-    if (L.opacity) { m.transparent = true; m.opacity = L.opacity; }
-    themeMats.set(key, m);
-  }
-  return themeMats.get(key);
-}
-
 /* ---------- コース ---------- */
 const COL = { floor: 0x9be39b, stair: 0xffd86b, step: 0x8fd3ff, gap: 0xff9ec7, zig: 0xc7a8ff, mover: 0xffa64d, bar: 0x9be3d6, wall: 0x8fd3ff,
   vanish: 0xb6a4ff, conv: 0x8b9bb4, door: 0xff9e5e, wind: 0xa8e6ff, duck: 0xffcf66, wide: 0x9be3d6 };
@@ -158,7 +110,7 @@ const zones = [];       // 風・スイッチなどの 区間（{ kind, x0, x1, 
 function addBox(x0, x1, y0, y1, z0, z1, color, opt = {}) {
   const g = new THREE.Group();
   const h = y1 - y0;
-  const bodyMat = opt.pad ? padMat : opt.mat ? themeMat(opt.mat, false) : lambert(color);
+  const bodyMat = opt.pad ? padMat : lambert(color);
   const body = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, h, z1 - z0), bodyMat);
   body.position.y = -h / 2;
   g.add(body);
@@ -170,12 +122,7 @@ function addBox(x0, x1, y0, y1, z0, z1, color, opt = {}) {
     }
   } else {
     let topMat;
-    if (opt.mat) {
-      topMat = themeMat(opt.mat, true).clone();
-      topMat.map = THEME_LOOK[opt.mat].tex.clone();
-      topMat.map.needsUpdate = true;
-      topMat.map.repeat.set((x1 - x0) / 2.4, (z1 - z0) / 2.4);
-    } else if (opt.conv) {
+    if (opt.conv) {
       const dir = opt.conv.x > 0 ? "right" : opt.conv.x < 0 ? "left" : opt.conv.z > 0 ? "down" : "up";
       topMat = new THREE.MeshLambertMaterial({ map: arrowTex(dir), emissive: 0xffffff, emissiveIntensity: 0.1 });
       topMat.map.repeat.set((x1 - x0) / 2.4, (z1 - z0) / 2.4);
@@ -228,16 +175,15 @@ function addSign(z, y, text, sub, color = "#ff7eb6") {
 
 /* ---------- 部品 ---------- */
 const B = { z: 0, y: 0, last: "", n: 0, mode: "athle", theme: 0, secLeft: 0, char: "norun" };
-const mat = () => (B.mode === "asmr" ? ASMR_THEMES[B.theme % ASMR_THEMES.length].id : undefined);
 function rest(len) {
-  fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.floor, { mat: mat() });
+  fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.floor);
   addFlag(B.z + 0.6, B.y);
   B.z += len;
 }
 const PARTS = {
   stairs() {   // かいだん：ジャンプなしで のぼれる
     const n = randInt(5, 7), rise = 0.4, dep = 1.3, y0 = B.y;
-    for (let i = 0; i < n; i++) fullBox(y0 - 0.6, y0 + rise * (i + 1), B.z + i * dep, B.z + (i + 1) * dep, COL.stair, { mat: mat() });
+    for (let i = 0; i < n; i++) fullBox(y0 - 0.6, y0 + rise * (i + 1), B.z + i * dep, B.z + (i + 1) * dep, COL.stair);
     B.z += n * dep; B.y = y0 + rise * n;
   },
   gaps() {     // すき間を ジャンプで こえる
@@ -246,16 +192,16 @@ const PARTS = {
       B.z += rand(1.4, Math.min(2.5, 1.7 + B.y * 0.02));
       B.y += rand(0, 0.45);
       const len = rand(3, 4.2);
-      fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.gap, { mat: mat() });
+      fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.gap);
       B.z += len;
     }
   },
   steps() {    // はしごの ような 高い段（ジャンプで のぼる）
     const k = randInt(3, 4), dep = 2.6;
-    const up = B.mode === "asmr" && mat() === "neba" ? 0.75 : 1.0;   // ねばねばは ジャンプが ひくいので 段も ひくく
+    const up = 1.0;
     for (let i = 0; i < k; i++) {
       B.y += rand(0.85, 1.05) * up;
-      fullBox(B.y - 1.6, B.y, B.z, B.z + dep, COL.step, { mat: mat() });
+      fullBox(B.y - 1.6, B.y, B.z, B.z + dep, COL.step);
       B.z += dep;
     }
   },
@@ -264,7 +210,7 @@ const PARTS = {
     fullBox(B.y - 0.6, B.y + 0.12, B.z, B.z + len, 0, { pad: true });
     B.z += len;
     B.y += hgt;
-    fullBox(B.y - hgt - 0.6, B.y, B.z, B.z + 4, COL.wall, { mat: mat() });
+    fullBox(B.y - hgt - 0.6, B.y, B.z, B.z + 4, COL.wall);
     B.z += 4;
   },
   zigzag() {   // 1本道が 左右に ずれる（となりの 道と 重なっている 間に うつる）
@@ -272,7 +218,7 @@ const PARTS = {
     const k = randInt(3, 4), lap = 1.8;
     for (let i = 0; i < k; i++) {
       const len = rand(4.6, 5.6);
-      laneBox(l, B.y - 0.6, B.y, B.z - (i ? lap : 0), B.z + len, COL.zig, { mat: mat() });
+      laneBox(l, B.y - 0.6, B.y, B.z - (i ? lap : 0), B.z + len, COL.zig);
       B.z += len;
       l = l === 0 ? 1 : l === 2 ? 1 : (Math.random() < 0.5 ? 0 : 2);
     }
@@ -403,6 +349,15 @@ const PARTS = {
     addSign(B.z + 1.2, B.y, "🍞 すべって くぐろう", "", "#ffb800");
     B.z += len;
   },
+  ghost() {    // すりぬけの かべ（おばけ：すりぬけで とおる。ほかの キャラの時は 出ない）
+    const len = 9;
+    fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.wide);
+    const wz = B.z + 4.5;
+    const w = addBox(-FULL / 2, FULL / 2, B.y - 0.6, B.y + 4.6, wz, wz + 0.6, 0xb9a6ff, { ghostWall: true });
+    w.g.children[0].material = new THREE.MeshLambertMaterial({ color: 0xb9a6ff, emissive: 0x8f7ad9, emissiveIntensity: 0.3, transparent: true, opacity: 0.75 });
+    addSign(B.z + 1.2, B.y, "👻 すりぬけよう", "", "#8f7ad9");
+    B.z += len;
+  },
   wide() {     // ひろい すき間（くらげ：二段ジャンプ・ふわり）
     fullBox(B.y - 0.6, B.y, B.z, B.z + 3, COL.wide);
     addSign(B.z + 1, B.y, "🪼 2かい ジャンプ！", "");
@@ -412,25 +367,7 @@ const PARTS = {
     B.z += 4;
   },
 };
-const ASMR_PARTS = ["stairs", "gaps", "steps", "zigzag"];   // 素材を 味わう 区間なので しかけは つかわない
 function addPart() {
-  if (B.mode === "asmr") {
-    // 区間の はじめ：テーマの 看板
-    if (B.secLeft <= 0) {
-      if (B.n > 0) B.theme++;
-      B.secLeft = ASMR.sectionParts;
-      const th = ASMR_THEMES[B.theme % ASMR_THEMES.length];
-      addSign(B.z + 1.5, B.y, th.name, th.sub, "#" + THEME_LOOK[th.id].color.toString(16).padStart(6, "0"));
-      rest(5);
-    }
-    const name = pick(ASMR_PARTS.filter((k) => k !== B.last));
-    B.last = name;
-    PARTS[name]();
-    rest(rand(3.2, 4.2));
-    B.secLeft--;
-    B.n++;
-    return;
-  }
   const list = Object.entries(P.parts).filter(([k, v]) => B.y >= v.from && k !== B.last && (!v.char || v.char === B.char));
   let r = Math.random() * list.reduce((s, [, v]) => s + v.w, 0);
   let name = list[0][0];
@@ -464,6 +401,22 @@ function loadChar(id) {
     // くらげの 触手（Tentacles の 下に 7本）
     const ten = get("Tentacles");
     if (ten) for (const c of ten.children) { c.userData.r = c.rotation.clone(); ch.tentacles.push(c); }
+    // おばけ：すりぬけで すける 材質（M_Ghost・M_Face）と りんかく（Ghost_Outline）
+    ch.ghostMats = []; ch.outline = get("Ghost_Outline");
+    // ペンギン：羽（外がわ 34° が 基準。うごきは 基準に 足す）
+    ch.wings = [];
+    m.traverse((o) => {
+      if (o.isMesh && o.material && (o.material.name === "M_Ghost" || o.material.name === "M_Face") && def.skills.phase) {
+        o.material = o.material.clone();
+        o.material.userData.t = o.material.transparent; o.material.userData.o = o.material.opacity;
+        ch.ghostMats.push(o.material);
+      }
+      if (/wing|flipper|hane|fin_/i.test(o.name) && !ch.wings.includes(o)) {
+        o.userData.r = o.rotation.clone();
+        o.userData.side = /_?L$|left/i.test(o.name) ? 1 : -1;
+        ch.wings.push(o);
+      }
+    });
     m.traverse((o) => {
       if (o.isMesh && o.material && o.material.name === "M_Hat") {
         o.material = o.material.clone();
@@ -502,12 +455,79 @@ export function setTowerPins(pins) { pinList = pins; if (nr.cur) applyLook(nr.cu
 
 /* ---------- 状態 ---------- */
 let T = null;
-const me = { x: 0, y: 0, z: 0, vx: 0, vz: 0, vy: 0, yaw: 0, on: null, squash: 0, ph: 0, star: 0, starV: 0, stun: 0, wait: 0, blocked: false, jumps: 0, slideT: 0, steps: 0, sink: 0 };
+const me = { x: 0, y: 0, z: 0, vx: 0, vz: 0, vy: 0, yaw: 0, on: null, squash: 0, ph: 0, star: 0, starV: 0, stun: 0, wait: 0, blocked: false, jumps: 0, slideT: 0, phaseT: 0, steps: 0, sink: 0, neba: 0, jumpBuf: 0, airT: 0 };
+const ME0 = { vx: 0, vz: 0, vy: 0, yaw: 0, on: null, stun: 0, blocked: false, jumps: 0, slideT: 0, phaseT: 0, steps: 0, sink: 0, neba: 0, jumpBuf: 0, airT: 0 };
 const stick = { x: 0, y: 0 };   // バーチャルパッド：x=右が +、y=上（前）が +。大きさ 0〜1
 const skills = () => (nr.cur ? nr.cur.def.skills : {});
 
+/* ---------- かけら（クッキーを ふむ・せんべいが われる） ---------- */
+const crumbGeo = new THREE.BoxGeometry(0.12, 0.08, 0.12);
+const crumbs = [];
+function spawnCrumbs(s, color, n, x, z) {
+  const mat = new THREE.MeshLambertMaterial({ color });
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Mesh(crumbGeo, mat);
+    m.position.set(x ?? rand(s.x0, s.x1), s.y1 + 0.05, z ?? rand(s.z0, s.z1));
+    scene.add(m);
+    crumbs.push({ m, vx: rand(-1.5, 1.5), vy: rand(1.5, 4), vz: rand(-1.5, 1.5), t: 1.2 });
+  }
+}
+function updateCrumbs(dt) {
+  for (let i = crumbs.length - 1; i >= 0; i--) {
+    const c = crumbs[i];
+    c.t -= dt; c.vy -= 18 * dt;
+    c.m.position.x += c.vx * dt; c.m.position.y += c.vy * dt; c.m.position.z += c.vz * dt;
+    c.m.rotation.x += dt * 6;
+    if (c.t <= 0) { scene.remove(c.m); crumbs.splice(i, 1); }
+  }
+}
+
+/* ---------- ASMRタワー：部屋 ---------- */
+const A = { rooms: [], k: -1 };
+const signTex = (text, sub) => {
+  const c = document.createElement("canvas"); c.width = 512; c.height = 160;
+  const x = c.getContext("2d");
+  x.fillStyle = "rgba(255,255,255,.92)"; x.beginPath(); x.roundRect(6, 6, 500, 148, 40); x.fill();
+  x.fillStyle = "#3b2a5a"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.font = `900 60px "Hiragino Maru Gothic ProN",sans-serif`; x.fillText(text, 256, sub ? 62 : 80);
+  if (sub) { x.font = `800 32px "Hiragino Maru Gothic ProN",sans-serif`; x.fillStyle = "#7d6b9c"; x.fillText(sub, 256, 118); }
+  const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx;
+};
+const roomApi = {
+  add(s) { solids.push(s); return s; },
+  sign(text, sub, x, y, z, room) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(4, 1.25), new THREE.MeshBasicMaterial({ map: signTex(text, sub), transparent: true }));
+    m.position.set(x, y, z); m.rotation.y = Math.PI;
+    room.wallGroup.add(m);
+  },
+};
+function ensureRooms(k) {
+  while (A.rooms.length <= k + 2) {
+    const prev = A.rooms[A.rooms.length - 1];
+    const room = buildRoom(A.rooms.length, prev ? prev.exit : null, roomApi);
+    scene.add(room.group);
+    A.rooms.push(room);
+  }
+}
+/* いまの フロアに あわせて 見せ方を かえる：上の フロアの 床（＝天井）は うすく、もっと上と ずっと下は かくす */
+function showRooms(k) {
+  for (const room of A.rooms) {
+    const d = room.r - k;
+    room.group.visible = d >= -2 && d <= 1;
+    const ghost = d === 1;
+    room.wallGroup.visible = d <= 0;
+    room.objGroup.visible = d <= 0;
+    for (const m of room.mats.list) { m.transparent = ghost; m.opacity = ghost ? 0.2 : 1; m.depthWrite = !ghost; }
+  }
+}
+function clearRooms() {
+  for (const room of A.rooms) disposeGroup(room.group);
+  A.rooms.length = 0; A.k = -1;
+}
+
 function clearCourse() {
-  for (const s of solids) disposeGroup(s.g);
+  clearRooms();
+  for (const s of solids) if (s.g && s.g.parent === scene) disposeGroup(s.g);
   for (const b of bars) disposeGroup(b.g);
   for (const f of flags) disposeGroup(f.g);
   for (const e of extras) disposeGroup(e.g);
@@ -517,10 +537,14 @@ function clearCourse() {
 export function startTower(opts) {
   stopTower();
   clearCourse();
-  Object.assign(B, { z: -4, y: 0, last: "", n: 0, mode: opts.mode || "athle", theme: 0, secLeft: 0, char: nr.cur ? nr.cur.id : "norun" });
-  if (B.mode === "asmr") { addPart(); } else rest(9);
-  T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed, themeIdx: -1 };
-  Object.assign(me, { x: 0, y: 0, z: -2, vx: 0, vz: 0, vy: 0, yaw: 0, on: null, stun: 0, wait: 0.9, blocked: false, jumps: 0, slideT: 0, steps: 0, sink: 0 });
+  Object.assign(B, { z: -4, y: 0, last: "", n: 0, mode: opts.mode || "athle", char: nr.cur ? nr.cur.id : "norun" });
+  const asmr = B.mode === "asmr";
+  if (asmr) ensureRooms(0); else rest(9);
+  T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed, themeIdx: -1, floor: -1 };
+  Object.assign(me, ME0, { x: 0, y: 0, z: asmr ? 1.6 : -2, wait: 0.9 });
+  farTower.visible = !asmr;
+  for (const c of clouds) c.visible = !asmr;
+  scene.fog.near = asmr ? 30 : 40; scene.fog.far = asmr ? 70 : 85;
   stick.x = stick.y = 0;
   canvas.style.display = "block";
   onResize();
@@ -540,29 +564,45 @@ export function towerStick(x, y) {
   const k = m > 1 ? 1 / m : 1;
   stick.x = x * k; stick.y = y * k;
 }
-const floorProps = () => (me.on && me.on.mat ? themeOf(me.on.mat) : NORMAL);
+const floorProps = () => (me.on && me.on.mat ? { ...NORMAL, ...themeOf(me.on.mat) } : NORMAL);
+/* ASMR：いまいる フロアの テーマ（ふわふわの 重力などは 部屋ぜんたいに かかる） */
+const roomTheme = () => (B.mode === "asmr" && A.rooms[A.k] ? A.rooms[A.k].theme : null);
 export function towerJump() {
   if (!T || me.wait > 0) return false;
   if (me.slideT > 0 && !headroom(1.0)) return false;   // トンネルの 中では 立てない
-  if (me.on) { me.vy = P.jumpV * floorProps().jump; me.jumps = 1; }
+  const fp = floorProps();
+  if (me.on || me.airT < 0.1) { me.vy = P.jumpV * fp.jump * (1 - me.neba * 0.3); me.jumps = 1; }   // 足場を はなれた すぐ後も とべる
   else if (skills().doubleJump && me.jumps < 2) { me.vy = P.jumpV * 0.92; me.jumps = 2; }   // くらげ：空中で もう1回
-  else return false;
+  else { me.jumpBuf = 0.22; return false; }      // 着地の すこし前に おしたら、着地で とぶ（はねる 床で 大ジャンプ）
   me.slideT = 0;
   me.on = null;
+  me.airT = 1;
   me.squash = -0.22;
   return true;
 }
-/* とくぎ（パン：すべる） */
+/* とくぎ（パン：すべる／おばけ：すりぬけ） */
 export function towerSkill() {
-  if (!T || me.wait > 0 || !skills().slide || me.slideT > 0) return false;
-  me.slideT = P.slideT;
-  return true;
+  if (!T || me.wait > 0) return false;
+  const sk = skills();
+  if (sk.slide && me.slideT <= 0) { me.slideT = P.slideT; return true; }
+  if (sk.phase && me.phaseT <= 0) { me.phaseT = OBAKE.phaseT; setGhost(true); return true; }
+  return false;
 }
-export const towerSkillName = () => (skills().slide ? "slide" : null);
+/* 動作確認用：その場所へ うつす（?debug の時だけ main から つかう） */
+export function towerTeleport(x, y, z) { if (!T) return; Object.assign(me, ME0, { x, y, z }); T.camY = y; }
+export const towerSkillName = () => (skills().slide ? "slide" : skills().phase ? "phase" : null);
+/* おばけの すりぬけ：すける（M_Ghost・M_Face を opacity 0.45、Ghost_Outline を かくす）／もどす */
+function setGhost(on) {
+  const ch = nr.cur;
+  if (!ch) return;
+  for (const m of ch.ghostMats) { m.transparent = on ? true : m.userData.t; m.opacity = on ? OBAKE.opacity : m.userData.o; m.needsUpdate = true; }
+  if (ch.outline) ch.outline.visible = !on;
+}
 export const towerState = () => (T ? {
-  best: T.best, falls: T.falls, cpN: T.cpN, speed: T.speed, mode: B.mode, char: nr.cur && nr.cur.id, theme: T.themeIdx,
+  best: T.best, falls: T.falls, cpN: T.cpN, speed: T.speed, mode: B.mode, char: nr.cur && nr.cur.id, theme: T.themeIdx, floor: A.k,
+  rooms: A.rooms.map((r) => ({ r: r.r, theme: r.theme.id, exit: r.exit, holes: r.holes })),
   me: { ...me, on: !!me.on, onMat: me.on && me.on.mat, onConv: !!(me.on && me.on.conv) },
-  solids: solids.map((s) => ({ x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1, z0: s.z0, z1: s.z1, pad: !!s.pad, mov: !!s.mov, van: !!s.van, off: !!s.off, conv: !!s.conv, mat: s.mat })),
+  solids: solids.map((s) => ({ x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1, z0: s.z0, z1: s.z1, pad: !!s.pad, mov: !!s.mov, van: !!s.van, off: !!s.off, conv: !!s.conv, mat: s.mat, room: s.room, floor: !!s.floor, bound: !!s.bound, pillar: !!s.pillar, deco: !!s.deco, ghostWall: !!s.ghostWall })),
   bars: bars.map((b) => ({ cz: b.cz, y: b.y, ang: b.ang, half: b.half })),
   zones: zones.map((z) => ({ kind: z.kind, z: z.z, z0: z.z0, z1: z.z1, x: z.x, open: z.open, y: z.y })),
 } : null);
@@ -578,7 +618,8 @@ addEventListener("resize", onResize);
 
 function respawn() {
   T.falls++;
-  Object.assign(me, { x: 0, y: T.cp.y, z: T.cp.z, vx: 0, vz: 0, vy: 0, yaw: 0, on: null, stun: 0, wait: 0.7, jumps: 0, slideT: 0 });
+  if (me.phaseT > 0) setGhost(false);
+  Object.assign(me, ME0, { x: 0, y: T.cp.y, z: T.cp.z, wait: 0.7 });
   T.camY = T.cp.y;
   if (T.onFall) T.onFall(T.falls);
 }
@@ -589,6 +630,7 @@ const bodyH = () => (me.slideT > 0 ? 0.55 : 1.0);    // すべっている時は
 function hits(x, z, y, h = bodyH()) {
   for (const s of solids) {
     if (s.off) continue;
+    if (me.phaseT > 0 && !s.bound && s.y1 > y + P.stepUp) continue;   // おばけ：かべを すりぬける（部屋の かべは だめ）
     if (!(x + HW > s.x0 && x - HW < s.x1 && z + HD > s.z0 && z - HD < s.z1)) continue;
     if (s.y1 <= y + 0.02 || s.y0 >= y + h) continue;
     return s;
@@ -614,7 +656,19 @@ function loop() {
   const sk = skills();
 
   // コースを 先へ つぎたす・後ろを 消す
-  while (B.z < me.z + 80) addPart();
+  const asmr = B.mode === "asmr";
+  if (asmr) {
+    const k = Math.max(0, Math.floor((T.camY + 0.5) / ASMR.floorH));
+    if (k !== A.k) {
+      ensureRooms(k);
+      showRooms(k);
+      const prevK = A.k;
+      A.k = k;
+      T.themeIdx = ASMR_THEMES.indexOf(A.rooms[k].theme);
+      if (prevK >= 0 && k < prevK) T.dropPending = true;     // 着地した 時に「○かいに おちた」を 知らせる
+      else if (T.onTheme) T.onTheme(A.rooms[k].theme, k + 1);
+    }
+  } else while (B.z < me.z + 80) addPart();
   for (let i = solids.length - 1; i >= 0; i--) {
     const s = solids[i];
     if (s.z1 < me.z - 18 && s.z1 < T.cp.z - 2) { disposeGroup(s.g); solids.splice(i, 1); }
@@ -653,6 +707,27 @@ function loop() {
     }
   }
   for (const b of bars) { b.ang += b.sp * dt; b.g.rotation.y = b.ang; }
+  if (asmr) for (const s of solids) {
+    if (!s.mat || s.floor) continue;
+    const th = themeOf(s.mat);
+    // キーボード：ふむと キーが しずむ
+    if (th.press && s.baseY != null) s.g.position.y = damp(s.g.position.y, s.baseY - (me.on === s ? th.press : 0), 22, dt);
+    // スライム：ぷるぷる ゆれる
+    if (th.wobble) { s.wob = Math.max(0, (s.wob || 0) - dt * 1.2); const w = Math.sin(t * 16 + s.x0) * 0.16 * s.wob; s.g.scale.set(1 + w, 1 - w * 1.4, 1 + w); }
+    // ぱりぱり：のると われる（しばらくして もどる）
+    if (th.breakT && !s.pillar && !s.deco) {
+      if (s.off) { s.brkBack -= dt; if (s.brkBack <= 0) { s.off = false; s.g.visible = true; s.g.scale.setScalar(1); s.brk = -1; } }
+      else {
+        if (me.on === s && !(s.brk >= 0)) s.brk = 0;
+        if (s.brk >= 0) {
+          s.brk += dt;
+          s.g.rotation.z = Math.sin(s.brk * 60) * 0.03;
+          if (s.brk > th.breakT) { s.off = true; s.g.visible = false; s.brkBack = ASMR.pariBack; if (me.on === s) me.on = null; if (T.onStep) T.onStep("pari", "land"); spawnCrumbs(s, 0xd7a564, 14); }
+        }
+      }
+    }
+  }
+  updateCrumbs(dt);
 
   // 看板：近づいたら うすくなる（前が 見えなく ならないように）
   for (const e of extras) if (e.sign) { const d = e.z - me.z; e.g.material.opacity = Math.max(0, Math.min(1, (d - 1.5) / 4)); e.g.visible = d > 1.5; }
@@ -685,8 +760,17 @@ function loop() {
   const fp = floorProps();
   if (me.wait > 0) me.wait -= dt;
   if (me.stun > 0) me.stun -= dt;
+  if (me.jumpBuf > 0) me.jumpBuf -= dt;
+  if (me.phaseT > 0) {
+    me.phaseT -= dt;
+    if (me.phaseT <= 0 && hits(me.x, me.z, me.y, 1.0)) me.phaseT = 0.05;    // かべの 中では まだ すけたまま
+    if (me.phaseT <= 0) setGhost(false);
+  }
+  // ねばねば：立っていると だんだん しずむ（おもく なる）。はなれると もどる
+  if (me.on && fp.sinkRate) me.neba = Math.min(fp.sinkMax, me.neba + fp.sinkRate * dt);
+  else me.neba = Math.max(0, me.neba - dt * 2);
   const canMove = me.wait <= 0 && me.stun <= 0;
-  T.speed = P.speed * (me.on ? fp.walk : 1);
+  T.speed = P.speed * (me.on ? fp.walk * (1 - me.neba * 0.8) : 1);
   let tvx = canMove ? -stick.x * T.speed : 0;     // 画面の 右 ＝ ワールドの -x
   let tvz = canMove ? stick.y * T.speed : 0;
   if (me.slideT > 0) {
@@ -699,6 +783,8 @@ function loop() {
   const grip = me.on ? fp.grip : 6;     // 空中は すこし ふんばりが きかない
   me.vx = damp(me.vx, tvx, grip, dt);
   me.vz = damp(me.vz, tvz, grip, dt);
+  // ころころ：ビーズの 上では 止まっていても 少し ころがされる
+  if (me.on && fp.drift) { me.vx += Math.sin(t * 1.3 + me.z) * fp.drift * dt; me.vz += Math.cos(t * 1.1 + me.x) * fp.drift * dt; }
   me.blocked = false;
   const px = me.x;
   if (me.on && me.on.mov) me.x += me.on.mov.dx;        // 動く足場の上では いっしょに 動く
@@ -712,9 +798,21 @@ function loop() {
   // 上下：足場に のる（くらげは ふわりと 落ちる）
   const prevY = me.y;
   const floating = sk.floatFall && me.vy < 0 && !me.on;
-  me.vy -= P.gravity * (floating ? P.floatG : 1) * dt;
+  const rt = roomTheme();
+  const grav = (rt && rt.grav) || 1;      // ふわふわの 部屋は 重力が よわい
+  me.vy -= P.gravity * grav * (floating ? P.floatG : 1) * dt;
   if (floating) me.vy = Math.max(me.vy, -P.floatMaxFall);
+  me.vy = Math.max(me.vy, -24);
   let ny = me.y + me.vy * dt;
+  // 頭を ぶつける（天井・上の 足場を 下から つきぬけない）
+  if (me.vy > 0) {
+    const h = bodyH();
+    for (const s of solids) {
+      if (s.off || (me.phaseT > 0 && !s.bound)) continue;
+      if (!(me.x + 0.3 > s.x0 && me.x - 0.3 < s.x1 && me.z + 0.26 > s.z0 && me.z - 0.26 < s.z1)) continue;
+      if (s.y0 >= prevY + h - 0.02 && s.y0 < ny + h) { ny = s.y0 - h; me.vy = 0; break; }
+    }
+  }
   let sup = null;
   for (const s of solids) {
     if (s.off) continue;
@@ -723,19 +821,32 @@ function loop() {
     if (!sup || s.y1 > sup.y1) sup = s;
   }
   if (sup && me.vy <= 0 && ny <= sup.y1) {
+    const impact = -me.vy;
     const fall = prevY - sup.y1;
     const wasAir = !me.on;
-    ny = sup.y1; me.vy = 0; me.on = sup; me.jumps = 0;
-    const lp = sup.mat ? themeOf(sup.mat) : NORMAL;
-    if (wasAir && fall > 0.15) {
-      me.squash = Math.min(0.42, 0.1 + fall * 0.12 + lp.sink * 0.5);
-      me.sink = lp.sink;
+    ny = sup.y1; me.vy = 0; me.on = sup; me.jumps = 0; me.airT = 0;
+    const lp = sup.mat ? { ...NORMAL, ...themeOf(sup.mat) } : NORMAL;
+    if (wasAir && (fall > 0.15 || impact > 3)) {
+      me.squash = Math.min(0.45, 0.1 + impact * 0.02 + (lp.bounce ? 0.15 : 0));
+      me.sink = lp.bounce ? 0.4 : lp.sinkRate ? 0.3 : 0.12;
       if (T.onStep && sup.mat) T.onStep(sup.mat, "land");
+      if (lp.crumbs) spawnCrumbs(sup, 0xd9a05b, 6, me.x, me.z);
+      if (lp.wobble) sup.wob = 1;
     }
     if (sup.pad) { me.vy = P.padV; me.on = null; me.squash = 0.3; if (T.onPad) T.onPad(); }
-    else if (wasAir && lp.bounce && fall > 0.6) { me.vy = Math.min(lp.bounce, Math.sqrt(2 * P.gravity * fall) * 0.6); me.on = null; }   // ぷにぷに：ぽよんと はねかえる（だんだん 止まる）
-  } else me.on = null;
+    else if (wasAir && lp.bounce && impact > 2.5) {
+      // ぷにぷに・スライム：トランポリンの ように はねる。着地の 前に ジャンプを おしていたら 大ジャンプ
+      let v = Math.max(lp.bounce, impact * lp.keep);
+      if (me.jumpBuf > 0) { v = Math.max(v * 1.12, P.jumpV * lp.jump); me.jumpBuf = 0; if (T.onBigBounce) T.onBigBounce(); }
+      me.vy = Math.min(16, v); me.on = null;
+    } else if (me.jumpBuf > 0) { me.jumpBuf = 0; me.on = sup; towerJump(); }
+  } else { me.on = null; me.airT += dt; }
   me.y = ny;
+  if (asmr && T.dropPending && me.on) {
+    T.dropPending = false;
+    const k = Math.max(0, Math.floor((me.y + 0.5) / ASMR.floorH));
+    if (T.onDrop) T.onDrop(k + 1, A.rooms[k].theme, k === 0 && me.y < 0.5);   // 1かいの 床まで 落ちたら さいしょから
+  }
 
   // 回るバー：当たったら 少し 後ろへ はねる（落ちない）
   for (const b of bars) {
@@ -750,8 +861,13 @@ function loop() {
     }
   }
 
-  // 高さの記録・チェックポイント
+  // 高さの記録・チェックポイント（ASMR は チェックポイントなし）
   if (me.on && me.y > T.best) { T.best = me.y; if (T.onHeight) T.onHeight(Math.floor(T.best)); }
+  if (asmr && me.y < -12) {   // 部屋の 外へ 落ちて しまった時の 安全（さいしょから）
+    Object.assign(me, ME0, { x: 0, y: 0, z: 1.6, wait: 0.7 });
+    T.camY = 0;
+    if (T.onDrop) T.onDrop(1, A.rooms[0].theme);
+  }
   for (const f of flags) {
     if (!f.hit && me.on && me.z > f.z && Math.abs(me.y - f.y) < 0.6) {
       f.hit = true;
@@ -764,16 +880,11 @@ function loop() {
     }
     f.cloth.rotation.y = Math.sin(t * 4 + f.z) * 0.3;
   }
-  // ASMR：いまの テーマが かわったら 知らせる
-  if (B.mode === "asmr" && me.on && me.on.mat) {
-    const i = ASMR_THEMES.findIndex((x) => x.id === me.on.mat);
-    if (i !== T.themeIdx) { T.themeIdx = i; if (T.onTheme) T.onTheme(ASMR_THEMES[i]); }
-  }
-  if (me.y < T.cp.y - 7) respawn();
+  if (!asmr && me.y < T.cp.y - 7) respawn();
 
   // 足音（ASMR の 素材の 床を 歩いた時）
   const prevPh = me.ph;
-  me.ph += dt * (me.on && going ? 9.5 * Math.max(0.6, fp.walk) : 4);
+  me.ph += dt * (me.on && going ? 9.5 * Math.max(0.5, fp.walk) : 4);
   if (me.on && going && me.on.mat && Math.floor(me.ph / Math.PI) !== Math.floor(prevPh / Math.PI)) {
     me.steps++;
     if (me.steps % fp.stepEvery === 0 && T.onStep) T.onStep(me.on.mat, "step");
@@ -781,7 +892,7 @@ function loop() {
 
   /* ---------- 見た目 ---------- */
   me.sink = damp(me.sink, 0, 6, dt);
-  me.squash = damp(me.squash, me.on ? 0 : Math.max(-0.14, Math.min(0.05, -me.vy * 0.018)), me.on && fp.bounce ? 7 : 10, dt);
+  me.squash = damp(me.squash, me.on ? me.neba * 0.25 : Math.max(-0.14, Math.min(0.05, -me.vy * 0.018)), me.on && fp.bounce ? 7 : 10, dt);
   const sliding = me.slideT > 0;
   const hop = me.on && going && !sliding ? Math.abs(Math.sin(me.ph)) * 0.12 : 0;
   if (going) {
@@ -812,16 +923,24 @@ function loop() {
       c.rotation.x = r.x + Math.sin(t * 5 + i * 0.9) * 0.18 + spread * Math.cos((i / ch.tentacles.length) * Math.PI * 2);
       c.rotation.z = r.z + Math.cos(t * 4 + i * 1.3) * 0.15 + spread * Math.sin((i / ch.tentacles.length) * Math.PI * 2);
     });
+    // ペンギン：よちよち（体を 左右に ゆらす）＋羽を パタパタ（基準の 角度に 足す）
+    ch.wings.forEach((w) => {
+      const r = w.userData.r;
+      const flap = (me.on ? (going ? Math.abs(Math.sin(me.ph)) * PENGUIN.flap : Math.sin(t * 2) * 0.05) : 0.5 + Math.sin(t * 22) * 0.4) * w.userData.side;
+      w.rotation.set(r.x, r.y, r.z + flap);
+    });
+    if (ch.wings.length && ch.body && me.on && going) ch.body.rotation.z = Math.sin(me.ph) * PENGUIN.sway * 1.6;
     // パンの すべる ポーズ：X軸まわりに +90°（顔が下）・接地の 高さ
     const sc = ch.def.scale;
     nr.pose.rotation.x = damp(nr.pose.rotation.x, sliding ? PAN_SLIDE.rotX : 0, 18, dt);
     nr.pose.position.y = damp(nr.pose.position.y, sliding ? PAN_SLIDE.y * sc : 0, 18, dt);
   }
-  nr.root.position.set(me.x, me.y + hop - me.sink * 0.25, me.z);
+  const bob = ch && ch.def.skills.phase ? Math.sin(t * 2.4) * OBAKE.bob + OBAKE.bob : 0;   // おばけ：ふわふわ（ルートの position.y で）
+  nr.root.position.set(me.x, me.y + (bob ? bob : hop) - me.sink * 0.25 - me.neba * 0.55, me.z);
   nr.root.rotation.set(0, me.yaw, 0);
   nr.root.visible = me.wait <= 0 || Math.floor(me.wait * 12) % 2 === 0;
-  // ぷにぷにの 床は ふまれると へこむ
-  for (const s of solids) if (s.mat === "puni") s.g.scale.y = damp(s.g.scale.y, me.on === s ? 0.82 : 1, 12, dt);
+  // ぷにぷにの 足場は ふまれると へこむ
+  if (asmr) for (const s of solids) if (s.mat === "puni" && s.g && !s.floor) s.g.scale.y = damp(s.g.scale.y, me.on === s ? 0.8 : 1, 12, dt);
   // 影
   let sy = null;
   for (const s of solids) if (!s.off && me.x + 0.3 > s.x0 && me.x - 0.3 < s.x1 && me.z > s.z0 && me.z < s.z1 && s.y1 <= me.y + 0.05 && (sy === null || s.y1 > sy)) sy = s.y1;
@@ -831,8 +950,14 @@ function loop() {
   // カメラ：後ろの 少し上から
   T.camY = damp(T.camY, me.on ? me.y : Math.min(me.y, T.camY + 1.5), me.on ? 4 : 2, dt);
   const wide = camera.aspect > 1;
-  camera.position.set(me.x * 0.45, T.camY + (wide ? 3.0 : 3.4), me.z - (wide ? 6.2 : 6.8));
-  camera.lookAt(me.x * 0.3, T.camY + (wide ? 0.1 : 1.0), me.z + 7);
+  if (asmr) {
+    // 部屋を 手前から のぞきこむ（手前の かべは 見えない）
+    camera.position.set(me.x * 0.5, T.camY + (wide ? 4.6 : 5.2), me.z - (wide ? 7.5 : 8.5));
+    camera.lookAt(me.x * 0.35, T.camY + (wide ? 0.2 : 0.9), me.z + 3);
+  } else {
+    camera.position.set(me.x * 0.45, T.camY + (wide ? 3.0 : 3.4), me.z - (wide ? 6.2 : 6.8));
+    camera.lookAt(me.x * 0.3, T.camY + (wide ? 0.1 : 1.0), me.z + 7);
+  }
 
   // 景色：雲・遠くの塔・空の色（ASMR は テーマの 色）
   for (const c of clouds) {
@@ -840,8 +965,8 @@ function loop() {
     if (c.position.z < me.z - 12) c.position.z += rand(85, 95);
   }
   farTower.position.set(-16, T.camY * 0.6 - 30, me.z + 110);
-  if (B.mode === "asmr" && T.themeIdx >= 0) {
-    scene.background.lerp(new THREE.Color(THEME_LOOK[ASMR_THEMES[T.themeIdx].id].sky), 1 - Math.exp(-2 * dt));
+  if (asmr && T.themeIdx >= 0) {
+    scene.background.lerp(new THREE.Color(LOOK[ASMR_THEMES[T.themeIdx].id].sky), 1 - Math.exp(-2 * dt));
   } else {
     const h = T.camY;
     for (let i = 0; i < SKY.length - 1; i++) {
