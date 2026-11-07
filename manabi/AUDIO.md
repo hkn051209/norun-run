@@ -140,7 +140,7 @@ Soft synth pad, music box, distant electric piano, almost no percussion, minimal
 |---|---|---|---|---|---|
 | 1かい | `key` | キーボード | キーの はたけ・スペースバー | `step_key` / `step_key_alt` / `step_key_gen` から ランダム | `land_key` / `land_key_gen` から ランダム |
 | 2かい | `puni` | ぷにぷに | グミ・ボタン | `step_puni` | `land_puni` |
-| 3かい | `shari` | しゃりしゃり | 氷・スプーン | `step_shari` | `land_shari` |
+| 3かい | `shari` | しゃりしゃり | 氷・スプーン | `step_shari` / `step_shari_gen` から ランダム | `land_shari` / `land_shari_gen` から ランダム |
 | 4かい | `neba` | ねばねば | はちみつの びん・スプーン | `step_neba` | `land_neba` |
 | 5かい | `zaku` | ざくざく | クッキー・ボタン | `step_zaku` | `land_zaku` |
 | 6かい | `slime` | スライム | スライムの かたまり・グミ | `step_slime` | `land_slime` |
@@ -168,4 +168,7 @@ Soft synth pad, music box, distant electric piano, almost no percussion, minimal
 - **land_pari**：おせんべいが割れる「バリンッ」。気持ちよく割れる音。0.4秒。
 - **step_koro**：ビーズの上を歩く「じゃらっ」。小さな玉がこすれる音。0.2秒。
 - **land_koro**：ビーズの山に着地する「ジャラララ」。玉がころがる余韻。0.5秒。
-（shari / puni / neba の プロンプトは 前回の とおり）
+- **step_shari**（かき氷・ElevenLabs 版）：かき氷の山を1歩ふむ「しゃくっ」。細かい氷の粒がつぶれる、冷たくて軽い音。雪の足音より高く、きらきらした粒感。0.15秒。
+- **land_shari**（かき氷・ElevenLabs 版）：かき氷の山に着地する「シャクシャクッ」。氷の粒がくずれて少し散る余韻。0.4秒。
+- しゃりしゃりの 入れ方は 2とおり：① いまの `step_shari.mp3`・`land_shari.mp3`（Kenney の 雪の 足音）を **上書き** して 差し替える ／ ② **`step_shari_gen.mp3`・`land_shari_gen.mp3`** の 名前で 足して、いまの 音と ランダムに まぜる（キーボードと 同じ やり方。コードは もう 対応ずみ）。
+（puni / neba の プロンプトは 前回の とおり）
