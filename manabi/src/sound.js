@@ -175,6 +175,16 @@ const STEP_SYNTH = {
            land: () => { noise(0, 0.16, 0.3, "highpass", 3000); tone(2600, 0.02, 0.1, "sine", 0.05); } },
   puni:  { step: () => sweep(220, 120, 0, 0.09, 0.14),
            land: () => { sweep(320, 90, 0, 0.26, 0.2); sweep(500, 260, 0.05, 0.12, 0.06); } },
+  key:   { step: () => { noise(0, 0.03, 0.25, "bandpass", 3200, 3); tone(1800, 0, 0.025, "square", 0.04); },      // カチャッ
+           land: () => { [0, 0.03, 0.055].forEach((d) => noise(d, 0.035, 0.22, "bandpass", 2800 + d * 8000, 3)); } },
+  zaku:  { step: () => noise(0, 0.09, 0.26, "bandpass", 1800, 1.2),
+           land: () => { noise(0, 0.2, 0.3, "bandpass", 1500, 1); noise(0.05, 0.12, 0.15, "highpass", 4000); } },
+  pari:  { step: () => noise(0, 0.05, 0.22, "highpass", 2500),
+           land: () => { noise(0, 0.12, 0.35, "highpass", 2000); noise(0.04, 0.18, 0.2, "bandpass", 1200, 2); } },
+  slime: { step: () => sweep(180, 90, 0, 0.14, 0.16), land: () => { sweep(260, 70, 0, 0.4, 0.22); sweep(420, 180, 0.08, 0.2, 0.08); } },
+  fuwa:  { step: () => noise(0, 0.12, 0.08, "lowpass", 900), land: () => noise(0, 0.25, 0.14, "lowpass", 700) },
+  koro:  { step: () => { for (let i = 0; i < 4; i++) tone(2400 + Math.random() * 1600, i * 0.025, 0.03, "sine", 0.05); },
+           land: () => { for (let i = 0; i < 10; i++) tone(2000 + Math.random() * 2000, i * 0.03, 0.04, "sine", 0.05); } },
   neba:  { step: () => { sweep(420, 140, 0, 0.13, 0.08, "triangle"); noise(0, 0.12, 0.12, "lowpass", 700); },
            land: () => { sweep(500, 110, 0, 0.3, 0.12, "triangle"); noise(0, 0.25, 0.16, "lowpass", 600); } },
 };
