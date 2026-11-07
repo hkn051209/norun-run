@@ -161,8 +161,8 @@ function addSign(z, y, text, sub, color = "#ff7eb6") {
     x.fillStyle = "rgba(255,255,255,.92)"; x.beginPath(); x.roundRect(6, 6, w - 12, h - 12, 40); x.fill();
     x.strokeStyle = color; x.lineWidth = 10; x.stroke();
     x.fillStyle = "#3b2a5a"; x.textAlign = "center"; x.textBaseline = "middle";
-    x.font = `900 64px "Hiragino Maru Gothic ProN","Rounded Mplus 1c",sans-serif`; x.fillText(text, w / 2, sub ? 64 : h / 2);
-    if (sub) { x.font = `800 34px "Hiragino Maru Gothic ProN",sans-serif`; x.fillStyle = "#7d6b9c"; x.fillText(sub, w / 2, 118); }
+    x.font = `900 64px "NorunMaru","Hiragino Maru Gothic ProN","Rounded Mplus 1c",sans-serif`; x.fillText(text, w / 2, sub ? 64 : h / 2);
+    if (sub) { x.font = `800 34px "NorunMaru","Hiragino Maru Gothic ProN",sans-serif`; x.fillStyle = "#7d6b9c"; x.fillText(sub, w / 2, 118); }
   });
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.06), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
@@ -495,6 +495,8 @@ const stick = { x: 0, y: 0 };   // バーチャルパッド：x=右が +、y=上
 const skills = () => (nr.cur ? nr.cur.def.skills : {});
 
 /* ---------- かけら（クッキーを ふむ・せんべいが われる） ---------- */
+const honeyRing = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.09, 10, 28), new THREE.MeshPhongMaterial({ color: 0xffc94a, emissive: 0xffa000, emissiveIntensity: 0.45, specular: 0xffffff, shininess: 80, transparent: true, opacity: 0.75 }));
+honeyRing.rotation.x = -Math.PI / 2; honeyRing.scale.z = 0.4; honeyRing.visible = false; scene.add(honeyRing);
 const crumbGeo = new THREE.BoxGeometry(0.12, 0.08, 0.12);
 const crumbs = [];
 function spawnCrumbs(s, color, n, x, z) {
@@ -521,10 +523,11 @@ const A = { rooms: [], k: -1 };
 const signTex = (text, sub) => {
   const c = document.createElement("canvas"); c.width = 512; c.height = 160;
   const x = c.getContext("2d");
-  x.fillStyle = "rgba(255,255,255,.92)"; x.beginPath(); x.roundRect(6, 6, 500, 148, 40); x.fill();
-  x.fillStyle = "#3b2a5a"; x.textAlign = "center"; x.textBaseline = "middle";
-  x.font = `900 60px "Hiragino Maru Gothic ProN",sans-serif`; x.fillText(text, 256, sub ? 62 : 80);
-  if (sub) { x.font = `800 32px "Hiragino Maru Gothic ProN",sans-serif`; x.fillStyle = "#7d6b9c"; x.fillText(sub, 256, 118); }
+  x.fillStyle = "#fffdfb"; x.strokeStyle = "#c7b3ff"; x.lineWidth = 10; x.beginPath(); x.roundRect(8, 8, 496, 144, 44); x.fill(); x.stroke();
+  x.fillStyle = "#ffd75e"; x.font = `900 40px "NorunMaru",sans-serif`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("★", 44, 40); x.fillStyle = "#ff9ec7"; x.fillText("★", 470, 120);
+  x.fillStyle = "#4a3470"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.font = `900 60px "NorunMaru","Hiragino Maru Gothic ProN",sans-serif`; x.fillText(text, 256, sub ? 62 : 80);
+  if (sub) { x.font = `800 32px "NorunMaru","Hiragino Maru Gothic ProN",sans-serif`; x.fillStyle = "#7d6b9c"; x.fillText(sub, 256, 118); }
   const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx;
 };
 const roomApi = {
@@ -551,7 +554,11 @@ function showRooms(k) {
     const ghost = d === 1;
     room.wallGroup.visible = d <= 0;
     room.objGroup.visible = d <= 0;
-    for (const m of room.mats.list) { m.transparent = ghost; m.opacity = ghost ? 0.2 : 1; m.depthWrite = !ghost; }
+    // 天井（上の フロアの 床）は ごく うすく。下から 見上げても じゃまに ならない ように
+    for (const m of room.mats.list) {
+      if (m.userData.o0 === undefined) { m.userData.o0 = m.opacity; m.userData.t0 = m.transparent; m.userData.d0 = m.depthWrite; }
+      m.transparent = ghost || m.userData.t0; m.opacity = ghost ? Math.min(m.userData.o0, 0.09) : m.userData.o0; m.depthWrite = ghost ? false : m.userData.d0;
+    }
   }
 }
 function clearRooms() {
@@ -935,6 +942,11 @@ function loop() {
     T.onStep(hit.mat, kind, rule.rate || 1);
     if (hit.kind === "chocobar") spawnCrumbs(hit, 0x5a331d, landedNow ? 8 : 4, me.x, me.z);   // パキッ（かけら）
   }
+  // かざりの ほし：くるくる・ふわふわ
+  if (asmr) for (const room of A.rooms) if (room.group.visible && room.twinkle) for (const st of room.twinkle) {
+    st.rotation.y += st.userData.spin * dt;
+    if (st.userData.y0 !== undefined) st.position.y = st.userData.y0 + Math.sin(T.time * 1.3 + st.userData.ph) * 0.18;
+  }
   // プッシュポップ：のった マスが ポコッと へこむ（はなれて しばらくすると もどる）
   for (const s of solids) {
     const pp = s.g && s.g.userData.pop;
@@ -1004,10 +1016,16 @@ function loop() {
   const bob = ch && ch.def.skills.phase ? Math.sin(t * 2.4) * OBAKE.bob + OBAKE.bob : 0;   // おばけ：ふわふわ（ルートの position.y で）
   const mallowSink = me.on && me.on.kind === "mallow" ? 0.18 : 0;
   me.msink = damp(me.msink || 0, mallowSink, 7, dt);
-  nr.root.position.set(me.x, me.y + (bob ? bob : hop) - me.sink * 0.25 - me.neba * 0.55 - me.msink, me.z);
+  nr.root.position.set(me.x, me.y + (bob ? bob : hop) - me.sink * 0.25 - me.neba * 1.1 - me.msink, me.z);
+  // はちみつに しずんでいる時：まわりに はちみつの わ（ねっとり）
+  if (honeyRing) {
+    const on = asmr && me.on && me.neba > 0.02;
+    honeyRing.visible = on;
+    if (on) { honeyRing.position.set(me.x, me.y + 0.01, me.z); const k = 0.5 + me.neba * 0.9; honeyRing.scale.set(k, k, 0.45); }
+  }
   nr.root.rotation.set(0, me.yaw, 0);
   nr.root.visible = (me.wait <= 0 || Math.floor(me.wait * 12) % 2 === 0) && !(asmr && cam.fp);   // 一人称の 時は キャラを かくす
-  shadow.material.opacity = asmr && cam.fp ? 0 : 0.18;
+  shadow.material.opacity = (asmr && cam.fp) || me.neba > 0.02 ? 0 : 0.18;   // はちみつに しずんでいる 時は かげを 出さない（はちみつの わ が かわり）
   // ぷにぷにの 足場は ふまれると へこむ
   if (asmr) for (const s of solids) {
     if (!s.g || s.floor) continue;
@@ -1036,7 +1054,7 @@ function loop() {
     const top = ry + ASMR.floorH - 0.4;
     if (cam.fp) {
       // 一人称：目の 高さから、見ている 方向へ（キャラは かくす）
-      const ey = me.y + ASMR_CAM.eye - me.neba * 0.55;
+      const ey = me.y + ASMR_CAM.eye - me.neba * 0.9;
       camera.position.set(me.x + Math.sin(cam.yawS) * 0.15, Math.min(top, ey), me.z + Math.cos(cam.yawS) * 0.15);
       camera.lookAt(me.x + Math.sin(cam.yawS) * 5 * Math.cos(cam.pitchS), ey + Math.sin(-cam.pitchS) * 5 + 0.2, me.z + Math.cos(cam.yawS) * 5 * Math.cos(cam.pitchS));
     } else {
@@ -1048,7 +1066,12 @@ function loop() {
       // かべに じゃまされて 近く なった ぶん、上から 見下ろす（キャラが 画面を ふさがない ように）
       const hd = Math.hypot(cx - me.x, cz - me.z);
       const short = Math.max(0, d - hd) * 0.9 + Math.max(0, ASMR_CAM.minDist - hd) * 1.4;
-      const cyy = Math.min(top, T.camY + hgt + short);
+      let cyy = Math.min(top, T.camY + hgt + short);
+      // カメラが 足場（スプーンの さら・びん など）の 中に 入ったら、キャラの 方へ よせて 外に 出す
+      const inObj = (x, y, z) => solids.some((o) => !o.floor && !o.bound && !o.off && o.g && x > o.x0 - 0.25 && x < o.x1 + 0.25 && z > o.z0 - 0.25 && z < o.z1 + 0.25 && y > o.y0 - 0.9 && y < o.y1 + 0.35);
+      for (let k = 0; k < 6 && inObj(cx, cyy, cz); k++) {
+        cx = me.x + (cx - me.x) * 0.72; cz = me.z + (cz - me.z) * 0.72; cyy = Math.min(top, cyy + 0.35);
+      }
       camera.position.set(cx, cyy, cz);
       // かべで 近く なった 時と 横画面（たての 見える はばが せまい）は 見る 点を 手前・低めに して、キャラが 画面から 切れない ように
       const near = Math.max(0.25, Math.min(1, (hd - 0.6) / Math.max(0.6, d - 0.6)));

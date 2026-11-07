@@ -179,8 +179,9 @@ function renderMy() {
   $("myFace").textContent = me.face || "🐰";
   $("myName").textContent = me.name;
   $("myGrade").textContent = g.name;
-  $("btnStudy").textContent = g.course === "kuku" ? "✖️ くく" : "➕ たしざん";
-  $("btnReview").textContent = `🔁 ふくしゅう（${data.review.length}）`;
+  $("btnStudy").innerHTML = g.course === "kuku" ? `<i class="ico" data-ui="ic-kuku">✖️</i> くく` : `<i class="ico" data-ui="ic-tashizan">➕</i> たしざん`;
+  $("btnReview").innerHTML = `<i class="ico" data-ui="ic-review">🔁</i> ふくしゅう<small>${data.review.length}こ</small>`;
+  applyUiImages($("scMy"));
   $("btnReview").disabled = data.review.length === 0;
   const mastered = Object.values(data.kuku).filter((v) => v.lv >= 2).length;
   const st = [
@@ -1172,8 +1173,23 @@ $("cfNo").onclick = () => { cfAction = null; show(cfBack || "scTitle"); };
 /* =========================================================
    起動
    ========================================================= */
+/* イラストの わく：assets/ui/ に 画像が あれば 絵文字の かわりに つかう（なければ 絵文字の まま）。くわしくは ILLUST.md */
+const uiOk = new Map();
+function uiImage(name) {
+  if (!uiOk.has(name)) uiOk.set(name, new Promise((ok) => { const im = new Image(); im.onload = () => ok(true); im.onerror = () => ok(false); im.src = `assets/ui/${name}.png`; }));
+  return uiOk.get(name);
+}
+function applyUiImages(root = document) {
+  for (const el of root.querySelectorAll("[data-ui]")) {
+    const name = el.dataset.ui;
+    uiImage(name).then((ok) => { if (ok && !el.querySelector("img")) el.innerHTML = `<img src="assets/ui/${name}.png" alt="">`; });
+  }
+}
+uiImage("logo").then((ok) => { if (ok) { const t = $("logoText"); t.insertAdjacentHTML("beforebegin", `<img id="logoImg" src="assets/ui/logo.png" alt="のるん まなび">`); t.classList.add("hidden"); } });
+uiImage("bg-pattern").then((ok) => { if (ok) document.body.classList.add("uiBg"); });
+applyUiImages();
 try {
-  await Promise.all([loadNorun3D(), initRunView()]);
+  await Promise.all([loadNorun3D(), initRunView(), document.fonts ? document.fonts.load('800 40px "NorunMaru"').catch(() => {}) : null]);
 } catch (e) {
   console.warn("のるんのモデルを読めませんでした", e);
   canvas.style.display = "none";

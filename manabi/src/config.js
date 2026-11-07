@@ -178,7 +178,8 @@ export const ASMR_THEMES = [
     // 踏むたびに ランダムで えらぶ（実録版と 生成版を まぜる）
     sounds: { step: ["step_key", "step_key_alt", "step_key_gen"], land: ["land_key", "land_key_gen"] } },
   { id: "puni",  name: "ぷにぷに",   sub: "グミ",           walk: 1.0,  jump: 1.45, grip: 14, bounce: 6.0, keep: 0.82, stepEvery: 1, shapes: ["gumdrop", "button"] },
-  { id: "shari", name: "しゃりしゃり", sub: "かきごおり",   walk: 1.15, jump: 1.0,  grip: 0.9, stepEvery: 1, shapes: ["icecube", "spoon"] },
+  { id: "shari", name: "しゃりしゃり", sub: "かきごおり",   walk: 1.15, jump: 1.0,  grip: 0.9, stepEvery: 1, shapes: ["icecube", "spoon"],
+    sounds: { step: ["step_shari", "step_shari_gen"], land: ["land_shari", "land_shari_gen"] } },   // ElevenLabs 版は 上書きでも _gen で まぜても よい
   { id: "neba",  name: "ねばねば",   sub: "はちみつ",       walk: 0.35, jump: 0.72, grip: 45, sinkRate: 0.35, sinkMax: 0.5, stepEvery: 2, shapes: ["jar", "spoon"] },
   { id: "zaku",  name: "ざくざく",   sub: "クッキー",       walk: 0.95, jump: 1.0,  grip: 18, crumbs: true, stepEvery: 1, shapes: ["cookie", "button"] },
   { id: "slime", name: "スライム",   sub: "ぷるんぷるん",   walk: 0.9,  jump: 1.7,  grip: 10, bounce: 8.0, keep: 0.9, wobble: true, stepEvery: 1, shapes: ["blob", "gumdrop"] },
@@ -207,7 +208,7 @@ export const ASMR_CAM = {
 };
 export const ASMR = {
   room: 13,          // 部屋の 1辺（m）
-  floorH: 7,         // 1フロアの 高さ（m）
+  floorH: 10,        // 1フロアの 高さ（m）。第5弾の 実機で「天井が ひくくて きゅうくつ」→ 7 から 10 へ
   tile: 2.6,         // 床の タイル（穴は タイル1まいぶん）
   ring: 4.3,         // 足場を ならべる らせんの 半径
   pariBack: 5,       // われた せんべいが もどるまで（秒）

@@ -13,7 +13,7 @@ const TEMPO_NG = TEMPO.ngShow / 1000;
 
 const W = RUN.laneW;
 const LANE_X = [W, 0, -W];            // 0=画面の左 1=まんなか 2=右（カメラは -Z 側から +Z を見る）
-const FONT = '"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans-serif';
+const FONT = '"NorunMaru","Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans-serif';
 const rand = (a, b) => a + Math.random() * (b - a);
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const lambert = (c) => new THREE.MeshLambertMaterial({ color: c });
