@@ -23,3 +23,4 @@
 | ASMRタワーの足音 | assets/audio/land_puni.mp3 | OpenGameArt の ezduzziteh「Squish Sound Effects」「Boings」を整形 | CC0 |
 | ASMRタワーの足音 | assets/audio/step_puni.mp3 | 自前で合成（ぽよん系のピッチ変化音） | 自作 |
 | ASMRタワーの足音 | assets/audio/step_neba.mp3, land_neba.mp3 | OpenGameArt の rubberduck「25 CC0 mud sfx」を整形 | CC0 |
+| ASMRタワーの足音 | assets/audio/step_key.mp3, land_key.mp3, step_key_alt.mp3 | OpenGameArt の unicaegames「Keyboard Soundpack #1」（Cherry KC 1000 の実録）から選定・整形 | CC0 |
