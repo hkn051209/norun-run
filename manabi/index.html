@@ -121,7 +121,23 @@ h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
 .charBtn span{font-size:11px;font-weight:700;color:#7d6b9c;text-align:center}
 .charBtn.on{border-color:#ff7eb6;background:#fff0f7}
 .charBtn:disabled{opacity:.45;filter:grayscale(1)}
-#pMsg{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font-size:clamp(40px,10vw,72px);font-weight:900;color:#fff;text-shadow:0 4px 0 rgba(59,42,90,.5);z-index:4;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .2s}
+/* 横画面（スマホを 横に した時）：ボタンを 小さめに して、画面の 下に おさめる */
+@media (orientation:landscape) and (max-height:560px){
+  #scPlayRun{padding-top:max(6px,env(safe-area-inset-top))}
+  .pbar .back{width:44px;height:44px;font-size:18px}
+  #pDist{font-size:30px}
+  #pCtl{bottom:max(8px,env(safe-area-inset-bottom));padding:0 max(18px,env(safe-area-inset-left)) 0 max(18px,env(safe-area-inset-left))}
+  #pStick{width:132px;height:132px}
+  .jumpBtn{width:104px;height:104px;margin-bottom:6px;font-size:16px}
+  .jumpBtn b{font-size:36px}
+  .skillBtn{width:72px;height:72px;font-size:13px}
+  .skillBtn b{font-size:24px}
+  .pRight{flex-direction:row-reverse;align-items:flex-end}
+  .laneBtn{width:96px;height:96px}
+  #pMsg{font-size:34px;top:30%}
+  body[data-screen="scResult"] #norunView{display:none}   /* 横画面の 結果では のるんが 文字に かぶるので かくす */
+}
+#pMsg{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);width:max-content;max-width:92vw;text-align:center;font-size:clamp(40px,10vw,72px);font-weight:900;color:#fff;text-shadow:0 4px 0 rgba(59,42,90,.5);z-index:4;pointer-events:none;opacity:0;transition:opacity .2s;line-height:1.2}
 #pMsg.show{opacity:1}
 .playCard{display:flex;align-items:center;gap:14px;text-align:left}
 .playCard .ic{font-size:54px}
