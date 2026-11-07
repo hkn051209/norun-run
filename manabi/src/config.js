@@ -174,7 +174,9 @@ export const PAN_SLIDE = { rotX: Math.PI / 2, y: 0.33 };
      breakT：のってから われるまで（秒。ぱりぱり）/ press：ふむと しずむ 深さ（キーボード）/ wobble：足場が ゆれる（スライム）
      drift：すべる床で 少し ころがされる（ころころ）/ stepEvery：足音の 間かく（歩数）/ shapes：足場の 形 */
 export const ASMR_THEMES = [
-  { id: "key",   name: "キーボード", sub: "カチャカチャ",   walk: 1.0,  jump: 1.0,  grip: 16, press: 0.16, stepEvery: 1, shapes: ["key", "key", "spacebar"] },
+  { id: "key",   name: "キーボード", sub: "カチャカチャ",   walk: 1.0,  jump: 1.0,  grip: 16, press: 0.16, stepEvery: 1, shapes: ["key", "key", "spacebar"],
+    // 踏むたびに ランダムで えらぶ（実録版と 生成版を まぜる）
+    sounds: { step: ["step_key", "step_key_alt", "step_key_gen"], land: ["land_key", "land_key_gen"] } },
   { id: "puni",  name: "ぷにぷに",   sub: "グミ",           walk: 1.0,  jump: 1.45, grip: 14, bounce: 6.0, keep: 0.82, stepEvery: 1, shapes: ["gumdrop", "button"] },
   { id: "shari", name: "しゃりしゃり", sub: "かきごおり",   walk: 1.15, jump: 1.0,  grip: 0.9, stepEvery: 1, shapes: ["icecube", "spoon"] },
   { id: "neba",  name: "ねばねば",   sub: "はちみつ",       walk: 0.35, jump: 0.72, grip: 45, sinkRate: 0.35, sinkMax: 0.5, stepEvery: 2, shapes: ["jar", "spoon"] },
@@ -183,7 +185,19 @@ export const ASMR_THEMES = [
   { id: "fuwa",  name: "ふわふわ",   sub: "わたあめ",       walk: 0.9,  jump: 1.1,  grip: 8,  grav: 0.4, stepEvery: 2, shapes: ["cotton"] },
   { id: "pari",  name: "ぱりぱり",   sub: "おせんべい",     walk: 1.0,  jump: 1.0,  grip: 16, breakT: 0.6, stepEvery: 1, shapes: ["senbei"] },
   { id: "koro",  name: "ころころ",   sub: "ビーズ",         walk: 1.2,  jump: 1.0,  grip: 0.5, drift: 1.2, stepEvery: 1, shapes: ["bead", "button"] },
+  { id: "choco", name: "チョコマシュマロ", sub: "いたチョコと マシュマロ", walk: 1.0, jump: 1.05, grip: 16, stepEvery: 1, shapes: ["chocobar", "mallow"] },
+  { id: "push",  name: "プッシュポップ", sub: "シリコンの ポコポコ", walk: 1.0, jump: 1.1, grip: 16, stepEvery: 1, shapes: ["popit"] },
 ];
+/* 足場の 形ごとの 音の きまり（テーマの 音より 優先）
+   kind："step"（軽く ふむ）／"land"（着地・強く ふむ）を いつも つかう。rate：音の 高さ（1＝そのまま、小さいほど ひくい）
+   それ以外の 足場は、ジャンプから 強く 着地した時が land、歩いて のった時が step */
+export const SHAPE_SOUND = {
+  spacebar: { kind: "land", rate: 0.78 },   // 大きな キーは ひくい 着地系の 音
+  chocobar: { kind: "land", rate: 1.0 },    // 板チョコ：パキッ（割れる 音）
+  mallow:   { rate: 0.85 },                 // マシュマロ：やわらかく ひくめ
+};
+/* ASMRの カメラ（キャラに 寄った 視点。スワイプで まわす） */
+export const ASMR_CAM = { dist: 3.1, height: 2.1, lookUp: 0.55, ahead: 3.0, pitchMin: -0.3, pitchMax: 0.7, swipe: 0.008 };
 export const ASMR = {
   room: 13,          // 部屋の 1辺（m）
   floorH: 7,         // 1フロアの 高さ（m）

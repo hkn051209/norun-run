@@ -683,6 +683,6 @@ function moveNorun(dt, play) {
   if (play && R.shake > 0) { R.shake -= dt; sx = Math.sin(R.shake * 70) * R.shake * 0.5; }
   camera.position.set(me.x * 0.5 + sx, 2.7, -5.2);
   // 遊びの ランを よこ長の 画面で：のるんが まんなかの ジャンプボタンに かくれないように 少し上に うつす
-  camera.lookAt(me.x * 0.3, play && camera.aspect > 1 ? -1.9 : 1.1, 14);
+  camera.lookAt(me.x * 0.3, play && camera.aspect > 1 ? (camera.aspect > 1.8 ? -2.8 : -1.9) : 1.1, 14);
   renderer.render(scene, camera);
 }

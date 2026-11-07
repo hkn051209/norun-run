@@ -11,7 +11,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/GLTFLoader.js";
 import { findPinSlots, applyPins } from "./norun-model.js";
-import { PLAY_TOWER as P, CHARACTERS, PAN_SLIDE, ASMR_THEMES, ASMR, OBAKE, PENGUIN } from "./config.js";
+import { PLAY_TOWER as P, CHARACTERS, PAN_SLIDE, ASMR_THEMES, ASMR, OBAKE, PENGUIN, SHAPE_SOUND, ASMR_CAM } from "./config.js";
 import { buildRoom, LOOK, themeOf } from "./asmr-rooms.js";
 
 const W = P.laneW;
@@ -411,9 +411,11 @@ function loadChar(id) {
         o.material.userData.t = o.material.transparent; o.material.userData.o = o.material.opacity;
         ch.ghostMats.push(o.material);
       }
-      if (/wing|flipper|hane|fin_/i.test(o.name) && !ch.wings.includes(o)) {
+      // ペンギンの 羽：Flipper_L / Flipper_R（three.js が 名前を かえても いいように 先頭で 判定）
+      if (/^Flipper_[LR]/.test(o.name) && !ch.wings.includes(o)) {
         o.userData.r = o.rotation.clone();
-        o.userData.side = /_?L$|left/i.test(o.name) ? 1 : -1;
+        // モデルは 正面が +Z、_L は -x がわ。Z軸まわりで 外へ ひらく 向きは L が -、R が +
+        o.userData.side = /^Flipper_L/.test(o.name) ? -1 : 1;
         ch.wings.push(o);
       }
     });
@@ -456,7 +458,14 @@ export function setTowerPins(pins) { pinList = pins; if (nr.cur) applyLook(nr.cu
 /* ---------- 状態 ---------- */
 let T = null;
 const me = { x: 0, y: 0, z: 0, vx: 0, vz: 0, vy: 0, yaw: 0, on: null, squash: 0, ph: 0, star: 0, starV: 0, stun: 0, wait: 0, blocked: false, jumps: 0, slideT: 0, phaseT: 0, steps: 0, sink: 0, neba: 0, jumpBuf: 0, airT: 0 };
-const ME0 = { vx: 0, vz: 0, vy: 0, yaw: 0, on: null, stun: 0, blocked: false, jumps: 0, slideT: 0, phaseT: 0, steps: 0, sink: 0, neba: 0, jumpBuf: 0, airT: 0 };
+const ME0 = { vx: 0, vz: 0, vy: 0, yaw: 0, on: null, stun: 0, blocked: false, jumps: 0, slideT: 0, phaseT: 0, steps: 0, sink: 0, neba: 0, jumpBuf: 0, airT: 0, lastOn: null };
+/* ASMR の カメラ：キャラに 寄った 視点。スワイプで まわす（yaw＝左右、pitch＝上下） */
+const cam = { yaw: 0, pitch: 0.15, yawS: 0 };
+export function towerLook(dx, dy) {
+  if (!T || B.mode !== "asmr") return;
+  cam.yaw += dx * ASMR_CAM.swipe;      // 指を 左へ → まわりの 景色も 左へ 動く（右を むく）
+  cam.pitch = Math.max(ASMR_CAM.pitchMin, Math.min(ASMR_CAM.pitchMax, cam.pitch + dy * ASMR_CAM.swipe));
+}
 const stick = { x: 0, y: 0 };   // バーチャルパッド：x=右が +、y=上（前）が +。大きさ 0〜1
 const skills = () => (nr.cur ? nr.cur.def.skills : {});
 
@@ -541,7 +550,8 @@ export function startTower(opts) {
   const asmr = B.mode === "asmr";
   if (asmr) ensureRooms(0); else rest(9);
   T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed, themeIdx: -1, floor: -1 };
-  Object.assign(me, ME0, { x: 0, y: 0, z: asmr ? 1.6 : -2, wait: 0.9 });
+  Object.assign(me, ME0, { x: 0, y: 0, z: asmr ? 3.2 : -2, wait: 0.9 });
+  Object.assign(cam, { yaw: 0, pitch: 0.15, yawS: 0 });
   farTower.visible = !asmr;
   for (const c of clouds) c.visible = !asmr;
   scene.fog.near = asmr ? 30 : 40; scene.fog.far = asmr ? 70 : 85;
@@ -551,6 +561,7 @@ export function startTower(opts) {
   clock.getDelta();
   loop();
 }
+export const towerCam = () => ({ ...cam });
 export function stopTower() {
   if (!T) return 0;
   const best = Math.floor(T.best);
@@ -611,7 +622,7 @@ function onResize() {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h);
   camera.aspect = w / h;
-  camera.fov = w < h ? 74 : 60;
+  camera.fov = B.mode === "asmr" ? (w < h ? 78 : 66) : w < h ? 74 : 60;
   camera.updateProjectionMatrix();
 }
 addEventListener("resize", onResize);
@@ -771,8 +782,11 @@ function loop() {
   else me.neba = Math.max(0, me.neba - dt * 2);
   const canMove = me.wait <= 0 && me.stun <= 0;
   T.speed = P.speed * (me.on ? fp.walk * (1 - me.neba * 0.8) : 1);
-  let tvx = canMove ? -stick.x * T.speed : 0;     // 画面の 右 ＝ ワールドの -x
-  let tvz = canMove ? stick.y * T.speed : 0;
+  // スティックの 向き → ワールドの 向き（ASMR は カメラの 向きに あわせる。アスレは いつも 前が +z）
+  const cy = asmr ? cam.yawS : 0;
+  const fx = Math.sin(cy), fz = Math.cos(cy), rx = -Math.cos(cy), rz = Math.sin(cy);   // 前・画面の 右
+  let tvx = canMove ? (fx * stick.y + rx * stick.x) * T.speed : 0;
+  let tvz = canMove ? (fz * stick.y + rz * stick.x) * T.speed : 0;
   if (me.slideT > 0) {
     // パン：むいている 方向へ ソリの ように すべる（スティックで 少し かじとり）
     me.slideT -= dt;
@@ -820,8 +834,11 @@ function loop() {
     if (s.y1 > prevY + 0.05) continue;
     if (!sup || s.y1 > sup.y1) sup = s;
   }
+  let landedNow = false, landImpact = 0, touched = null;   // touched：はねて すぐ はなれた 足場も ふくめて、いま 踏んだ 足場
   if (sup && me.vy <= 0 && ny <= sup.y1) {
     const impact = -me.vy;
+    if (!me.on && (prevY - sup.y1 > 0.05 || impact > 1.5)) { landedNow = true; landImpact = impact; }
+    touched = sup;
     const fall = prevY - sup.y1;
     const wasAir = !me.on;
     ny = sup.y1; me.vy = 0; me.on = sup; me.jumps = 0; me.airT = 0;
@@ -829,7 +846,6 @@ function loop() {
     if (wasAir && (fall > 0.15 || impact > 3)) {
       me.squash = Math.min(0.45, 0.1 + impact * 0.02 + (lp.bounce ? 0.15 : 0));
       me.sink = lp.bounce ? 0.4 : lp.sinkRate ? 0.3 : 0.12;
-      if (T.onStep && sup.mat) T.onStep(sup.mat, "land");
       if (lp.crumbs) spawnCrumbs(sup, 0xd9a05b, 6, me.x, me.z);
       if (lp.wobble) sup.wob = 1;
     }
@@ -864,7 +880,7 @@ function loop() {
   // 高さの記録・チェックポイント（ASMR は チェックポイントなし）
   if (me.on && me.y > T.best) { T.best = me.y; if (T.onHeight) T.onHeight(Math.floor(T.best)); }
   if (asmr && me.y < -12) {   // 部屋の 外へ 落ちて しまった時の 安全（さいしょから）
-    Object.assign(me, ME0, { x: 0, y: 0, z: 1.6, wait: 0.7 });
+    Object.assign(me, ME0, { x: 0, y: 0, z: 3.2, wait: 0.7 });
     T.camY = 0;
     if (T.onDrop) T.onDrop(1, A.rooms[0].theme);
   }
@@ -882,13 +898,35 @@ function loop() {
   }
   if (!asmr && me.y < T.cp.y - 7) respawn();
 
-  // 足音（ASMR の 素材の 床を 歩いた時）
-  const prevPh = me.ph;
+  // 踏み音：その テーマの 足場を 踏んだ 瞬間に 鳴らす（歩く リズムでは 鳴らさない）
   me.ph += dt * (me.on && going ? 9.5 * Math.max(0.5, fp.walk) : 4);
-  if (me.on && going && me.on.mat && Math.floor(me.ph / Math.PI) !== Math.floor(prevPh / Math.PI)) {
-    me.steps++;
-    if (me.steps % fp.stepEvery === 0 && T.onStep) T.onStep(me.on.mat, "step");
+  const hit = me.on || touched;
+  if (hit && hit.mat && (hit !== me.lastOn || landedNow) && !(hit.g && hit.g.userData.pop) && T.onStep) {
+    const rule = SHAPE_SOUND[hit.kind] || {};
+    const kind = rule.kind || (landedNow && landImpact > 4.5 ? "land" : "step");
+    T.onStep(hit.mat, kind, rule.rate || 1);
+    if (hit.kind === "chocobar") spawnCrumbs(hit, 0x5a331d, landedNow ? 8 : 4, me.x, me.z);   // パキッ（かけら）
   }
+  // プッシュポップ：のった マスが ポコッと へこむ（はなれて しばらくすると もどる）
+  for (const s of solids) {
+    const pp = s.g && s.g.userData.pop;
+    if (!pp) continue;
+    if (hit === s) {
+      pp.t = 2.5;
+      const lx = me.x - (s.x0 + s.x1) / 2, lz = me.z - (s.z0 + s.z1) / 2;
+      const i = Math.floor((lx / (s.x1 - s.x0) + 0.5) * pp.n), j = Math.floor((lz / (s.z1 - s.z0) + 0.5) * pp.n);
+      const c = pp.cells.find((q) => q.i === i && q.j === j);
+      if (c && !c.popped) {
+        c.popped = true;
+        if (T.onStep) T.onStep(s.mat, landedNow && landImpact > 4.5 ? "land" : "step", 1);
+      }
+    } else if (pp.t > 0) {
+      pp.t -= dt;
+      if (pp.t <= 0) for (const c of pp.cells) c.popped = false;
+    }
+    for (const c of pp.cells) c.dome.scale.y = damp(c.dome.scale.y, c.popped ? -0.35 : 0.55, 20, dt);
+  }
+  me.lastOn = hit || (me.airT > 0.15 ? null : me.lastOn);
 
   /* ---------- 見た目 ---------- */
   me.sink = damp(me.sink, 0, 6, dt);
@@ -936,11 +974,17 @@ function loop() {
     nr.pose.position.y = damp(nr.pose.position.y, sliding ? PAN_SLIDE.y * sc : 0, 18, dt);
   }
   const bob = ch && ch.def.skills.phase ? Math.sin(t * 2.4) * OBAKE.bob + OBAKE.bob : 0;   // おばけ：ふわふわ（ルートの position.y で）
-  nr.root.position.set(me.x, me.y + (bob ? bob : hop) - me.sink * 0.25 - me.neba * 0.55, me.z);
+  const mallowSink = me.on && me.on.kind === "mallow" ? 0.18 : 0;
+  me.msink = damp(me.msink || 0, mallowSink, 7, dt);
+  nr.root.position.set(me.x, me.y + (bob ? bob : hop) - me.sink * 0.25 - me.neba * 0.55 - me.msink, me.z);
   nr.root.rotation.set(0, me.yaw, 0);
   nr.root.visible = me.wait <= 0 || Math.floor(me.wait * 12) % 2 === 0;
   // ぷにぷにの 足場は ふまれると へこむ
-  if (asmr) for (const s of solids) if (s.mat === "puni" && s.g && !s.floor) s.g.scale.y = damp(s.g.scale.y, me.on === s ? 0.8 : 1, 12, dt);
+  if (asmr) for (const s of solids) {
+    if (!s.g || s.floor) continue;
+    if (s.mat === "puni") s.g.scale.y = damp(s.g.scale.y, me.on === s ? 0.8 : 1, 12, dt);
+    if (s.kind === "mallow") s.g.scale.y = damp(s.g.scale.y, me.on === s ? 0.72 : 1, 7, dt);   // マシュマロ：ふわっと しずむ
+  }
   // 影
   let sy = null;
   for (const s of solids) if (!s.off && me.x + 0.3 > s.x0 && me.x - 0.3 < s.x1 && me.z > s.z0 && me.z < s.z1 && s.y1 <= me.y + 0.05 && (sy === null || s.y1 > sy)) sy = s.y1;
@@ -951,9 +995,19 @@ function loop() {
   T.camY = damp(T.camY, me.on ? me.y : Math.min(me.y, T.camY + 1.5), me.on ? 4 : 2, dt);
   const wide = camera.aspect > 1;
   if (asmr) {
-    // 部屋を 手前から のぞきこむ（手前の かべは 見えない）
-    camera.position.set(me.x * 0.5, T.camY + (wide ? 4.6 : 5.2), me.z - (wide ? 7.5 : 8.5));
-    camera.lookAt(me.x * 0.35, T.camY + (wide ? 0.2 : 0.9), me.z + 3);
+    // キャラに 寄った 視点（うしろ 少し上）。スワイプで まわす。部屋の かべの 外には 出ない
+    cam.yawS += (cam.yaw - cam.yawS) * (1 - Math.exp(-14 * dt));
+    const dist = ASMR_CAM.dist * (wide ? 1 : 1.2);      // たて画面は はばが せまいので 少しだけ はなれる
+    const d = dist * Math.cos(cam.pitch), hgt = ASMR_CAM.height + dist * Math.sin(cam.pitch);
+    const half = ASMR.room / 2 - 0.35, ry = A.rooms[A.k] ? A.rooms[A.k].y : 0;
+    let cx = me.x - Math.sin(cam.yawS) * d, cz = me.z - Math.cos(cam.yawS) * d;
+    cx = Math.max(-half, Math.min(half, cx)); cz = Math.max(0.35, Math.min(ASMR.room - 0.35, cz));
+    // かべに じゃまされて 近く なった ぶん、上から 見下ろす（キャラで 前が かくれない ように）
+    const short = Math.max(0, d - Math.hypot(cx - me.x, cz - me.z));
+    const cyy = Math.min(ry + ASMR.floorH - 0.4, T.camY + hgt + short * 0.9);
+    camera.position.set(cx, cyy, cz);
+    const ah = ASMR_CAM.ahead;
+    camera.lookAt(me.x + Math.sin(cam.yawS) * ah, T.camY + ASMR_CAM.lookUp, me.z + Math.cos(cam.yawS) * ah);
   } else {
     camera.position.set(me.x * 0.45, T.camY + (wide ? 3.0 : 3.4), me.z - (wide ? 6.2 : 6.8));
     camera.lookAt(me.x * 0.3, T.camY + (wide ? 0.1 : 1.0), me.z + 7);

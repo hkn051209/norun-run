@@ -11,7 +11,8 @@ export const AUDIO_FILES = {
     tower: "assets/audio/bgm_tower.mp3",   // あそび：アスレ（中の名前は tower のまま）
     asmr:  "assets/audio/bgm_asmr.mp3",    // あそび：ASMRタワー（足音が 主役なので しずかな 曲）
   },
-  // ASMRタワーの 足音：テーマの id ごとに step_<id>.mp3（歩く）・land_<id>.mp3（着地）。registerStepThemes で 登録
+  // ASMRタワーの 踏み音：テーマの id ごとに step（軽く ふむ）・land（着地・強く ふむ）の ファイルの リスト。registerStepThemes で 登録
+  // ふつうは step_<id>.mp3・land_<id>.mp3。テーマに sounds が あれば その リスト（キーボードは 実録版と 生成版を まぜる）
   step: {},
   se: {
     jump:    "assets/audio/se_jump.mp3",     // ジャンプ
@@ -68,7 +69,7 @@ async function loadOne(url) {
 function loadAll() {
   if (loading) return loading;
   // 効果音を 先に（小さい）、BGM は 今ほしい曲から
-  const se = [...Object.values(AUDIO_FILES.se), ...Object.values(AUDIO_FILES.step).flatMap((s) => [s.step, s.land])].map(loadOne);
+  const se = [...Object.values(AUDIO_FILES.se), ...Object.values(AUDIO_FILES.step).flatMap((s) => [...s.step, ...s.land])].map(loadOne);
   loading = Promise.all(se).then(() => {
     const order = [wantBgm, ...Object.keys(AUDIO_FILES.bgm)].filter(Boolean);
     return Promise.all([...new Set(order)].map((k) => loadOne(AUDIO_FILES.bgm[k]).then(() => { if (k === wantBgm && !cur) playBgm(k, true); })));
@@ -77,12 +78,16 @@ function loadAll() {
 }
 /* どのファイルが 見つかったか（保護者画面に 出す） */
 export const audioStatus = () => Object.fromEntries(
-  [...Object.values(AUDIO_FILES.bgm), ...Object.values(AUDIO_FILES.se), ...Object.values(AUDIO_FILES.step).flatMap((s) => [s.step, s.land])]
+  [...Object.values(AUDIO_FILES.bgm), ...Object.values(AUDIO_FILES.se), ...Object.values(AUDIO_FILES.step).flatMap((s) => [...s.step, ...s.land])]
     .map((u) => [u.split("/").pop(), u in buffers ? !!buffers[u] : null]));
 /* ASMR の テーマを 登録（足音の ファイル名が きまる） */
-export function registerStepThemes(ids) {
-  for (const id of ids) AUDIO_FILES.step[id] = { step: `assets/audio/step_${id}.mp3`, land: `assets/audio/land_${id}.mp3` };
-  if (ctx) for (const s of Object.values(AUDIO_FILES.step)) { loadOne(s.step); loadOne(s.land); }
+export function registerStepThemes(themes) {
+  const url = (n) => `assets/audio/${n}.mp3`;
+  for (const th of themes) {
+    const s = th.sounds || {};
+    AUDIO_FILES.step[th.id] = { step: (s.step || [`step_${th.id}`]).map(url), land: (s.land || [`land_${th.id}`]).map(url) };
+  }
+  if (ctx) for (const s of Object.values(AUDIO_FILES.step)) [...s.step, ...s.land].forEach(loadOne);
 }
 
 /* ---------- BGM ---------- */
@@ -185,18 +190,24 @@ const STEP_SYNTH = {
   fuwa:  { step: () => noise(0, 0.12, 0.08, "lowpass", 900), land: () => noise(0, 0.25, 0.14, "lowpass", 700) },
   koro:  { step: () => { for (let i = 0; i < 4; i++) tone(2400 + Math.random() * 1600, i * 0.025, 0.03, "sine", 0.05); },
            land: () => { for (let i = 0; i < 10; i++) tone(2000 + Math.random() * 2000, i * 0.03, 0.04, "sine", 0.05); } },
+  choco: { step: () => { noise(0, 0.05, 0.24, "highpass", 2600); tone(1500, 0, 0.03, "triangle", 0.05); },          // パキッ
+           land: () => { noise(0, 0.08, 0.32, "highpass", 2200); noise(0.03, 0.1, 0.18, "bandpass", 1300, 2); } },
+  push:  { step: () => sweep(700, 260, 0, 0.07, 0.16), land: () => { sweep(600, 180, 0, 0.1, 0.2); sweep(900, 400, 0.04, 0.06, 0.08); } },   // ポコッ
   neba:  { step: () => { sweep(420, 140, 0, 0.13, 0.08, "triangle"); noise(0, 0.12, 0.12, "lowpass", 700); },
            land: () => { sweep(500, 110, 0, 0.3, 0.12, "triangle"); noise(0, 0.25, 0.16, "lowpass", 600); } },
 };
 /* 足音を 鳴らす（kind："step"／"land"） */
-export function stepSound(id, kind = "step") {
+/* 足場を 踏んだ 瞬間の 音（kind："step"＝軽く ふむ／"land"＝着地・強く ふむ。rate：音の 高さ）
+   ファイルが あれば リストから ランダムに 1つ。ない時は 代わりの 合成音 */
+export function stepSound(id, kind = "step", rate = 1) {
   if (!ctx || muted || !prefs.se) return;
   const f = AUDIO_FILES.step[id];
-  const buf = f && buffers[f[kind]];
+  const got = f ? f[kind].map((u) => buffers[u]).filter(Boolean) : [];
+  const buf = got.length ? got[Math.floor(Math.random() * got.length)] : null;
   if (buf) {
     const s = ctx.createBufferSource();
     s.buffer = buf;
-    s.playbackRate.value = 0.92 + Math.random() * 0.16;   // 1歩ずつ 少し ちがう 音に
+    s.playbackRate.value = rate * (0.94 + Math.random() * 0.12);   // 1回ずつ 少し ちがう 音に
     s.connect(seGain);
     s.start();
   } else if (STEP_SYNTH[id]) STEP_SYNTH[id][kind]();

@@ -6,7 +6,7 @@ import { kinderSession, kukuSession, reviewSession, makeChoices, kanaSession, ka
 import { sfx, speak, stopSpeak, unlockAudio, canSpeak, playBgm, setAudioPrefs, audioStatus, stepSound, registerStepThemes } from "./sound.js";
 import { loadNorun3D, react, setHatColor, setPins } from "./norun3d.js";
 import { initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump, setRunPins } from "./run3d.js";
-import { initTowerView, startTower, stopTower, towerStick, towerJump, towerSkill, towerTeleport, setTowerHat, setTowerPins, setTowerChar, charAvailable, towerState } from "./tower3d.js";
+import { initTowerView, startTower, stopTower, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, setTowerHat, setTowerPins, setTowerChar, charAvailable, towerState } from "./tower3d.js";
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = location.search.includes("debug");
@@ -51,7 +51,7 @@ function toast(msg, ms = 900) {
 }
 // さいしょのタッチで 音を使えるように
 setAudioPrefs({ bgm: store.getSettings().bgm, se: store.getSettings().se });
-registerStepThemes(ASMR_THEMES.map((th) => th.id));
+registerStepThemes(ASMR_THEMES);
 addEventListener("pointerdown", unlockAudio, { capture: true });
 
 /* =========================================================
@@ -346,7 +346,7 @@ async function startPlay(mode) {
     setTowerPins(data.pins);
     startTower({
       mode: mode === "asmr" ? "asmr" : "athle",
-      onStep: (id, kind) => stepSound(id, kind),
+      onStep: (id, kind, rate) => { stepSound(id, kind, rate); if (window.G) (window.__steps ||= []).push([id, kind, rate]); },
       onTheme: (th, fl) => pMsg(`${fl}かい ${th.name}`, 1300),
       onDrop: (fl, th, bottom) => { sfx.bump(); pMsg(fl === 1 && bottom ? "1かいまで おちた… さいしょから！" : `${fl}かいに おちた！ ここから つづき`, 1600); },
       onBigBounce: () => sfx.boing(),
@@ -358,6 +358,7 @@ async function startPlay(mode) {
       onBump: () => { sfx.bump(); pMsg("バーに あたった！", 800); },
     });
     if (mode !== "asmr") pMsg(cdef.id === "norun" ? "のぼろう！" : `${cdef.name}に へんしん！`, 1000);
+    else setTimeout(() => { if (play && play.mode === "asmr") pMsg("👆 スワイプで 見まわせるよ", 1800); }, 1500);
   }
 }
 function playTick(m) {
@@ -453,6 +454,20 @@ for (const [id, fn] of [["pLeft", () => playMove(-1)], ["pRight", () => playMove
 }
 let pSwipe = null;
 $("scPlayRun").addEventListener("pointerdown", (e) => { if (e.target.closest("button") || e.target.closest("#pStick") || !play || play.mode !== "run") return; pSwipe = { x: e.clientX, y: e.clientY }; });
+/* ASMRタワー：画面を スワイプして 視点を まわす（パッド・ボタン いがいの 所。2本ゆびでも OK） */
+const look = new Map();
+$("scPlayRun").addEventListener("pointerdown", (e) => {
+  if (!play || play.mode !== "asmr" || e.target.closest("button") || e.target.closest("#pStick")) return;
+  look.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { $("scPlayRun").setPointerCapture(e.pointerId); } catch {}
+});
+$("scPlayRun").addEventListener("pointermove", (e) => {
+  const p = look.get(e.pointerId);
+  if (!p) return;
+  towerLook(e.clientX - p.x, e.clientY - p.y);
+  p.x = e.clientX; p.y = e.clientY;
+});
+for (const ev of ["pointerup", "pointercancel"]) $("scPlayRun").addEventListener(ev, (e) => look.delete(e.pointerId));
 $("scPlayRun").addEventListener("pointerup", (e) => {
   if (!pSwipe) return;
   const dx = e.clientX - pSwipe.x, dy = e.clientY - pSwipe.y;
@@ -469,6 +484,7 @@ addEventListener("keydown", (e) => {
   }
   if (e.code === "Space") { e.preventDefault(); playJumpNow(); }
   if (e.code === "ShiftLeft" || e.code === "KeyX") playSkillNow();
+  if (play.mode === "asmr" && (e.code === "KeyQ" || e.code === "KeyE")) towerLook(e.code === "KeyQ" ? -60 : 60, 0);   // パソコン：Q・E で 視点を まわす
 });
 
 /* =========================================================
@@ -1133,7 +1149,7 @@ show("scTitle");
 if (DEBUG) {
   window.G = {
     store, get me() { return me; }, get data() { return data; }, get quiz() { return quiz; }, get screen() { return screen; },
-    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, towerSkill, towerTeleport, get play() { return play; },
+    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, get play() { return play; },
   };
   document.title = "ready";
 }

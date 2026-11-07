@@ -95,6 +95,25 @@ export const LOOK = {
       x.fillStyle = "#1f3324"; x.fillRect(90, 0, 76, h);   // のり
     }),
   },
+  choco: {
+    sky: 0xfbeee6, wall: 0x7a4a2e, parts: [0x6b3f24, 0xffffff, 0xffd6e6],
+    tex: canvasTex(256, 256, (x, w, h) => {   // チョコの 床（板チョコの みぞ）
+      x.fillStyle = "#6b3f24"; x.fillRect(0, 0, w, h);
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { x.fillStyle = "#7d4b2c"; x.fillRect(i * 64 + 6, j * 64 + 6, 52, 52); x.fillStyle = "rgba(255,255,255,.12)"; x.fillRect(i * 64 + 8, j * 64 + 8, 48, 6); }
+    }),
+  },
+  push: {
+    sky: 0xf1f7ff, wall: 0x8fb8ff, parts: [0xff7eb6, 0xffa64d, 0xffd84d, 0x7be88a, 0x6cc0ff, 0xb48cff],
+    tex: canvasTex(256, 256, (x, w, h) => {   // シリコンの ポコポコ
+      x.fillStyle = "#cfe0ff"; x.fillRect(0, 0, w, h);
+      const cols = ["#ff9ec7", "#ffc27a", "#ffe07a", "#9be39b", "#8fd3ff", "#c7a8ff"];
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+        const cx = i * 64 + 32, cy = j * 64 + 32, g = x.createRadialGradient(cx - 8, cy - 8, 2, cx, cy, 26);
+        g.addColorStop(0, "#fff"); g.addColorStop(0.35, cols[(i + j) % 6]); g.addColorStop(1, cols[(i + j + 1) % 6]);
+        x.fillStyle = g; x.beginPath(); x.arc(cx, cy, 24, 0, Math.PI * 2); x.fill();
+      }
+    }),
+  },
   koro: {
     sky: 0xf0f4ff, wall: 0x9aa6d9, parts: [0xff8fb1, 0x8fd3ff, 0xffd86b, 0x9be39b, 0xc7a8ff],
     tex: canvasTex(256, 256, (x, w, h) => {
@@ -207,6 +226,38 @@ function makeShape(kind, w, d, theme) {
       add(new THREE.SphereGeometry(Math.min(w, d) / 2, 22, 16), M, (m) => { m.position.y = -Math.min(w, d) / 2 + 0.05; });
       add(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }), (m) => { m.position.set(-0.2, -0.05, -0.35); });
       break;
+    case "chocobar": { // 板チョコ（みぞの ある 四角）
+      const dark = new THREE.MeshLambertMaterial({ color: 0x5a331d, emissive: 0x3a1f10, emissiveIntensity: 0.2 });
+      const lite = new THREE.MeshLambertMaterial({ color: 0x7d4b2c, emissive: 0x4a2a16, emissiveIntensity: 0.2 });
+      add(new THREE.BoxGeometry(w, 0.32, d), dark, (m) => { m.position.y = -0.2; });
+      const n = 3;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) add(new THREE.BoxGeometry(w / n - 0.1, 0.1, d / n - 0.1), lite, (m) => { m.position.set(-w / 2 + (i + 0.5) * (w / n), -0.04, -d / 2 + (j + 0.5) * (d / n)); });
+      // 銀紙（すこし だけ）
+      add(new THREE.BoxGeometry(w + 0.04, 0.34, d * 0.28), new THREE.MeshLambertMaterial({ color: 0xd8dde6, emissive: 0x9aa3b5, emissiveIntensity: 0.3 }), (m) => { m.position.set(0, -0.2, -d / 2 + d * 0.14); });
+      break;
+    }
+    case "mallow": {   // マシュマロ（ふわっと ふくらんだ つつ）
+      const mc = pick([0xffffff, 0xffe0ee, 0xfff4f9]);
+      const mm = new THREE.MeshLambertMaterial({ color: mc, emissive: mc, emissiveIntensity: 0.25 });
+      add(new THREE.CylinderGeometry(w * 0.46, w * 0.5, 0.75, 28), mm, (m) => { m.position.y = -0.47; m.scale.z = d / w; });
+      add(new THREE.SphereGeometry(w * 0.46, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), mm, (m) => { m.scale.set(1, 0.22, d / w); m.position.y = -0.1; });
+      break;
+    }
+    case "popit": {    // プッシュポップ（シリコンの いた に まるい ポコポコが 3×3）
+      const base = pick(L.parts);
+      add(new THREE.BoxGeometry(w, 0.28, d), new THREE.MeshLambertMaterial({ color: base, emissive: base, emissiveIntensity: 0.22 }), (m) => { m.position.y = -0.16; });
+      const n = 3, cw = w / n, cd = d / n, cells = [];
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        const cc = L.parts[(i + j * 2) % L.parts.length];
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(Math.min(cw, cd) * 0.38, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: cc, emissive: cc, emissiveIntensity: 0.25 }));
+        dome.scale.y = 0.55;
+        dome.position.set(-w / 2 + (i + 0.5) * cw, -0.02, -d / 2 + (j + 0.5) * cd);
+        g.add(dome);
+        cells.push({ i, j, dome, popped: false });
+      }
+      g.userData.pop = { n, cells, t: 0 };
+      break;
+    }
     default:
       add(new THREE.BoxGeometry(w, 0.4, d), M, (m) => { m.position.y = -0.2; });
   }
@@ -233,7 +284,7 @@ export function buildRoom(r, entry, api, used = new Set()) {
   const jumpH = (P.jumpV * th.jump) ** 2 / (2 * P.gravity * (th.grav || 1));
   const rise = Math.max(0.42, Math.min(1.5, jumpH * 0.55));
   let n = Math.ceil((H - 0.01) / rise);
-  const start = entry ? tileC(entry.i, entry.j) : { x: 0, z: 1.6 };
+  const start = entry ? tileC(entry.i, entry.j) : { x: 0, z: 3.2 };
   const a0 = Math.atan2(start.z - cz, start.x);
   const dir = Math.random() < 0.5 ? 1 : -1;
   const da = 2.75 / ASMR.ring;
@@ -266,7 +317,7 @@ export function buildRoom(r, entry, api, used = new Set()) {
       g.add(col, makeShape(th.shapes[0], pw, pw, th.id));
       g.position.set(px, top, pz);
       objGroup.add(g);
-      const s = api.add({ x0: px - pw / 2, x1: px + pw / 2, y0: y, y1: top, z0: pz - pw / 2, z1: pz + pw / 2, g, mat: th.id, room: r, pillar: true });
+      const s = api.add({ x0: px - pw / 2, x1: px + pw / 2, y0: y, y1: top, z0: pz - pw / 2, z1: pz + pw / 2, g, mat: th.id, room: r, pillar: true, kind: th.shapes[0] });
       room.objs.push(s);
       break;
     }
@@ -345,7 +396,7 @@ export function buildRoom(r, entry, api, used = new Set()) {
     { x0: half, x1: half + th2, z0: -th2, z1: R + th2, vis: true },
     { x0: -half - th2, x1: -half, z0: -th2, z1: R + th2, vis: true },
     { x0: -half, x1: half, z0: R, z1: R + th2, vis: true },
-    { x0: -half, x1: half, z0: -th2, z1: 0, vis: false },
+    { x0: -half, x1: half, z0: -th2, z1: 0, vis: true },
   ];
   for (const w of walls) {
     if (w.vis) {
@@ -355,10 +406,6 @@ export function buildRoom(r, entry, api, used = new Set()) {
     }
     api.add({ x0: w.x0, x1: w.x1, y0: y - 0.5, y1: y + wallH, z0: w.z0, z1: w.z1, g: null, room: r, bound: true });
   }
-  // 手前の ひくい さく（部屋の はしが わかるように）
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(R, 0.35, 0.25), mats.side);
-  rail.position.set(0, y + 0.17, -0.12);
-  wallGroup.add(rail);
   // おくの かべの 看板（フロアの 番号と テーマ）
   api.sign(`${r + 1}かい ${th.name}`, th.sub, 0, y + 4.6, R - 0.05, room);
   return room;
