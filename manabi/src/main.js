@@ -5,8 +5,8 @@ import * as store from "./storage.js";
 import { kinderSession, kukuSession, reviewSession, makeChoices, kanaSession, kanjiSession, shuffle } from "./quiz.js";
 import { sfx, speak, stopSpeak, unlockAudio, canSpeak, playBgm, setAudioPrefs, audioStatus, stepSound, registerStepThemes } from "./sound.js";
 import { loadNorun3D, react, setHatColor, setPins } from "./norun3d.js";
-import { initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump, setRunPins } from "./run3d.js";
-import { initTowerView, startTower, stopTower, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, setTowerHat, setTowerPins, setTowerChar, charAvailable, towerState } from "./tower3d.js";
+import { runResize, initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump, setRunPins } from "./run3d.js";
+import { initTowerView, startTower, stopTower, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, towerToggleView, towerFaceFront, towerResize, setTowerHat, setTowerPins, setTowerChar, charAvailable, towerState } from "./tower3d.js";
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = location.search.includes("debug");
@@ -314,6 +314,9 @@ async function startPlay(mode) {
   $("pKira").textContent = "✨0";
   $("pKira").classList.toggle("hidden", mode !== "run");
   $("scPlayRun").classList.toggle("tower", mode !== "run");   // アスレ・ASMR は バーチャルパッド＋ジャンプ
+  $("scPlayRun").classList.toggle("asmr", mode === "asmr");    // ASMR は 視点の ボタンも
+  $("pView").classList.remove("on");
+  $("pView").querySelector("span").textContent = "いちにんしょう";
   $("pSkill").classList.add("hidden");
   resetStick();
   show("scPlayRun");
@@ -447,8 +450,39 @@ $("pQuit").onclick = () => {
     finishPlay(m, k);
   } else finishPlay(stopTower());
 };
+/* ASMR：視点の 切りかえ（寄った 視点 ⇔ 一人称）・正面を むく */
+function viewToggle() {
+  const v = towerToggleView();
+  if (!v) return;
+  $("pView").classList.toggle("on", v === "fp");
+  $("pView").querySelector("span").textContent = v === "fp" ? "よった してん" : "いちにんしょう";
+  pMsg(v === "fp" ? "👁 いちにんしょう" : "👁 よった してん", 800);
+  sfx.tap();
+}
+function faceFront() { towerFaceFront(); sfx.tap(); }
+/* 横画面：⤢ で 全画面に して 横向きに する（Android など、できる 端末だけ）。もう一度 おすと もどる */
+const canFull = !!(document.documentElement.requestFullscreen && screen.orientation && screen.orientation.lock);
+$("pFull").classList.toggle("hidden", !canFull);
+async function toggleFull() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+      await screen.orientation.lock("landscape").catch(() => {});
+    } else {
+      try { screen.orientation.unlock(); } catch {}
+      await document.exitFullscreen();
+    }
+  } catch { pMsg("この たんまつでは できないよ。よこに むけてね", 1400); }
+  setTimeout(relayout, 150);
+}
+$("pFull").onclick = toggleFull;
+/* 画面の 向きが かわった 時：少し まってから 3Dの 画面と レイアウトを なおす（Android は すぐには 大きさが かわらない ことが ある） */
+function relayout() { towerResize(); runResize(); placeNorun(); }
+for (const ev of ["orientationchange", "resize"]) addEventListener(ev, () => { relayout(); setTimeout(relayout, 250); setTimeout(relayout, 700); });
+if (window.visualViewport) visualViewport.addEventListener("resize", () => setTimeout(relayout, 60));
+if (screen.orientation) screen.orientation.addEventListener?.("change", () => setTimeout(relayout, 200));
 function playSkillNow() { if (play && play.mode !== "run" && towerSkill()) sfx.boing(); }
-for (const [id, fn] of [["pLeft", () => playMove(-1)], ["pRight", () => playMove(1)], ["pJump", playJumpNow], ["pSkill", playSkillNow]]) {
+for (const [id, fn] of [["pLeft", () => playMove(-1)], ["pRight", () => playMove(1)], ["pJump", playJumpNow], ["pSkill", playSkillNow], ["pView", viewToggle], ["pFront", faceFront]]) {
   const b = $(id);
   b.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); fn(); b.classList.add("press"); setTimeout(() => b.classList.remove("press"), 120); });
 }
@@ -485,6 +519,8 @@ addEventListener("keydown", (e) => {
   if (e.code === "Space") { e.preventDefault(); playJumpNow(); }
   if (e.code === "ShiftLeft" || e.code === "KeyX") playSkillNow();
   if (play.mode === "asmr" && (e.code === "KeyQ" || e.code === "KeyE")) towerLook(e.code === "KeyQ" ? -60 : 60, 0);   // パソコン：Q・E で 視点を まわす
+  if (play.mode === "asmr" && e.code === "KeyV") viewToggle();
+  if (play.mode === "asmr" && e.code === "KeyF") faceFront();
 });
 
 /* =========================================================
@@ -1149,7 +1185,7 @@ show("scTitle");
 if (DEBUG) {
   window.G = {
     store, get me() { return me; }, get data() { return data; }, get quiz() { return quiz; }, get screen() { return screen; },
-    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, get play() { return play; },
+    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, towerToggleView, towerFaceFront, get play() { return play; },
   };
   document.title = "ready";
 }

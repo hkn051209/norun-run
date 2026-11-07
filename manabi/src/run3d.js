@@ -581,6 +581,7 @@ function onResize() {
   camera.updateProjectionMatrix();
 }
 addEventListener("resize", onResize);
+export function runResize() { onResize(); }
 onResize();
 
 const clock = new THREE.Clock();

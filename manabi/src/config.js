@@ -197,7 +197,14 @@ export const SHAPE_SOUND = {
   mallow:   { rate: 0.85 },                 // マシュマロ：やわらかく ひくめ
 };
 /* ASMRの カメラ（キャラに 寄った 視点。スワイプで まわす） */
-export const ASMR_CAM = { dist: 3.1, height: 2.1, lookUp: 0.55, ahead: 3.0, pitchMin: -0.3, pitchMax: 0.7, swipe: 0.008 };
+export const ASMR_CAM = {
+  dist: 3.1, height: 2.1, lookUp: 0.55, ahead: 3.0,
+  pitchMin: -0.15, pitchMax: 0.45,   // 上下に まわせる はんい（へんな 角度に ならない ように せまく）
+  swipe: 0.008,                       // スワイプの 強さ
+  minDist: 2.0,                       // かべぎわで これより 近づく 時は 上へ にげる（キャラが 画面を ふさがない ように）
+  follow: 2.2,                        // スワイプして から この 秒数 たつと、歩く 方向へ ゆっくり カメラが まわりこむ
+  eye: 0.85,                          // 一人称の 目の 高さ
+};
 export const ASMR = {
   room: 13,          // 部屋の 1辺（m）
   floorH: 7,         // 1フロアの 高さ（m）
