@@ -8,6 +8,7 @@
 | おばけ・ペンギンの3Dモデル | assets/models/norun-obake.glb, norun-penguin.glb | ひこのさんから 受けとった ファイル（2026-11-07）。おばけ：Ghost_Outline・M_Ghost・M_Face を すりぬけで 切りかえ。ペンギン：Flipper_L/R・Foot_L/R を うごかす（顔ノードの 変形は そのまま） | ひこのさんのキャラクターに基づく制作物 |
 | 3D描画ライブラリ | lib/three.module.min.js, lib/addons/*.js | three.js r160 | MIT（lib/THREE-LICENSE.txt） |
 | 遊びのラン・アスレ・ASMRタワーの 障害物・アイテム・コースの部品・しかけ・素材の もよう・看板 | src/run3d.js, src/tower3d.js | three.js の 基本の形と その場で描いた模様で クロドが制作（外部素材なし） | — |
+| ASMRタワーの 踏み音（ざくざく・スライム・ふわふわ・ぱりぱり・ころころ・チョコマシュマロ・プッシュポップ・キーボードの 生成版） | assets/audio/step_*.mp3, land_*.mp3（zaku / slime / fuwa / pari / koro / choco / push、step_key_gen・land_key_gen） | ElevenLabs で 生成（利用者本人＝ひこのさんが 生成） | ElevenLabs の 利用規約に したがう（生成した 本人の 利用）。この ZIP には ふくまれない（公開先に 置いてある） |
 | ASMRタワーの足音 | assets/audio/step_key.mp3, land_key.mp3, step_key_alt.mp3 | OpenGameArt の unicaegames「Keyboard Soundpack #1」（Cherry KC 1000 の実録）から選定・整形 | CC0 |
 | ASMRタワーの足音 | assets/audio/step_shari.mp3, land_shari.mp3 | Kenney「Impact Sounds」の footstep_snow 系を整形 | CC0 |
 | ASMRタワーの足音 | assets/audio/step_shari_gen.mp3, land_shari_gen.mp3 | ElevenLabs で生成（ひこのさんが生成） | ElevenLabs の利用規約にしたがう |
