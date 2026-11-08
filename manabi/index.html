@@ -285,11 +285,12 @@ h3::before{content:"✦ ";color:#ffc94d}
   .pbar .back{width:44px;height:44px;font-size:18px}
   #pDist{font-size:30px}
   #pCtl{bottom:max(8px,env(safe-area-inset-bottom));padding:0 max(18px,env(safe-area-inset-left)) 0 max(18px,env(safe-area-inset-left))}
-  #pStick{width:132px;height:132px}
-  .jumpBtn{width:104px;height:104px;margin-bottom:6px;font-size:16px}
-  .jumpBtn b{font-size:36px}
-  .skillBtn{width:72px;height:72px;font-size:13px}
-  .skillBtn b{font-size:24px}
+  /* 第7弾：横画面の パッドは たて画面より 大きく（176px）。大きく した ぶん 少し すけさせる */
+  #pStick{width:min(176px,46vh);height:min(176px,46vh);background:rgba(255,255,255,.4)}
+  .jumpBtn{width:min(124px,32vh);height:min(124px,32vh);margin-bottom:6px;font-size:17px}
+  .jumpBtn b{font-size:40px}
+  .skillBtn{width:min(84px,22vh);height:min(84px,22vh);font-size:14px}
+  .skillBtn b{font-size:26px}
   .pRight{flex-direction:row-reverse;align-items:flex-end}
   .laneBtn{width:96px;height:96px}
   #pMsg{font-size:34px;top:30%}
