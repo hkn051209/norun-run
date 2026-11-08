@@ -339,93 +339,105 @@ export function buildRoom(r, entry, api, used = new Set()) {
   const tileC = (i, j) => ({ x: -half + T * (i + 0.5), z: T * (j + 0.5) });
   const tileOf = (x, z) => ({ i: Math.max(0, Math.min(N - 1, Math.floor((x + half) / T))), j: Math.max(0, Math.min(N - 1, Math.floor(z / T))) });
 
-  // ---- 道：かべぞいの らせん（天井の 下）→ すみの「吹き抜け」の 中を つみあがって 上の フロアへ ----
+  // ---- 道（第8弾）：かべぞいを 1段ずつ のぼって、角の 踊り場で 向きを かえて 次の かべへ（かべぞい 周回）
+  //      → さいごは すみの「吹き抜け」（天井の 穴 2×2 マス）の 中を つみあがって 上の フロアへ ----
   // 天井（上の フロアの 床）の 下では、頭が つかえない 高さまでしか 足場を おかない。
-  // そこから 上は 天井の ない 吹き抜け（床の 穴 2×2 マス）の 中に 足場を つむ（実機で「上に いけない」の 原因だった）
   const cz = R / 2;
   const jumpH = (P.jumpV * th.jump) ** 2 / (2 * P.gravity * (th.grav || 1));
-  let rise = Math.max(0.42, Math.min(1.4, jumpH * 0.55));
+  const rise = Math.max(0.42, Math.min(1.4, jumpH * 0.55));
   const ceilBottom = H - 0.5;
-  const hOutMax = Math.max(1.0, ceilBottom - 1.0 - Math.min(jumpH, 1.9) * 0.95);   // 天井の 下で ジャンプしても 頭が ぶつからない 高さ
+  const hOut = Math.max(1.0, ceilBottom - 1.0 - Math.min(jumpH, 1.9) * 0.95);   // 天井の 下で ジャンプしても 頭が ぶつからない 高さ
+  const nOut = Math.max(2, Math.round(hOut / rise));                           // かべぞいの 段の 数（高さで きめる）
   const start = entry ? entry.start : { x: 0, z: 4.2 };
-  // 吹き抜け：4すみの どれか（入ってきた 吹き抜けとは ちがう、スタートから とおい すみ）
-  const corners = [[0, 0], [N - 2, 0], [0, N - 2], [N - 2, N - 2]]
-    .filter(([i, j]) => !entry || i !== entry.i || j !== entry.j)
-    .map(([i, j]) => ({ i, j, c: { x: -half + T * (i + 1), z: T * (j + 1) } }))
-    .sort((p, q) => Math.hypot(q.c.x - start.x, q.c.z - start.z) - Math.hypot(p.c.x - start.x, p.c.z - start.z));
-  const at = corners[Math.random() < 0.7 ? 0 : 1];
-  const ac = at.c;     // 吹き抜けの まんなか
-  // 吹き抜けの 中の 4つの 場所：すみ（C）・かべぞい（E1・E2）・内がわ（I：床に 2辺 せっする）
-  const sx = ac.x > 0 ? 1 : -1, sz = ac.z > cz ? 1 : -1;   // すみの 方向
-  const q = (ox, oz) => ({ x: ac.x + ox * T / 2, z: ac.z + oz * T / 2 });
-  const QC = q(sx, sz), QE1 = q(-sx, sz), QI = q(-sx, -sz), QE2 = q(sx, -sz);
-  const cycle = [QE1, QC, QE2, QI];                       // E1 → C → E2 → I（さいごは かならず I＝床に 出られる）
-  let nIn = Math.max(2, Math.ceil((H - hOutMax) / rise));
-  if (cycle[((4 - (nIn % 4)) % 4)] === QC) nIn++;          // さいしょの 場所が すみ（外から とどかない）なら 1だん ふやす
-  const inSeq = Array.from({ length: nIn }, (_, k) => cycle[(((k - nIn) % 4) + 4) % 4]);
-  const hIn = (H - hOutMax) / nIn;
-  // 吹き抜けの さいしょの 足場の となり（床がわ）＝ らせんの さいごの 足場
-  const first = inSeq[0];
-  const outDir = first === QI ? (Math.abs(start.x - first.x) > Math.abs(start.z - first.z) ? [-sx, 0] : [0, -sz]) : first === QE1 ? [0, -sz] : [-sx, 0];
-  const lastOut = { x: first.x + outDir[0] * 2.5, z: first.z + outDir[1] * 2.5 };
-  // らせん：段の 数は 高さで きめる（部屋を 広げても 段は ふやさない）。lastOut から 逆に ならべて、
-  // さいしょの 足場までは 床を 歩く（第7弾：広さで 歩く きょりを かせぐ）
-  const nOut = Math.max(2, Math.round(hOutMax / rise));
-  const dA = ASMR.stepGap / ASMR.ring;
-  const aEnd = Math.atan2(lastOut.z - cz, lastOut.x);
+  const W = ASMR.wall;                                                          // かべぞいの 足場の 大きさ・間かく
+  const ins = W.inset, side = R - 2 * ins, sp = side / (W.perSide + 1);
+  const cornerPt = (cx, cz2) => ({ x: cx * (half - W.landInset), z: cz + cz2 * (half - W.landInset) });
   const ecOf = (e) => ({ x: -half + T * (e.i + 1), z: T * (e.j + 1) });
   const inSq = (p, c, m) => Math.abs(p.x - c.x) < T + m && Math.abs(p.z - c.z) < T + m;
-  const ringPt = (k, d) => { const a = aEnd - d * (nOut - k) * dA; return { x: Math.cos(a) * ASMR.ring, z: cz + Math.sin(a) * ASMR.ring, a }; };
-  // まわる 向き：低い 段が 下からの 吹き抜けの 真上や スタートの すぐ そばに 来ない 方
-  const score = (d) => {
-    let sc = 0;
-    for (let k = 1; k <= Math.min(4, nOut - 1); k++) {
-      const p = ringPt(k, d);
-      if (entry && inSq(p, ecOf(entry), 1.0)) sc -= 10;
-      sc += Math.min(4, Math.hypot(p.x - start.x, p.z - start.z)) * 0.1;
-    }
-    const p1 = ringPt(1, d);
-    return sc + Math.min(9, Math.hypot(p1.x - start.x, p1.z - start.z)) * 0.3;   // さいしょの 足場までは 床を すこし 歩く
-  };
-  const dir = score(1) === score(-1) ? (Math.random() < 0.5 ? 1 : -1) : score(1) > score(-1) ? 1 : -1;
-  const hOut = hOutMax;
-  const L0 = LOOK[th.id];
-  const steps = [];
-  for (let k = 1; k <= nOut; k++) {
-    const rp = ringPt(k, dir), a = rp.a;
-    const p = k === nOut ? lastOut : { x: rp.x, z: rp.z };
-    // 吹き抜け（下からの・上への）の 真上に 来た 段は、部屋の 内がわへ よせる
-    if (k < nOut) for (const c of [entry && (hOut * k) / nOut < 3 ? ecOf(entry) : null, ac].filter(Boolean)) {
-      for (let rr = ASMR.ring; rr > 1.5 && inSq(p, c, 1.1); rr -= 0.2) { p.x = Math.cos(a) * rr; p.z = cz + Math.sin(a) * rr; }
-    }
-    steps.push({ x: p.x, z: p.z, top: y + (hOut * k) / nOut, a });
-  }
-  inSeq.forEach((p, k) => steps.push({ x: p.x, z: p.z, top: y + hOut + hIn * (k + 1), a: 0, atrium: true, last: k === nIn - 1 }));
-
-  for (const st of steps) {
-    const { x: px, z: pz, top, a } = st;
-    let kind = pick(th.shapes);
-    if (st.atrium && kind === "spacebar") kind = "key";
-    if (kind === "key") {   // キーの はたけ：キーが 2×2。1こずつ ふむと しずむ
-      const kw = st.atrium ? 0.78 : 1.05, off = kw / 2 + 0.03;
-      for (const [ox, oz] of [[-off, -off], [off, -off], [-off, off], [off, off]]) {
-        const g = makeShape("key", kw, kw, th.id);
-        const x = px + ox, z = pz + oz;
-        g.position.set(x, top, z);
-        objGroup.add(g);
-        room.objs.push(api.add({ x0: x - kw / 2, x1: x + kw / 2, y0: top - 0.45, y1: top, z0: z - kw / 2, z1: z + kw / 2, g, mat: th.id, room: r, kind, baseY: top, oneWay: true, last: st.last }));
+  const atOf = (sx, sz) => { const i = sx < 0 ? 0 : N - 2, j = sz < 0 ? 0 : N - 2; return { i, j, c: { x: -half + T * (i + 1), z: T * (j + 1) } }; };
+  // かべぞいの ルートを、吹き抜けの すみ（sx,sz）と、さいごに そって くる かべ（"z"＝z の かべ・"x"＝x の かべ）から、
+  // 上から 下へ（さいごの 段から 逆に）ならべる
+  const wallRoute = (sx, sz, endWall) => {
+    const out = [];
+    // かどの 順番：X（吹き抜けの すみ）→ endWall に そって Y → … と 逆まわり
+    let c = { sx, sz }, wall = endWall;
+    const ptOn = (c, wall, d) => wall === "z"
+      ? { x: c.sx * (half - ins) - c.sx * d, z: cz + c.sz * (half - ins), along: "x", nx: 0, nz: c.sz }
+      : { x: c.sx * (half - ins), z: cz + c.sz * (half - ins) - c.sz * d, along: "z", nx: c.sx, nz: 0 };
+    // さいごの 段（吹き抜けの となり・少し 小さめ）
+    out.push({ ...ptOn(c, wall, W.lastD), len: W.lastLen, lastOut: true });
+    let firstSide = true;
+    while (out.length < nOut) {
+      for (let j = 1; j <= W.perSide && out.length < nOut; j++) {
+        const dd = j * sp;                 // かど c から の きょり（c から はなれて いく ＝ 下の 段へ）
+        if (firstSide && dd < W.lastD + W.len / 2 + 0.7) continue;   // 吹き抜けの すぐ そばは さいごの 段だけ
+        out.push({ ...ptOn(c, wall, dd), len: W.len });
       }
+      firstSide = false;
+      // つぎの かど（このかべの はしっこ）
+      c = wall === "z" ? { sx: -c.sx, sz: c.sz } : { sx: c.sx, sz: -c.sz };
+      if (out.length < nOut) { const cp = cornerPt(c.sx, c.sz); out.push({ x: cp.x, z: cp.z, corner: true, len: W.land }); }
+      wall = wall === "z" ? "x" : "z";
+    }
+    return out.slice(0, nOut).reverse();   // 下の 段から 順に
+  };
+  // 吹き抜けの すみ と 向きを えらぶ：低い 段が 下からの 穴の 上に 来ない・スタートから さいしょの 段まで 少し 歩く
+  const cands = [];
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const atc = atOf(sx, sz);
+    if (entry && atc.i === entry.i && atc.j === entry.j) continue;
+    for (const ew of ["z", "x"]) {
+      const route = wallRoute(sx, sz, ew);
+      let bad = 0;
+      route.forEach((p, k) => { if (entry && (hOut * (k + 1)) / nOut < 3.2 && inSq(p, ecOf(entry), 1.3)) bad++; });
+      const walk = Math.hypot(route[0].x - start.x, route[0].z - start.z);
+      cands.push({ sx, sz, ew, route, atc, sc: -bad * 10 - Math.abs(Math.min(Math.max(walk, 4), 10) - walk) + Math.random() * 2 });
+    }
+  }
+  cands.sort((p, q) => q.sc - p.sc);
+  const pickC = cands[0];
+  const { sx, sz } = pickC, at = pickC.atc, ac = at.c;
+  // 吹き抜けの 中の 4つの 場所：すみ（C）・かべぞい（E1＝z の かべぞい・E2＝x の かべぞい）・内がわ（I：床に 2辺 せっする）
+  const q = (ox, oz) => ({ x: ac.x + ox * T / 2, z: ac.z + oz * T / 2 });
+  const QC = q(sx, sz), QE1 = q(-sx, sz), QI = q(-sx, -sz), QE2 = q(sx, -sz);
+  // そって きた かべの となりから はじめて、さいごは かならず I（床に 出られる）。段の 数は 偶数に して 向きで あわせる
+  const E0 = pickC.ew === "z" ? QE1 : QE2, E1b = pickC.ew === "z" ? QE2 : QE1;
+  let nIn = Math.max(2, Math.ceil((H - hOut) / rise));
+  if (nIn % 2) nIn++;
+  const cyc = nIn % 4 === 0 ? [E0, QC, E1b, QI] : [E0, QI, E1b, QC];
+  const inSeq = Array.from({ length: nIn }, (_, k) => cyc[k % 4]);
+  const hIn = (H - hOut) / nIn;
+  const L0 = LOOK[th.id];
+  const steps = pickC.route.map((p, k) => ({ ...p, top: y + (hOut * (k + 1)) / nOut }));
+  inSeq.forEach((p, k) => steps.push({ x: p.x, z: p.z, top: y + hOut + hIn * (k + 1), atrium: true, last: k === nIn - 1 }));
+
+  const addKeys = (px, pz, top, cols, rows, kw, st) => {   // キーの はたけ：1こずつ ふむと しずむ
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+      const x = px + (i - (cols - 1) / 2) * (kw + 0.06), z = pz + (j - (rows - 1) / 2) * (kw + 0.06);
+      const g = makeShape("key", kw, kw, th.id);
+      g.position.set(x, top, z); objGroup.add(g);
+      room.objs.push(api.add({ x0: x - kw / 2, x1: x + kw / 2, y0: top - 0.45, y1: top, z0: z - kw / 2, z1: z + kw / 2, g, mat: th.id, room: r, kind: "key", baseY: top, oneWay: true, last: st.last }));
+    }
+  };
+  for (const st of steps) {
+    const { x: px, z: pz, top } = st;
+    let kind = pick(th.shapes);
+    if ((st.atrium || st.corner) && kind === "spacebar") kind = "key";
+    // 大きさ：かべぞいは かべに そって 長い（len × dep）、角の 踊り場は ひろい 正方形、吹き抜けの 中は 1.6
+    const alongX = st.along === "x";
+    const lw = st.atrium ? 1.6 : st.corner ? W.land : kind === "spacebar" ? Math.max(st.len, 2.6) : st.len;
+    const dw = st.atrium ? 1.6 : st.corner ? W.land : kind === "spacebar" ? 1.2 : W.dep;
+    const sw = st.atrium || st.corner || alongX ? lw : dw, sd = st.atrium || st.corner || alongX ? dw : lw;   // ワールドの x はば・z はば
+    if (kind === "key") {
+      const kw = st.atrium ? 0.76 : 1.0;
+      const cols = Math.max(1, Math.round(sw / (kw + 0.06))), rows = Math.max(1, Math.round(sd / (kw + 0.06)));
+      addKeys(px, pz, top, cols, rows, kw, st);
       continue;
     }
-    const big = st.atrium ? 1.6 : rand(1.9, 2.4);
-    const w = kind === "spacebar" ? 2.6 : big, d = kind === "spacebar" ? 1.2 : st.atrium ? 1.6 : rand(1.9, 2.4);
-    const g = makeShape(kind, w, d, th.id);
-    // スペースバーは 円に そって 向きを かえる（当たり判定は 四角なので ざっくり 合わせる）
-    const along = Math.abs(Math.cos(a)) > 0.7;
-    const sw = kind === "spacebar" && along ? d : w, sd = kind === "spacebar" && along ? w : d;
-    if (kind === "spacebar" && along) g.rotation.y = Math.PI / 2;
-    if (kind === "spoon") {   // スプーンの えは かべの 方（外がわ）へ むける（道に はみ出さない）
-      const ox = st.atrium ? sx : px, oz = st.atrium ? sz : pz - cz, ol = Math.hypot(ox, oz) || 1;
+    const g = makeShape(kind, sw, sd, th.id);
+    if (kind === "spacebar" && !alongX) { g.rotation.y = Math.PI / 2; g.scale.set(sd / sw, 1, sw / sd); }
+    if (kind === "spoon") {   // スプーンの えは かべの 方へ むける（道に はみ出さない）
+      const ox = st.atrium || st.corner ? sx : st.nx, oz = st.atrium || st.corner ? sz : st.nz, ol = Math.hypot(ox, oz) || 1;
       g.rotation.y = Math.atan2(-ox / ol, -oz / ol);
     }
     g.position.set(px, top, pz);
@@ -520,12 +532,17 @@ export function buildRoom(r, entry, api, used = new Set()) {
   }
   // かわいい かざり：かべの 上の ほうに ガーランド、部屋の 上の ほうに ふわふわ うかぶ ほし
   const gy = y + H - 2.2, inset = 0.35;
-  garland(wallGroup, { x: -half + inset, z: R - inset }, { x: half - inset, z: R - inset }, gy, 0.7);
-  garland(wallGroup, { x: -half + inset, z: inset }, { x: -half + inset, z: R - inset }, gy, 0.7);
-  garland(wallGroup, { x: half - inset, z: inset }, { x: half - inset, z: R - inset }, gy, 0.7);
-  garland(wallGroup, { x: half - inset, z: inset }, { x: -half + inset, z: inset }, gy, 0.7);
+  // 吹き抜けの すみ の 近くは 足場が 天井まで つみあがるので、ガーランドは そこを よける
+  const Xc = { x: sx * half, z: cz + sz * half };
+  const cut = (p, o) => { if (Math.abs(p.x - Xc.x) < 1 && Math.abs(p.z - Xc.z) < 1) { const L = Math.hypot(o.x - p.x, o.z - p.z), k = (2 * T + 0.3) / L; return { x: p.x + (o.x - p.x) * k, z: p.z + (o.z - p.z) * k }; } return p; };
+  for (const [a, b] of [
+    [{ x: -half + inset, z: R - inset }, { x: half - inset, z: R - inset }],
+    [{ x: -half + inset, z: inset }, { x: -half + inset, z: R - inset }],
+    [{ x: half - inset, z: inset }, { x: half - inset, z: R - inset }],
+    [{ x: half - inset, z: inset }, { x: -half + inset, z: inset }],
+  ]) garland(wallGroup, cut(a, b), cut(b, a), gy, 0.6);
   for (let i = 0; i < 7; i++) {
-    const a = rand(0, Math.PI * 2), rr = rand(1.5, ASMR.ring - 2.2);
+    const a = rand(0, Math.PI * 2), rr = rand(1.5, half - 4.5);
     const st = new THREE.Mesh(starGeo, pick(starMats));
     st.position.set(Math.cos(a) * rr, y + rand(H - 4.5, H - 2.8), cz + Math.sin(a) * rr);
     st.rotation.z = rand(-0.4, 0.4); st.userData.spin = rand(0.4, 0.9) * (Math.random() < 0.5 ? 1 : -1); st.userData.y0 = st.position.y; st.userData.ph = rand(0, 6);

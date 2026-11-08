@@ -638,7 +638,7 @@ export function towerJump() {
   if (!T || me.wait > 0) return false;
   if (me.slideT > 0 && !headroom(1.0)) return false;   // トンネルの 中では 立てない
   const fp = floorProps();
-  if (me.on || me.airT < 0.1) { me.vy = P.jumpV * fp.jump * (1 - me.neba * 0.3); me.jumps = 1; }   // 足場を はなれた すぐ後も とべる
+  if (me.on || me.airT < 0.1) { me.vy = P.jumpV * fp.jump * (1 - me.neba * 0.15); me.jumps = 1; }   // 足場を はなれた すぐ後も とべる（はちみつに しずむと 少し ひくく：第8弾で 0.3→0.15。しずんでも 次の 段に とどく ように）
   else if (skills().doubleJump && me.jumps < 2) { me.vy = P.jumpV * 0.92; me.jumps = 2; }   // くらげ：空中で もう1回
   else { me.jumpBuf = 0.22; return false; }      // 着地の すこし前に おしたら、着地で とぶ（はねる 床で 大ジャンプ）
   me.slideT = 0;
