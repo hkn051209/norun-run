@@ -339,49 +339,59 @@ export function buildRoom(r, entry, api, used = new Set()) {
   const tileC = (i, j) => ({ x: -half + T * (i + 0.5), z: T * (j + 0.5) });
   const tileOf = (x, z) => ({ i: Math.max(0, Math.min(N - 1, Math.floor((x + half) / T))), j: Math.max(0, Math.min(N - 1, Math.floor(z / T))) });
 
-  // ---- 道（第8弾）：かべぞいを 1段ずつ のぼって、角の 踊り場で 向きを かえて 次の かべへ（かべぞい 周回）
-  //      → さいごは すみの「吹き抜け」（天井の 穴 2×2 マス）の 中を つみあがって 上の フロアへ ----
+  // ---- 道（第8弾・第9弾）：かべ 4面と 角 4つを ぐるっと 1周 のぼってから、すみの「吹き抜け」（天井の 穴 2×2 マス）を
+  //      つみあがって 上の フロアへ。各面に「歩いて すすめる 長い 足場」（歩行区間）が 1つ以上。
   // 天井（上の フロアの 床）の 下では、頭が つかえない 高さまでしか 足場を おかない。
   const cz = R / 2;
   const jumpH = (P.jumpV * th.jump) ** 2 / (2 * P.gravity * (th.grav || 1));
-  const rise = Math.max(0.42, Math.min(1.4, jumpH * 0.55));
+  const rise = Math.max(0.42, Math.min(1.4, jumpH * 0.55));   // 吹き抜けの 中の 段の めやす
   const ceilBottom = H - 0.5;
-  const hOut = Math.max(1.0, ceilBottom - 1.0 - Math.min(jumpH, 1.9) * 0.95);   // 天井の 下で ジャンプしても 頭が ぶつからない 高さ
-  const nOut = Math.max(2, Math.round(hOut / rise));                           // かべぞいの 段の 数（高さで きめる）
+  const hCeil = Math.max(1.0, ceilBottom - 1.0 - Math.min(jumpH, 1.9) * 0.95);   // 天井の 下で ジャンプしても 頭が ぶつからない 高さ
+  // 1周の 1段の 上がり幅は、しずんで ジャンプが ひくく なっても とどく 高さ まで（はちみつ）。のこりは 吹き抜けで のぼる
+  const sunkJ = (P.jumpV * th.jump * (1 - (th.sinkMax || 0) * 0.15)) ** 2 / (2 * P.gravity * (th.grav || 1));
+  const LAP_N = 16;                                                            // 1周の 足場の 数（踊り場4・ジャンプ7・歩行区間4・さいご1）
+  const hOut = Math.min(hCeil, LAP_N * Math.min(1.2, sunkJ * 0.7));
   const start = entry ? entry.start : { x: 0, z: 4.2 };
   const W = ASMR.wall;                                                          // かべぞいの 足場の 大きさ・間かく
-  const ins = W.inset, side = R - 2 * ins, sp = side / (W.perSide + 1);
-  const cornerPt = (cx, cz2) => ({ x: cx * (half - W.landInset), z: cz + cz2 * (half - W.landInset) });
+  const ins = W.inset, side = R - 2 * ins;
+  const cornerPt = (c) => ({ x: c.sx * (half - W.landInset), z: cz + c.sz * (half - W.landInset) });
+  const inPt = (c) => ({ x: c.sx * (half - ins), z: cz + c.sz * (half - ins) });
   const ecOf = (e) => ({ x: -half + T * (e.i + 1), z: T * (e.j + 1) });
   const inSq = (p, c, m) => Math.abs(p.x - c.x) < T + m && Math.abs(p.z - c.z) < T + m;
   const atOf = (sx, sz) => { const i = sx < 0 ? 0 : N - 2, j = sz < 0 ? 0 : N - 2; return { i, j, c: { x: -half + T * (i + 1), z: T * (j + 1) } }; };
-  // かべぞいの ルートを、吹き抜けの すみ（sx,sz）と、さいごに そって くる かべ（"z"＝z の かべ・"x"＝x の かべ）から、
-  // 上から 下へ（さいごの 段から 逆に）ならべる
-  const wallRoute = (sx, sz, endWall) => {
-    const out = [];
-    // かどの 順番：X（吹き抜けの すみ）→ endWall に そって Y → … と 逆まわり
-    let c = { sx, sz }, wall = endWall;
-    const ptOn = (c, wall, d) => wall === "z"
-      ? { x: c.sx * (half - ins) - c.sx * d, z: cz + c.sz * (half - ins), along: "x", nx: 0, nz: c.sz }
-      : { x: c.sx * (half - ins), z: cz + c.sz * (half - ins) - c.sz * d, along: "z", nx: c.sx, nz: 0 };
-    // さいごの 段（吹き抜けの となり・少し 小さめ）
-    out.push({ ...ptOn(c, wall, W.lastD), len: W.lastLen, lastOut: true });
-    let firstSide = true;
-    while (out.length < nOut) {
-      for (let j = 1; j <= W.perSide && out.length < nOut; j++) {
-        const dd = j * sp;                 // かど c から の きょり（c から はなれて いく ＝ 下の 段へ）
-        if (firstSide && dd < W.lastD + W.len / 2 + 0.7) continue;   // 吹き抜けの すぐ そばは さいごの 段だけ
-        out.push({ ...ptOn(c, wall, dd), len: W.len });
-      }
-      firstSide = false;
-      // つぎの かど（このかべの はしっこ）
-      c = wall === "z" ? { sx: -c.sx, sz: c.sz } : { sx: c.sx, sz: -c.sz };
-      if (out.length < nOut) { const cp = cornerPt(c.sx, c.sz); out.push({ x: cp.x, z: cp.z, corner: true, len: W.land }); }
-      wall = wall === "z" ? "x" : "z";
-    }
-    return out.slice(0, nOut).reverse();   // 下の 段から 順に
+  // かど a → かど b の かべぞいに、長さ lens の 足場を 間を そろえて ならべる（from〜to は a から の きょり）
+  const lay = (a, b, kinds, from, to, walkLen = W.walk) => {
+    const pa = inPt(a), pb = inPt(b), L = Math.hypot(pb.x - pa.x, pb.z - pa.z), ux = (pb.x - pa.x) / L, uz = (pb.z - pa.z) / L;
+    const along = a.sz === b.sz ? "x" : "z", nx = along === "z" ? a.sx : 0, nz = along === "x" ? a.sz : 0;
+    const lens = kinds.map((k) => (k === "W" ? walkLen : W.len));
+    const gap = (to - from - lens.reduce((p, q) => p + q, 0)) / (lens.length + 1);
+    let d = from + gap;
+    return kinds.map((k, i) => { const c = d + lens[i] / 2; d += lens[i] + gap; return { x: pa.x + ux * c, z: pa.z + uz * c, along, nx, nz, len: lens[i], walk: k === "W" }; });
   };
-  // 吹き抜けの すみ と 向きを えらぶ：低い 段が 下からの 穴の 上に 来ない・スタートから さいしょの 段まで 少し 歩く
+  const PAT = [["J", "W", "J"]];   // ジャンプ と 歩行区間が 交互（角の 踊り場も ジャンプで のる）
+  // X＝吹き抜けの すみ、endWall＝さいごに そって くる かべ。X の 踊り場から はじめて、X の もう1つの かべ → 角 → … と 1周し、
+  // endWall に そって X へ もどって 吹き抜けへ
+  const wallRoute = (sx, sz, endWall) => {
+    const X = { sx, sz };
+    const next = (c, wall) => (wall === "z" ? { sx: -c.sx, sz: c.sz } : { sx: c.sx, sz: -c.sz });
+    const other = (w) => (w === "z" ? "x" : "z");
+    // 逆まわりの かど：X →(endWall) c1 →(other) c2 →(endWall) c3 →(other) X
+    const c1 = next(X, endWall), c2 = next(c1, other(endWall)), c3 = next(c2, endWall);
+    const L0s = W.landInset - ins + W.land / 2;           // 角の 踊り場の はしまでの きょり
+    const out = [];
+    out.push({ ...cornerPt(X), corner: true });
+    out.push(...lay(X, c3, pick(PAT), L0s, side - L0s));
+    out.push({ ...cornerPt(c3), corner: true });
+    out.push(...lay(c3, c2, pick(PAT), L0s, side - L0s));
+    out.push({ ...cornerPt(c2), corner: true });
+    out.push(...lay(c2, c1, pick(PAT), L0s, side - L0s));
+    out.push({ ...cornerPt(c1), corner: true });
+    out.push(...lay(c1, X, ["W", "J"], L0s, side - W.lastD - W.lastLen / 2, W.walkLast));
+    const lo = lay(c1, X, ["J"], side - W.lastD - W.lastLen / 2, side - W.lastD + W.lastLen / 2)[0];
+    out.push({ ...lo, len: W.lastLen, lastOut: true });
+    return out;
+  };
+  // 吹き抜けの すみ と 向きを えらぶ：低い 段が 下からの 穴の 上に 来ない・スタートから さいしょの 踊り場まで 少し 歩く
   const cands = [];
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const atc = atOf(sx, sz);
@@ -389,14 +399,18 @@ export function buildRoom(r, entry, api, used = new Set()) {
     for (const ew of ["z", "x"]) {
       const route = wallRoute(sx, sz, ew);
       let bad = 0;
-      route.forEach((p, k) => { if (entry && (hOut * (k + 1)) / nOut < 3.2 && inSq(p, ecOf(entry), 1.3)) bad++; });
+      route.forEach((p, k) => { if (entry && (hOut * (k + 1)) / route.length < 3.2 && inSq(p, ecOf(entry), 1.3)) bad++; });
       const walk = Math.hypot(route[0].x - start.x, route[0].z - start.z);
-      cands.push({ sx, sz, ew, route, atc, sc: -bad * 10 - Math.abs(Math.min(Math.max(walk, 4), 10) - walk) + Math.random() * 2 });
+      // スタートから さいしょの 踊り場まで まっすぐ 歩いて、下からの 穴に 落ちない こと
+      if (entry) for (let t = 0.05; t < 1; t += 0.05) { const p = { x: start.x + (route[0].x - start.x) * t, z: start.z + (route[0].z - start.z) * t }; if (inSq(p, ecOf(entry), 0.5)) { bad++; break; } }
+      cands.push({ sx, sz, ew, route, atc, sc: -bad * 10 - Math.abs(Math.min(Math.max(walk, 5), 13) - walk) + Math.random() * 2 });
     }
   }
   cands.sort((p, q) => q.sc - p.sc);
   const pickC = cands[0];
+  const nOut = pickC.route.length;   // ＝ LAP_N
   const { sx, sz } = pickC, at = pickC.atc, ac = at.c;
+  const walkIn = { a: start, b: pickC.route[0] };   // 床を 歩く 区間（落とし穴を ここに あけない）
   // 吹き抜けの 中の 4つの 場所：すみ（C）・かべぞい（E1＝z の かべぞい・E2＝x の かべぞい）・内がわ（I：床に 2辺 せっする）
   const q = (ox, oz) => ({ x: ac.x + ox * T / 2, z: ac.z + oz * T / 2 });
   const QC = q(sx, sz), QE1 = q(-sx, sz), QI = q(-sx, -sz), QE2 = q(sx, -sz);
@@ -423,6 +437,25 @@ export function buildRoom(r, entry, api, used = new Set()) {
     const { x: px, z: pz, top } = st;
     let kind = pick(th.shapes);
     if ((st.atrium || st.corner) && kind === "spacebar") kind = "key";
+    if (st.walk) {   // 歩行区間：つながった 長い 足場（キーは 横に ずらっと。ほかは テーマの 物を すき間なく 2こ ならべる）
+      const alongX = st.along === "x";
+      if (kind === "key" || kind === "spacebar") {
+        const kw = 1.0, n = Math.floor(st.len / (kw + 0.06)), m = 2;
+        addKeys(st.x, st.z, top, alongX ? n : m, alongX ? m : n, kw, st);
+        continue;
+      }
+      const n = 2, seg = st.len / n;
+      for (let i = 0; i < n; i++) {
+        const o = (i - (n - 1) / 2) * seg;
+        const qx = st.x + (alongX ? o : 0), qz = st.z + (alongX ? 0 : o);
+        const sw = alongX ? seg : W.dep, sd = alongX ? W.dep : seg;
+        const g = makeShape(kind, sw, sd, th.id);
+        if (kind === "spoon") g.rotation.y = Math.atan2(-st.nx, -st.nz);
+        g.position.set(qx, top, qz); objGroup.add(g);
+        room.objs.push(api.add({ x0: qx - sw / 2, x1: qx + sw / 2, y0: top - 0.45, y1: top, z0: qz - sd / 2, z1: qz + sd / 2, g, mat: th.id, room: r, kind, baseY: top, oneWay: true }));
+      }
+      continue;
+    }
     // 大きさ：かべぞいは かべに そって 長い（len × dep）、角の 踊り場は ひろい 正方形、吹き抜けの 中は 1.6
     const alongX = st.along === "x";
     const lw = st.atrium ? 1.6 : st.corner ? W.land : kind === "spacebar" ? Math.max(st.len, 2.6) : st.len;
@@ -466,6 +499,7 @@ export function buildRoom(r, entry, api, used = new Set()) {
       px = rand(-half * 0.45, half * 0.45); pz = rand(cz - half * 0.5, cz + half * 0.55);
       const ec = entry ? { x: -half + T * (entry.i + 1), z: T * (entry.j + 1) } : null;
       ok = Math.hypot(px - start.x, pz - start.z) > w / 2 + 1.3
+        && ![0.2, 0.4, 0.6, 0.8].some((u) => Math.abs(walkIn.a.x + (walkIn.b.x - walkIn.a.x) * u - px) < w / 2 + 0.7 && Math.abs(walkIn.a.z + (walkIn.b.z - walkIn.a.z) * u - pz) < w / 2 + 0.7)   // 歩く 区間を ふさがない
         && !(ec && Math.abs(px - ec.x) < T + w / 2 + 0.2 && Math.abs(pz - ec.z) < T + w / 2 + 0.2)
         && !room.objs.some((o) => o.deco && Math.abs((o.x0 + o.x1) / 2 - px) < (o.x1 - o.x0) / 2 + w / 2 + 0.3 && Math.abs((o.z0 + o.z1) / 2 - pz) < (o.z1 - o.z0) / 2 + w / 2 + 0.3);
     }
@@ -481,10 +515,11 @@ export function buildRoom(r, entry, api, used = new Set()) {
   const holes = [];
   if (entry) for (const [di, dj] of [[0, 0], [1, 0], [0, 1], [1, 1]]) holes.push({ i: entry.i + di, j: entry.j + dj, atrium: true });
   if (r >= 1) {
+    const onWalk = (c) => { for (let u = 0; u <= 1; u += 0.05) { const px = walkIn.a.x + (walkIn.b.x - walkIn.a.x) * u, pz = walkIn.a.z + (walkIn.b.z - walkIn.a.z) * u; if (Math.abs(px - c.x) < T / 2 + 0.8 && Math.abs(pz - c.z) < T / 2 + 0.8) return true; } return false; };
     for (let k = 0; k < ASMR.traps; k++) {
       let t, tries = 0;
       do { t = { i: Math.floor(rand(0, N)), j: Math.floor(rand(1, N)) }; tries++; }
-      while (tries < 30 && (holes.some((h) => Math.abs(h.i - t.i) + Math.abs(h.j - t.j) < 2) || used.has(`${t.i},${t.j}`) || room.objs.some((o) => o.deco && o.x1 > tileC(t.i, t.j).x - T / 2 && o.x0 < tileC(t.i, t.j).x + T / 2 && o.z1 > tileC(t.i, t.j).z - T / 2 && o.z0 < tileC(t.i, t.j).z + T / 2) || (entry && Math.hypot(tileC(t.i, t.j).x - entry.start.x, tileC(t.i, t.j).z - entry.start.z) < 3)));
+      while (tries < 30 && (holes.some((h) => Math.abs(h.i - t.i) + Math.abs(h.j - t.j) < 2) || used.has(`${t.i},${t.j}`) || room.objs.some((o) => o.deco && o.x1 > tileC(t.i, t.j).x - T / 2 && o.x0 < tileC(t.i, t.j).x + T / 2 && o.z1 > tileC(t.i, t.j).z - T / 2 && o.z0 < tileC(t.i, t.j).z + T / 2) || (entry && Math.hypot(tileC(t.i, t.j).x - entry.start.x, tileC(t.i, t.j).z - entry.start.z) < 3) || onWalk(tileC(t.i, t.j))));
       holes.push({ ...t, trap: true });
     }
   }
