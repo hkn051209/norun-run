@@ -161,7 +161,7 @@ export const honeyMat = () => new THREE.MeshLambertMaterial({ color: 0xffb21f, e
 function roomMats(id) {
   const L = LOOK[id];
   const floorTex = L.tex.clone(); floorTex.needsUpdate = true; floorTex.repeat.set(1, 1);
-  const wallTex = (id === "neba" ? honeycombWall() : checkerTex(L.wall)).clone(); wallTex.needsUpdate = true; wallTex.repeat.set(ASMR.room / 2.6, ASMR.floorH / 2.6);
+  const wallTex = (id === "neba" ? honeycombWall() : checkerTex(L.wall)).clone(); wallTex.needsUpdate = true; wallTex.repeat.set(ASMR.room / ASMR.tile, ASMR.floorH / ASMR.tile);
   const floor = new THREE.MeshLambertMaterial({ map: floorTex, emissive: 0xffffff, emissiveIntensity: 0.1 });
   const side = new THREE.MeshLambertMaterial({ color: L.wall, emissive: L.wall, emissiveIntensity: 0.15 });
   const wall = new THREE.MeshLambertMaterial({ map: wallTex, color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.12, side: THREE.DoubleSide });
@@ -196,6 +196,7 @@ const starMats = STAR_COLORS.map((c) => new THREE.MeshLambertMaterial({ color: c
 const flagGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(-0.28, 0); sh.lineTo(0.28, 0); sh.lineTo(0, -0.5); sh.closePath(); return new THREE.ShapeGeometry(sh); })();
 const flagMats = [0xff9ec7, 0xffe17a, 0xb59cff, 0x8fd3ff, 0x9be39b, 0xffffff].map((c) => new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.35, side: THREE.DoubleSide }));
 const ropeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+for (const m of [...starMats, ...flagMats, ropeMat]) m.userData.shared = true;   // 部屋どうしで つかい回す（半とうめいに しない）
 /* かべに そった ガーランド（三角の はた）。a → b を たるませて つなぐ。nx,nz は 部屋の 内がわ */
 function garland(group, a, b, y, sag) {
   const n = Math.max(6, Math.round(Math.hypot(b.x - a.x, b.z - a.z) / 0.75));
@@ -356,7 +357,7 @@ export function buildRoom(r, entry, api, used = new Set()) {
   const ac = at.c;     // 吹き抜けの まんなか
   // 吹き抜けの 中の 4つの 場所：すみ（C）・かべぞい（E1・E2）・内がわ（I：床に 2辺 せっする）
   const sx = ac.x > 0 ? 1 : -1, sz = ac.z > cz ? 1 : -1;   // すみの 方向
-  const q = (ox, oz) => ({ x: ac.x + ox * 1.3, z: ac.z + oz * 1.3 });
+  const q = (ox, oz) => ({ x: ac.x + ox * T / 2, z: ac.z + oz * T / 2 });
   const QC = q(sx, sz), QE1 = q(-sx, sz), QI = q(-sx, -sz), QE2 = q(sx, -sz);
   const cycle = [QE1, QC, QE2, QI];                       // E1 → C → E2 → I（さいごは かならず I＝床に 出られる）
   let nIn = Math.max(2, Math.ceil((H - hOutMax) / rise));
@@ -367,33 +368,35 @@ export function buildRoom(r, entry, api, used = new Set()) {
   const first = inSeq[0];
   const outDir = first === QI ? (Math.abs(start.x - first.x) > Math.abs(start.z - first.z) ? [-sx, 0] : [0, -sz]) : first === QE1 ? [0, -sz] : [-sx, 0];
   const lastOut = { x: first.x + outDir[0] * 2.5, z: first.z + outDir[1] * 2.5 };
-  // らせん：スタート → lastOut を かべぞいの 円で つなぐ
-  let nOut = Math.max(2, Math.round(hOutMax / rise));
-  const a0 = Math.atan2(start.z - cz, start.x), a1 = Math.atan2(lastOut.z - cz, lastOut.x);
-  // まわる 向き：下から 上がってきた 吹き抜けの 真上を さけて、とおざかる 向き（真上の 低い 足場が 下の かいの 道を ふさがない ように）
-  const arcOf = (d) => {
-    let ar = ((d * (a1 - a0)) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-    while ((ar * ASMR.ring) / nOut < 2.2) ar += Math.PI * 2;
-    return ar;
+  // らせん：段の 数は 高さで きめる（部屋を 広げても 段は ふやさない）。lastOut から 逆に ならべて、
+  // さいしょの 足場までは 床を 歩く（第7弾：広さで 歩く きょりを かせぐ）
+  const nOut = Math.max(2, Math.round(hOutMax / rise));
+  const dA = ASMR.stepGap / ASMR.ring;
+  const aEnd = Math.atan2(lastOut.z - cz, lastOut.x);
+  const ecOf = (e) => ({ x: -half + T * (e.i + 1), z: T * (e.j + 1) });
+  const inSq = (p, c, m) => Math.abs(p.x - c.x) < T + m && Math.abs(p.z - c.z) < T + m;
+  const ringPt = (k, d) => { const a = aEnd - d * (nOut - k) * dA; return { x: Math.cos(a) * ASMR.ring, z: cz + Math.sin(a) * ASMR.ring, a }; };
+  // まわる 向き：低い 段が 下からの 吹き抜けの 真上や スタートの すぐ そばに 来ない 方
+  const score = (d) => {
+    let sc = 0;
+    for (let k = 1; k <= Math.min(4, nOut - 1); k++) {
+      const p = ringPt(k, d);
+      if (entry && inSq(p, ecOf(entry), 1.0)) sc -= 10;
+      sc += Math.min(4, Math.hypot(p.x - start.x, p.z - start.z)) * 0.1;
+    }
+    const p1 = ringPt(1, d);
+    return sc + Math.min(9, Math.hypot(p1.x - start.x, p1.z - start.z)) * 0.3;   // さいしょの 足場までは 床を すこし 歩く
   };
-  let dir = Math.random() < 0.5 ? 1 : -1;
-  if (entry) {
-    const ec = { x: -half + T * (entry.i + 1), z: T * (entry.j + 1) };
-    const firstD = (d) => { const a = a0 + d * arcOf(d) / nOut; return Math.hypot(Math.cos(a) * ASMR.ring - ec.x, cz + Math.sin(a) * ASMR.ring - ec.z); };
-    dir = firstD(1) >= firstD(-1) ? 1 : -1;
-  }
-  let arc = arcOf(dir);                                                       // 足場の 間が つまりすぎない ように
-  while ((arc * ASMR.ring) / nOut > 2.8) nOut++;                             // 間が ひらきすぎない ように 段を ふやす
+  const dir = score(1) === score(-1) ? (Math.random() < 0.5 ? 1 : -1) : score(1) > score(-1) ? 1 : -1;
   const hOut = hOutMax;
   const L0 = LOOK[th.id];
   const steps = [];
   for (let k = 1; k <= nOut; k++) {
-    const a = a0 + dir * arc * (k / nOut);
-    const p = k === nOut ? lastOut : { x: Math.cos(a) * ASMR.ring, z: cz + Math.sin(a) * ASMR.ring };
-    // 低い 足場が 下からの 吹き抜けの 真上に 来たら、部屋の 内がわへ よせる
-    if (entry && k < nOut && (hOut * k) / nOut < 2.6) {
-      const ec = { x: -half + T * (entry.i + 1), z: T * (entry.j + 1) };
-      for (let rr = ASMR.ring; rr > 1.2 && Math.abs(p.x - ec.x) < T + 1.1 && Math.abs(p.z - ec.z) < T + 1.1; rr -= 0.2) { p.x = Math.cos(a) * rr; p.z = cz + Math.sin(a) * rr; }
+    const rp = ringPt(k, dir), a = rp.a;
+    const p = k === nOut ? lastOut : { x: rp.x, z: rp.z };
+    // 吹き抜け（下からの・上への）の 真上に 来た 段は、部屋の 内がわへ よせる
+    if (k < nOut) for (const c of [entry && (hOut * k) / nOut < 3 ? ecOf(entry) : null, ac].filter(Boolean)) {
+      for (let rr = ASMR.ring; rr > 1.5 && inSq(p, c, 1.1); rr -= 0.2) { p.x = Math.cos(a) * rr; p.z = cz + Math.sin(a) * rr; }
     }
     steps.push({ x: p.x, z: p.z, top: y + (hOut * k) / nOut, a });
   }
@@ -439,6 +442,7 @@ export function buildRoom(r, entry, api, used = new Set()) {
   }
   // 上の フロアの スタート：吹き抜けの 内がわ（I）の となりの 床
   room.exit = { i: at.i, j: at.j, start: { x: QI.x - sx * 2.2, z: QI.z } };
+  room.atrium = { x0: ac.x - T, x1: ac.x + T, z0: ac.z - T, z1: ac.z + T };   // 上の かいへの 吹き抜け（第7弾：ここを のぼる 時は 上の かいを 半とうめいに）
 
   // 床に ころがっている 大きな 物（かざり。のっても いい）
   for (let i = 0; i < 3; i++) {
@@ -447,7 +451,7 @@ export function buildRoom(r, entry, api, used = new Set()) {
     // 下からの 穴の 上・スタートの すぐ そば・ほかの かざりとは かさならない 場所に おく
     let px = 0, pz = 7, ok = false;
     for (let t = 0; t < 40 && !ok; t++) {
-      px = rand(-2.5, 2.5); pz = rand(4.2, 9.5);
+      px = rand(-half * 0.45, half * 0.45); pz = rand(cz - half * 0.5, cz + half * 0.55);
       const ec = entry ? { x: -half + T * (entry.i + 1), z: T * (entry.j + 1) } : null;
       ok = Math.hypot(px - start.x, pz - start.z) > w / 2 + 1.3
         && !(ec && Math.abs(px - ec.x) < T + w / 2 + 0.2 && Math.abs(pz - ec.z) < T + w / 2 + 0.2)
@@ -521,13 +525,13 @@ export function buildRoom(r, entry, api, used = new Set()) {
   garland(wallGroup, { x: half - inset, z: inset }, { x: half - inset, z: R - inset }, gy, 0.7);
   garland(wallGroup, { x: half - inset, z: inset }, { x: -half + inset, z: inset }, gy, 0.7);
   for (let i = 0; i < 7; i++) {
-    const a = rand(0, Math.PI * 2), rr = rand(4.8, 5.9);
+    const a = rand(0, Math.PI * 2), rr = rand(1.5, ASMR.ring - 2.2);
     const st = new THREE.Mesh(starGeo, pick(starMats));
     st.position.set(Math.cos(a) * rr, y + rand(H - 4.5, H - 2.8), cz + Math.sin(a) * rr);
     st.rotation.z = rand(-0.4, 0.4); st.userData.spin = rand(0.4, 0.9) * (Math.random() < 0.5 ? 1 : -1); st.userData.y0 = st.position.y; st.userData.ph = rand(0, 6);
     wallGroup.add(st); room.twinkle.push(st);
   }
   // おくの かべの 看板（フロアの 番号と テーマ）
-  api.sign(`${r + 1}かい ${th.name}`, th.sub, 0, y + 5.6, R - 0.05, room);
+  api.sign(`${r + 1}かい ${th.name}`, th.sub, 0, y + H * 0.55, R - 0.05, room);
   return room;
 }

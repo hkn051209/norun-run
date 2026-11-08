@@ -561,6 +561,28 @@ function showRooms(k) {
     }
   }
 }
+/* 第7弾：上の かいへ 上がる 直前〜とちゅうは、上の かいの 床（ふち・あつみ も）と 足場を 半とうめいで 見せる。
+   かべは 見せない まま。上がりきったら（k が かわったら）showRooms で ふつうに もどる */
+function fadeGroup(g, op) {
+  g.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      if (m.userData.shared) continue;
+      if (m.userData.fo === undefined) { m.userData.fo = m.opacity; m.userData.ft = m.transparent; m.userData.fd = m.depthWrite; }
+      if (op >= 1) { m.opacity = m.userData.fo; m.transparent = m.userData.ft; m.depthWrite = m.userData.fd; }
+      else { m.transparent = true; m.opacity = Math.min(m.userData.fo, op); m.depthWrite = false; }
+    }
+  });
+}
+function setApproach(on) {
+  if (A.approach === on) return;
+  A.approach = on;
+  const up = A.rooms[A.k + 1];
+  if (!up) return;
+  up.objGroup.visible = on;
+  fadeGroup(up.objGroup, on ? 0.45 : 1);
+  for (const m of up.mats.list) m.opacity = on ? Math.min(m.userData.o0, 0.32) : Math.min(m.userData.o0, 0.09);
+}
 function clearRooms() {
   for (const room of A.rooms) disposeGroup(room.group);
   A.rooms.length = 0; A.k = -1;
@@ -644,7 +666,7 @@ function setGhost(on) {
   if (ch.outline) ch.outline.visible = !on;
 }
 export const towerState = () => (T ? {
-  best: T.best, falls: T.falls, cpN: T.cpN, speed: T.speed, mode: B.mode, char: nr.cur && nr.cur.id, theme: T.themeIdx, floor: A.k,
+  best: T.best, falls: T.falls, cpN: T.cpN, speed: T.speed, mode: B.mode, char: nr.cur && nr.cur.id, theme: T.themeIdx, floor: A.k, approach: !!A.approach,
   rooms: A.rooms.map((r) => ({ r: r.r, theme: r.theme.id, exit: r.exit, holes: r.holes })),
   me: { ...me, on: !!me.on, onMat: me.on && me.on.mat, onConv: !!(me.on && me.on.conv) },
   solids: solids.map((s) => ({ x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1, z0: s.z0, z1: s.z1, pad: !!s.pad, mov: !!s.mov, van: !!s.van, off: !!s.off, conv: !!s.conv, mat: s.mat, room: s.room, floor: !!s.floor, bound: !!s.bound, pillar: !!s.pillar, deco: !!s.deco, ghostWall: !!s.ghostWall })),
@@ -711,9 +733,14 @@ function loop() {
       const prevK = A.k;
       A.k = k;
       T.themeIdx = ASMR_THEMES.indexOf(A.rooms[k].theme);
+      A.approach = false; T.camFade = null;
+      for (const room of A.rooms) fadeGroup(room.objGroup, 1);
       if (prevK >= 0 && k < prevK) T.dropPending = true;     // 着地した 時に「○かいに おちた」を 知らせる
       else if (T.onTheme) T.onTheme(A.rooms[k].theme, k + 1);
     }
+    // 吹き抜けの 中で 上の かいの 床に 近づいたら、上の かいを 半とうめいで 見せる
+    const cur = A.rooms[A.k], at = cur && cur.atrium;
+    setApproach(!!at && me.x > at.x0 - 0.6 && me.x < at.x1 + 0.6 && me.z > at.z0 - 0.6 && me.z < at.z1 + 0.6 && me.y > cur.y + ASMR.floorH - 5);
   } else while (B.z < me.z + 80) addPart();
   for (let i = solids.length - 1; i >= 0; i--) {
     const s = solids[i];
@@ -829,7 +856,9 @@ function loop() {
     tvx = Math.sin(me.yaw) * P.slideV + -stick.x * 1.5;
     tvz = Math.cos(me.yaw) * P.slideV;
   }
-  const grip = me.on ? fp.grip : 6;     // 空中は すこし ふんばりが きかない
+  let grip = me.on ? fp.grip : 6;     // 空中は すこし ふんばりが きかない
+  // 第7弾：ASMR は スティックを はなしたら ブレーキ（ほぼ その場で 止まる。たおしている 間の すべり感は テーマの まま）
+  if (asmr && Math.hypot(stick.x, stick.y) < 0.08 && !(me.slideT > 0)) grip = me.on ? Math.max(fp.grip, ASMR.brake) : ASMR.brakeAir;
   me.vx = damp(me.vx, tvx, grip, dt);
   me.vz = damp(me.vz, tvz, grip, dt);
   // ころころ：ビーズの 上では 止まっていても 少し ころがされる
@@ -1051,7 +1080,8 @@ function loop() {
     cam.yawS += (cam.yaw - cam.yawS) * (1 - Math.exp(-14 * dt));
     cam.pitchS += (cam.pitch - cam.pitchS) * (1 - Math.exp(-14 * dt));
     const half = ASMR.room / 2 - 0.35, ry = A.rooms[A.k] ? A.rooms[A.k].y : 0;
-    const top = ry + ASMR.floorH - 0.4;
+    // 吹き抜けを 上がる とちゅうは 天井が ないので、カメラも 上の かいの 高さまで 上がって よい（上の かいの 床は 半とうめい）
+    const top = ry + ASMR.floorH * (A.approach ? 2 : 1) - 0.4;
     if (cam.fp) {
       // 一人称：目の 高さから、見ている 方向へ（キャラは かくす）
       const ey = me.y + ASMR_CAM.eye - me.neba * 0.9;
@@ -1066,17 +1096,25 @@ function loop() {
       // かべに じゃまされて 近く なった ぶん、上から 見下ろす（キャラが 画面を ふさがない ように）
       const hd = Math.hypot(cx - me.x, cz - me.z);
       const short = Math.max(0, d - hd) * 0.9 + Math.max(0, ASMR_CAM.minDist - hd) * 1.4;
-      let cyy = Math.min(top, T.camY + hgt + short);
+      let cyy = Math.min(top, T.camY + Math.min(hgt + short, A.approach ? 2.8 : 3.4));   // 上がりすぎない（真上から 見下ろす 角度に しない）
       // カメラが 足場（スプーンの さら・びん など）の 中に 入ったら、キャラの 方へ よせて 外に 出す
-      const inObj = (x, y, z) => solids.some((o) => !o.floor && !o.bound && !o.off && o.g && x > o.x0 - 0.25 && x < o.x1 + 0.25 && z > o.z0 - 0.25 && z < o.z1 + 0.25 && y > o.y0 - 0.9 && y < o.y1 + 0.35);
-      for (let k = 0; k < 6 && inObj(cx, cyy, cz); k++) {
-        cx = me.x + (cx - me.x) * 0.72; cz = me.z + (cz - me.z) * 0.72; cyy = Math.min(top, cyy + 0.35);
+      // ただし キャラから 1.8m より 近くには よせない（よせすぎると カメラが キャラの 中に 入る）。
+      // それでも 中なら、その 足場を 半とうめいに する（吹き抜けの 中など、足場に かこまれた 所）
+      const inObj = (x, y, z) => solids.find((o) => !o.floor && !o.bound && !o.off && o.g && o.g !== nr.root && x > o.x0 - 0.25 && x < o.x1 + 0.25 && z > o.z0 - 0.25 && z < o.z1 + 0.25 && y > o.y0 - 0.9 && y < o.y1 + 0.35);
+      for (let k = 0; k < 6 && inObj(cx, cyy, cz) && Math.hypot(cx - me.x, cz - me.z) > 2.4; k++) {
+        cx = me.x + (cx - me.x) * 0.8; cz = me.z + (cz - me.z) * 0.8; cyy = Math.min(top, cyy + 0.25);
+      }
+      const hitO = inObj(cx, cyy, cz), hitG = hitO ? hitO.g : null;
+      if (hitG !== T.camFade) {
+        if (T.camFade) fadeGroup(T.camFade, A.approach && A.rooms[A.k + 1] && T.camFade.parent === A.rooms[A.k + 1].objGroup ? 0.45 : 1);
+        if (hitG) fadeGroup(hitG, 0.3);
+        T.camFade = hitG;
       }
       camera.position.set(cx, cyy, cz);
       // かべで 近く なった 時と 横画面（たての 見える はばが せまい）は 見る 点を 手前・低めに して、キャラが 画面から 切れない ように
       const near = Math.max(0.25, Math.min(1, (hd - 0.6) / Math.max(0.6, d - 0.6)));
       const ah = ASMR_CAM.ahead * near * (wide ? 0.75 : 1);
-      camera.lookAt(me.x + Math.sin(cam.yawS) * ah, T.camY + ASMR_CAM.lookUp * (wide ? 0.6 : 1), me.z + Math.cos(cam.yawS) * ah);
+      camera.lookAt(me.x + Math.sin(cam.yawS) * ah, T.camY + (A.approach ? 0.9 : ASMR_CAM.lookUp * (wide ? 0.6 : 1)), me.z + Math.cos(cam.yawS) * ah);   // 吹き抜けでは 上の かいの 方を 見る
     }
   } else {
     camera.position.set(me.x * 0.45, T.camY + (wide ? 3.0 : 3.4), me.z - (wide ? 6.2 : 6.8));
