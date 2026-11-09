@@ -29,3 +29,37 @@
 - 名前・記録・持ち物は 端末内（localStorage）のみ。外部への送信はしない。
 - 保存キーは `norunmanabi.v1.p.<id>` で、プロフィールごとに完全に分かれている。
 - 保護者の暗証番号と合言葉は「きょうだいが まちがえて入らない」ための かんたんな鍵で、強い暗号ではありません。
+
+## 第11弾：本物の 素材（もちゃおさん 収集・2026-11-09）
+音は 元の 録音から「1回 ぶん」を 短く 切りだし（頭の 無音なし・最後は フェード）、音量を そろえて mp3 に した。写真は まんなかを 正方形に 切りぬいて 512px に した。
+
+| ファイル | 元の 素材 | 出典 | ライセンス |
+|---|---|---|---|
+| assets/audio/step_puni_r1・r2 | 8 Wet Squish & Slurp Impacts（splat01） | OpenGameArt / qubodup | CC0 |
+| assets/audio/land_puni_r1 | 同（splat03） | OpenGameArt / qubodup | CC0 |
+| assets/audio/step_neba_r1 | 同（splat02） | OpenGameArt / qubodup | CC0 |
+| assets/audio/step_shari_r1〜r3 | Crunchy Snow Walking Sound Effect | Wikimedia Commons / Free Sounds Library | **CC BY 3.0（クレジット要。保護者画面に 表示）** |
+| assets/audio/land_shari_r1・r2 | Walking through snow | Wikimedia Commons / Lukas Beck | **CC BY 4.0（クレジット要。保護者画面に 表示）** |
+| assets/audio/step_zaku_r1〜r4 | 7 Eating Crunches（crunch1・crunch2） | OpenGameArt | CC0 |
+| assets/audio/step_zaku_r5 | Apple Bite | OpenGameArt | CC0 |
+| assets/audio/land_zaku_r1・r2 | Crunching munching grinding | Wikimedia Commons / stephan | パブリックドメイン |
+| assets/audio/land_zaku_r3 | Crunch (Gravity Sound) | Wikimedia Commons / Gravity Sound | **CC BY 4.0（クレジット要。保護者画面に 表示）** |
+| assets/audio/step_slime_r1・r2・land_slime_r1 | 40 CC0 Water Splash & Slime SFX（slime01〜03） | OpenGameArt | CC0 |
+| assets/audio/step_pari_r1・r2 | 5 break, crunch impacts（01・02） | OpenGameArt / qubodup | CC0 |
+| assets/audio/land_pari_r1 | 75 CC0 breaking / falling / hit sfx（break01） | OpenGameArt | CC0 |
+| assets/audio/step_koro_r1〜r3 | 2 dice roll (29 throws) | OpenGameArt | CC0 |
+| assets/audio/land_koro_r1 | Wooden dice on wodden table roll | OpenGameArt | CC0 |
+| assets/audio/land_choco_r1 | 75 CC0 breaking / falling / hit sfx（break02） | OpenGameArt | CC0 |
+| assets/audio/land_choco_r2 | 5 break, crunch impacts（04） | OpenGameArt / qubodup | CC0 |
+| assets/audio/step_push_r1 | bubbles 'pop' | OpenGameArt | CC0 |
+| assets/audio/step_push_r2・r3 | 3 Pop Sounds | OpenGameArt | CC0 |
+| assets/tex/key-floor | Keyboard Close Up | Wikimedia Commons | CC0 |
+| assets/tex/puni-floor | Karl Gummies top view | Wikimedia Commons | CC0 |
+| assets/tex/shari-floor・pool-ice | Snow 01（diffuse 1k） | Poly Haven | CC0 |
+| assets/tex/zaku-floor・obj-cookie | Choc-Chip-Cookie | Wikimedia Commons | パブリックドメイン |
+| assets/tex/fuwa-floor・pool-cotton | Cotton candy in pastel pink, Shimla India | Wikimedia Commons | CC0 |
+| assets/tex/pari-floor・obj-senbei | Senbei 005 | Wikimedia Commons | CC0 |
+| assets/tex/koro-floor | Asobono ball pool | Wikimedia Commons | CC0 |
+| assets/tex/choco-floor・pool-choco・obj-chocoinner | 3-Musketeers-Broken | Wikimedia Commons | パブリックドメイン |
+
+つかわなかった もの：White Marshmallows・Dipper stick and honey in a jar（CC BY 2.0。写真が 物の 全体で、床や 足場に はれる 部分が 少ないため）、Cotton Jersey（布の 写真で わたあめに 見えにくい ため）。
