@@ -317,7 +317,7 @@ async function startPlay(mode) {
   $("scPlayRun").classList.toggle("tower", mode !== "run");   // アスレ・ASMR は バーチャルパッド＋ジャンプ
   $("scPlayRun").classList.toggle("asmr", mode === "asmr");    // ASMR は 視点の ボタンも
   $("pView").classList.remove("on");
-  $("pView").querySelector("span").textContent = "いちにんしょう";
+  $("pView").querySelector("span").textContent = "おいかけ";
   $("pSkill").classList.add("hidden");
   resetStick();
   show("scPlayRun");
@@ -452,12 +452,15 @@ $("pQuit").onclick = () => {
   } else finishPlay(stopTower());
 };
 /* ASMR：視点の 切りかえ（寄った 視点 ⇔ 一人称）・正面を むく */
+/* 視点は 3つを じゅんばんに：よった してん → おいかけ → いちにんしょう。ボタンには「つぎの 視点」を 出す */
+const VIEW_NAME = { near: "よった してん", chase: "おいかけ", fp: "いちにんしょう" };
+const VIEW_NEXT = { near: "chase", chase: "fp", fp: "near" };
 function viewToggle() {
   const v = towerToggleView();
   if (!v) return;
-  $("pView").classList.toggle("on", v === "fp");
-  $("pView").querySelector("span").textContent = v === "fp" ? "よった してん" : "いちにんしょう";
-  pMsg(v === "fp" ? "👁 いちにんしょう" : "👁 よった してん", 800);
+  $("pView").classList.toggle("on", v !== "near");
+  $("pView").querySelector("span").textContent = VIEW_NAME[VIEW_NEXT[v]];
+  pMsg(`👁 ${VIEW_NAME[v]}`, 800);
   sfx.tap();
 }
 function faceFront() { towerFaceFront(); sfx.tap(); }

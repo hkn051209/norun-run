@@ -425,12 +425,15 @@ export function buildRoom(r, entry, api, used = new Set()) {
   const steps = pickC.route.map((p, k) => ({ ...p, top: y + (hOut * (k + 1)) / nOut }));
   inSeq.forEach((p, k) => steps.push({ x: p.x, z: p.z, top: y + hOut + hIn * (k + 1), atrium: true, last: k === nIn - 1 }));
 
-  const addKeys = (px, pz, top, cols, rows, kw, st) => {   // キーの はたけ：1こずつ ふむと しずむ
+  // キーの はたけ：1こずつ ふむと しずむ。はば sw × sd に ぴったり おさまる ように キーの 大きさを きめる（第10弾：すき間が ひろがらない）
+  const addKeys = (px, pz, top, sw, sd, kw0, st) => {
+    const G = 0.06, cols = Math.max(1, Math.round((sw + G) / (kw0 + G))), rows = Math.max(1, Math.round((sd + G) / (kw0 + G)));
+    const kx = (sw - G * (cols - 1)) / cols, kz = (sd - G * (rows - 1)) / rows;
     for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
-      const x = px + (i - (cols - 1) / 2) * (kw + 0.06), z = pz + (j - (rows - 1) / 2) * (kw + 0.06);
-      const g = makeShape("key", kw, kw, th.id);
+      const x = px + (i - (cols - 1) / 2) * (kx + G), z = pz + (j - (rows - 1) / 2) * (kz + G);
+      const g = makeShape("key", kx, kz, th.id);
       g.position.set(x, top, z); objGroup.add(g);
-      room.objs.push(api.add({ x0: x - kw / 2, x1: x + kw / 2, y0: top - 0.45, y1: top, z0: z - kw / 2, z1: z + kw / 2, g, mat: th.id, room: r, kind: "key", baseY: top, oneWay: true, last: st.last }));
+      room.objs.push(api.add({ x0: x - kx / 2, x1: x + kx / 2, y0: top - 0.45, y1: top, z0: z - kz / 2, z1: z + kz / 2, g, mat: th.id, room: r, kind: "key", baseY: top, oneWay: true, last: st.last }));
     }
   };
   for (const st of steps) {
@@ -440,8 +443,7 @@ export function buildRoom(r, entry, api, used = new Set()) {
     if (st.walk) {   // 歩行区間：つながった 長い 足場（キーは 横に ずらっと。ほかは テーマの 物を すき間なく 2こ ならべる）
       const alongX = st.along === "x";
       if (kind === "key" || kind === "spacebar") {
-        const kw = 1.0, n = Math.floor(st.len / (kw + 0.06)), m = 2;
-        addKeys(st.x, st.z, top, alongX ? n : m, alongX ? m : n, kw, st);
+        addKeys(st.x, st.z, top, alongX ? st.len : W.dep, alongX ? W.dep : st.len, 1.0, st);
         continue;
       }
       const n = 2, seg = st.len / n;
@@ -462,9 +464,7 @@ export function buildRoom(r, entry, api, used = new Set()) {
     const dw = st.atrium ? 1.6 : st.corner ? W.land : kind === "spacebar" ? 1.2 : W.dep;
     const sw = st.atrium || st.corner || alongX ? lw : dw, sd = st.atrium || st.corner || alongX ? dw : lw;   // ワールドの x はば・z はば
     if (kind === "key") {
-      const kw = st.atrium ? 0.76 : 1.0;
-      const cols = Math.max(1, Math.round(sw / (kw + 0.06))), rows = Math.max(1, Math.round(sd / (kw + 0.06)));
-      addKeys(px, pz, top, cols, rows, kw, st);
+      addKeys(px, pz, top, sw, sd, st.atrium ? 0.76 : 1.0, st);
       continue;
     }
     const g = makeShape(kind, sw, sd, th.id);

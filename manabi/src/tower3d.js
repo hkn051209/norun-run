@@ -458,21 +458,24 @@ export function setTowerPins(pins) { pinList = pins; if (nr.cur) applyLook(nr.cu
 /* ---------- 状態 ---------- */
 let T = null;
 const me = { x: 0, y: 0, z: 0, vx: 0, vz: 0, vy: 0, yaw: 0, on: null, squash: 0, ph: 0, star: 0, starV: 0, stun: 0, wait: 0, blocked: false, jumps: 0, slideT: 0, phaseT: 0, steps: 0, sink: 0, neba: 0, jumpBuf: 0, airT: 0 };
-const ME0 = { vx: 0, vz: 0, vy: 0, yaw: 0, on: null, stun: 0, blocked: false, jumps: 0, slideT: 0, phaseT: 0, steps: 0, sink: 0, neba: 0, jumpBuf: 0, airT: 0, lastOn: null };
+const ME0 = { vx: 0, vz: 0, vy: 0, yaw: 0, on: null, stun: 0, blocked: false, jumps: 0, slideT: 0, phaseT: 0, steps: 0, sink: 0, neba: 0, jumpBuf: 0, airT: 0, lastOn: null, hopFrom: null };
 /* ASMR の カメラ：キャラに 寄った 視点。スワイプで まわす（yaw＝左右、pitch＝上下） */
-const cam = { yaw: 0, pitch: 0.15, yawS: 0, pitchS: 0.15, fp: false, idle: 99 };
+const cam = { yaw: 0, pitch: 0.15, yawS: 0, pitchS: 0.15, fp: false, mode: "near", idle: 99 };   // mode：near（寄った）/ chase（追い）/ fp（一人称）
 export function towerLook(dx, dy) {
   if (!T || B.mode !== "asmr") return;
   cam.yaw -= dx * ASMR_CAM.swipe;      // 指を 右へ → 右を むく（実機の 感想で 向きを 逆に した）
   cam.pitch = Math.max(ASMR_CAM.pitchMin, Math.min(ASMR_CAM.pitchMax, cam.pitch + dy * ASMR_CAM.swipe));
   cam.idle = 0;
 }
-/* 視点の 切りかえ：寄った 視点 ⇔ 一人称。いまの 視点を かえす */
+/* 視点の 切りかえ：寄った 視点 → 追い視点 → 一人称 → … いまの 視点を かえす */
+const VIEWS = ["near", "chase", "fp"];
 export function towerToggleView() {
   if (!T || B.mode !== "asmr") return null;
-  cam.fp = !cam.fp;
+  cam.mode = VIEWS[(VIEWS.indexOf(cam.mode) + 1) % VIEWS.length];
+  cam.fp = cam.mode === "fp";
   cam.pitch = cam.fp ? 0 : 0.15;
-  return cam.fp ? "fp" : "near";
+  if (cam.mode === "chase") cam.yaw = cam.yawS + Math.atan2(Math.sin(me.yaw - cam.yawS), Math.cos(me.yaw - cam.yawS));
+  return cam.mode;
 }
 /* 正面を むく：つぎに のぼる 足場の 方へ、キャラと カメラを 向ける（なければ キャラの 向き） */
 export function towerFaceFront() {
@@ -605,7 +608,7 @@ export function startTower(opts) {
   if (asmr) ensureRooms(0); else rest(9);
   T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed, themeIdx: -1, floor: -1 };
   Object.assign(me, ME0, { x: 0, y: 0, z: asmr ? 4.2 : -2, wait: 0.9 });
-  Object.assign(cam, { yaw: 0, pitch: 0.15, yawS: 0, pitchS: 0.15, idle: 99 });
+  Object.assign(cam, { yaw: 0, pitch: 0.15, yawS: 0, pitchS: 0.15, idle: 99, fp: false, mode: "near" });
   farTower.visible = !asmr;
   for (const c of clouds) c.visible = !asmr;
   scene.fog.near = asmr ? 30 : 40; scene.fog.far = asmr ? 70 : 85;
@@ -634,13 +637,29 @@ export function towerStick(x, y) {
 const floorProps = () => (me.on && me.on.mat ? { ...NORMAL, ...themeOf(me.on.mat) } : NORMAL);
 /* ASMR：いまいる フロアの テーマ（ふわふわの 重力などは 部屋ぜんたいに かかる） */
 const roomTheme = () => (B.mode === "asmr" && A.rooms[A.k] ? A.rooms[A.k].theme : null);
+/* ASMR：天井（上の フロアの 床）に 頭を ぶつけない 速さに おさえる（吹き抜けの 中は 天井が ないので そのまま）。
+   第10弾：ぷにぷにで 天井に 頭を ぶつけて はね方が みだれ、上れなく なるのを ふせぐ */
+function capCeil(v) {
+  if (B.mode !== "asmr") return v;
+  const room = A.rooms[A.k], at = room && room.atrium;
+  if (!room) return v;
+  if (at && me.x > at.x0 - 0.2 && me.x < at.x1 + 0.2 && me.z > at.z0 - 0.2 && me.z < at.z1 + 0.2) return v;
+  const g = P.gravity * ((roomTheme() && roomTheme().grav) || 1);
+  const room2 = me.y - room.y;
+  const free = ASMR.floorH - 0.5 - room2 - bodyH() - 0.08;     // 頭の 上の あき
+  const vmax = Math.sqrt(2 * g * Math.max(0.35, free));
+  return Math.min(v, vmax);
+}
+/* はねる 床の 上にいる／はねた ばかり なら、その 床の テーマ（はねている 間も 同じ 大ジャンプが 出る ように） */
+const jumpProps = () => (me.on ? floorProps() : me.hopFrom && me.hopFrom.mat ? { ...NORMAL, ...themeOf(me.hopFrom.mat) } : NORMAL);
 export function towerJump() {
   if (!T || me.wait > 0) return false;
   if (me.slideT > 0 && !headroom(1.0)) return false;   // トンネルの 中では 立てない
-  const fp = floorProps();
-  if (me.on || me.airT < 0.1) { me.vy = P.jumpV * fp.jump * (1 - me.neba * 0.15); me.jumps = 1; }   // 足場を はなれた すぐ後も とべる（はちみつに しずむと 少し ひくく：第8弾で 0.3→0.15。しずんでも 次の 段に とどく ように）
+  const fp = jumpProps();
+  // はねている とちゅう（上がっている 間）に おしても、着地で おしても、同じ 大ジャンプ（第10弾：はね方を 一定に）
+  if (me.on || me.airT < 0.1 || (me.hopFrom && me.vy > 0)) { me.vy = capCeil(P.jumpV * fp.jump * (1 - me.neba * 0.15)); me.jumps = 1; me.hopFrom = null; }   // 足場を はなれた すぐ後も とべる（はちみつに しずむと 少し ひくく：第8弾で 0.3→0.15。しずんでも 次の 段に とどく ように）
   else if (skills().doubleJump && me.jumps < 2) { me.vy = P.jumpV * 0.92; me.jumps = 2; }   // くらげ：空中で もう1回
-  else { me.jumpBuf = 0.22; return false; }      // 着地の すこし前に おしたら、着地で とぶ（はねる 床で 大ジャンプ）
+  else { me.jumpBuf = 0.35; return false; }      // 着地の すこし前に おしたら、着地で とぶ（はねる 床で 大ジャンプ）
   me.slideT = 0;
   me.on = null;
   me.airT = 1;
@@ -914,12 +933,15 @@ function loop() {
       if (lp.wobble) sup.wob = 1;
     }
     if (sup.pad) { me.vy = P.padV; me.on = null; me.squash = 0.3; if (T.onPad) T.onPad(); }
-    else if (wasAir && lp.bounce && impact > 2.5) {
-      // ぷにぷに・スライム：トランポリンの ように はねる。着地の 前に ジャンプを おしていたら 大ジャンプ
-      let v = Math.max(lp.bounce, impact * lp.keep);
-      if (me.jumpBuf > 0) { v = Math.max(v * 1.12, P.jumpV * lp.jump); me.jumpBuf = 0; if (T.onBigBounce) T.onBigBounce(); }
-      me.vy = Math.min(16, v); me.on = null;
-    } else if (me.jumpBuf > 0) { me.jumpBuf = 0; me.on = sup; towerJump(); }
+    else if (wasAir && lp.bounce && me.jumpBuf > 0) {
+      // ぷにぷに・スライム：着地の 前に ジャンプを おしていたら、いつも 同じ 高さの 大ジャンプ
+      me.jumpBuf = 0; me.vy = capCeil(P.jumpV * lp.jump); me.on = null; me.hopFrom = null;
+      if (T.onBigBounce) T.onBigBounce();
+    } else if (wasAir && lp.bounce && !me.hopFrom && fall > 0.6) {
+      // ジャンプや 落ちて 着地した 時だけ、いつも 同じ 高さで 1回 ぽよんと はねる（はねた あとの 着地では はねない → 止まる）
+      me.vy = capCeil(Math.sqrt(2 * P.gravity * lp.hopH)); me.on = null; me.hopFrom = sup;
+    } else if (me.jumpBuf > 0) { me.jumpBuf = 0; me.on = sup; me.hopFrom = null; towerJump(); }
+    else me.hopFrom = null;
   } else { me.on = null; me.airT += dt; }
   me.y = ny;
   if (asmr && T.dropPending && me.on) {
@@ -1073,7 +1095,10 @@ function loop() {
   if (asmr) {
     // スワイプして しばらく さわらないと、歩いている 方向へ カメラが ゆっくり まわりこむ（へんな 角度の まま に ならない）
     cam.idle += dt;
-    if (cam.idle > ASMR_CAM.follow && going && me.on && !cam.fp) {
+    if (cam.mode === "chase") {
+      // 追い視点：キャラの 向きに いつも ついていく（スワイプで 見まわしても、歩きだすと うしろへ もどる）
+      if (going || cam.idle > 0.8) { const dy = Math.atan2(Math.sin(me.yaw - cam.yaw), Math.cos(me.yaw - cam.yaw)); cam.yaw += dy * (1 - Math.exp(-ASMR_CAM.chase.turn * dt)); }
+    } else if (cam.idle > ASMR_CAM.follow && going && me.on && !cam.fp) {
       const dy = Math.atan2(Math.sin(me.yaw - cam.yaw), Math.cos(me.yaw - cam.yaw));
       if (Math.abs(dy) < 2.4) cam.yaw += dy * (1 - Math.exp(-1.2 * dt));   // うしろ 向きに 歩く 時は まわらない
     }
@@ -1089,8 +1114,12 @@ function loop() {
       camera.lookAt(me.x + Math.sin(cam.yawS) * 5 * Math.cos(cam.pitchS), ey + Math.sin(-cam.pitchS) * 5 + 0.2, me.z + Math.cos(cam.yawS) * 5 * Math.cos(cam.pitchS));
     } else {
       // 寄った 視点（うしろ 少し上）。部屋の かべの 外には 出ない
-      const dist = ASMR_CAM.dist * (wide ? 1 : 1.2);      // たて画面は はばが せまいので 少しだけ はなれる
-      const d = dist * Math.cos(cam.pitchS), hgt = ASMR_CAM.height + dist * Math.sin(cam.pitchS);
+      const chase = cam.mode === "chase";
+      const dist = (chase ? ASMR_CAM.chase.dist : ASMR_CAM.dist) * (wide ? 1 : 1.2);      // たて画面は はばが せまいので 少しだけ はなれる
+      const d = dist * Math.cos(cam.pitchS);
+      // 見上げる 時（pitch が マイナス）は カメラを 低く して、見る 点を 上げる（足もとより 下には 行かない）
+      const hgt = Math.max(1.1, (chase ? ASMR_CAM.chase.height : ASMR_CAM.height) + dist * Math.sin(cam.pitchS));
+      const upLook = Math.max(0, -cam.pitchS) / -ASMR_CAM.pitchMin * ASMR_CAM.lookUpMax;
       let cx = me.x - Math.sin(cam.yawS) * d, cz = me.z - Math.cos(cam.yawS) * d;
       cx = Math.max(-half, Math.min(half, cx)); cz = Math.max(0.35, Math.min(ASMR.room - 0.35, cz));
       // かべに じゃまされて 近く なった ぶん、上から 見下ろす（キャラが 画面を ふさがない ように）
@@ -1114,7 +1143,7 @@ function loop() {
       // かべで 近く なった 時と 横画面（たての 見える はばが せまい）は 見る 点を 手前・低めに して、キャラが 画面から 切れない ように
       const near = Math.max(0.25, Math.min(1, (hd - 0.6) / Math.max(0.6, d - 0.6)));
       const ah = ASMR_CAM.ahead * near * (wide ? 0.75 : 1);
-      camera.lookAt(me.x + Math.sin(cam.yawS) * ah, T.camY + (A.approach ? 0.9 : ASMR_CAM.lookUp * (wide ? 0.6 : 1)), me.z + Math.cos(cam.yawS) * ah);   // 吹き抜けでは 上の かいの 方を 見る
+      camera.lookAt(me.x + Math.sin(cam.yawS) * ah, T.camY + (A.approach ? 0.9 : ASMR_CAM.lookUp * (wide ? 0.6 : 1)) + upLook, me.z + Math.cos(cam.yawS) * ah);   // 吹き抜けでは 上の かいの 方を 見る
     }
   } else {
     camera.position.set(me.x * 0.45, T.camY + (wide ? 3.0 : 3.4), me.z - (wide ? 6.2 : 6.8));

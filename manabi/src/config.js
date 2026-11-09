@@ -169,7 +169,8 @@ export const PAN_SLIDE = { rotX: Math.PI / 2, y: 0.33 };
    - 落ちたら ほんとうに 落ちる。とちゅうの 足場や 下の フロアの 床に 着地したら そこから つづき。1かいの 床まで 落ちたら さいしょから
    テーマの こうもく：
      walk：歩く速さの 倍率 / jump：ジャンプの 倍率 / grip：止まりやすさ（小さいほど つるつる。ふつう 16）
-     bounce：着地で はねる いちばん低い 速さ（0＝はねない）/ keep：着地の いきおいを どれだけ はねかえすか
+     bounce：はねる 床（1＝はねる）/ hopH：ジャンプや 落ちて 着地した 時に 1回 はねる 高さ（いつも 同じ。第10弾）
+       ※ はねる 床の 大ジャンプは、着地の 少し前・はねて 上がっている 間の どちらで おしても 同じ 高さ（jump）
      grav：重力の 倍率（ふわふわは 小さい）/ sinkRate：立っていると しずむ 速さ（ねばねば）
      breakT：のってから われるまで（秒。ぱりぱり）/ press：ふむと しずむ 深さ（キーボード）/ wobble：足場が ゆれる（スライム）
      drift：すべる床で 少し ころがされる（ころころ）/ stepEvery：足音の 間かく（歩数）/ shapes：足場の 形 */
@@ -177,12 +178,12 @@ export const ASMR_THEMES = [
   { id: "key",   name: "キーボード", sub: "カチャカチャ",   walk: 1.0,  jump: 1.0,  grip: 16, press: 0.16, stepEvery: 1, shapes: ["key", "key", "spacebar"],
     // 踏むたびに ランダムで えらぶ（実録版と 生成版を まぜる）
     sounds: { step: ["step_key", "step_key_alt", "step_key_gen"], land: ["land_key", "land_key_gen"] } },
-  { id: "puni",  name: "ぷにぷに",   sub: "グミ",           walk: 1.0,  jump: 1.45, grip: 14, bounce: 6.0, keep: 0.82, stepEvery: 1, shapes: ["gumdrop", "button"] },
+  { id: "puni",  name: "ぷにぷに",   sub: "グミ",           walk: 1.0,  jump: 1.45, grip: 14, bounce: 1, hopH: 0.55, stepEvery: 1, shapes: ["gumdrop", "button"] },
   { id: "shari", name: "しゃりしゃり", sub: "かきごおり",   walk: 1.15, jump: 1.0,  grip: 0.9, stepEvery: 1, shapes: ["icecube", "spoon"],
     sounds: { step: ["step_shari", "step_shari_gen"], land: ["land_shari", "land_shari_gen"] } },   // ElevenLabs 版は 上書きでも _gen で まぜても よい
   { id: "neba",  name: "ねばねば",   sub: "はちみつ",       walk: 0.35, jump: 0.72, grip: 45, sinkRate: 0.35, sinkMax: 0.5, stepEvery: 2, shapes: ["jar", "spoon"] },
   { id: "zaku",  name: "ざくざく",   sub: "クッキー",       walk: 0.95, jump: 1.0,  grip: 18, crumbs: true, stepEvery: 1, shapes: ["cookie", "button"] },
-  { id: "slime", name: "スライム",   sub: "ぷるんぷるん",   walk: 0.9,  jump: 1.7,  grip: 10, bounce: 8.0, keep: 0.9, wobble: true, stepEvery: 1, shapes: ["blob", "gumdrop"] },
+  { id: "slime", name: "スライム",   sub: "ぷるんぷるん",   walk: 0.9,  jump: 1.7,  grip: 10, bounce: 1, hopH: 0.75, wobble: true, stepEvery: 1, shapes: ["blob", "gumdrop"] },
   { id: "fuwa",  name: "ふわふわ",   sub: "わたあめ",       walk: 0.9,  jump: 1.1,  grip: 8,  grav: 0.4, stepEvery: 2, shapes: ["cotton"] },
   { id: "pari",  name: "ぱりぱり",   sub: "おせんべい",     walk: 1.0,  jump: 1.0,  grip: 16, breakT: 0.6, stepEvery: 1, shapes: ["senbei"] },
   { id: "koro",  name: "ころころ",   sub: "ビーズ",         walk: 1.2,  jump: 1.0,  grip: 0.5, drift: 1.2, stepEvery: 1, shapes: ["bead", "button"] },
@@ -200,7 +201,9 @@ export const SHAPE_SOUND = {
 /* ASMRの カメラ（キャラに 寄った 視点。スワイプで まわす） */
 export const ASMR_CAM = {
   dist: 3.1, height: 2.1, lookUp: 0.55, ahead: 3.0,
-  pitchMin: -0.15, pitchMax: 0.45,   // 上下に まわせる はんい（へんな 角度に ならない ように せまく）
+  pitchMin: -0.6, pitchMax: 0.45,    // 上下に まわせる はんい。マイナス＝下から 見上げる（第10弾：登る 先の 足場も 見られる ように 広げた）
+  lookUpMax: 3.6,                     // いちばん 見上げた 時に、見る 点を どれだけ 上げるか（m）
+  chase: { dist: 4.6, height: 2.6, turn: 3.0 },   // 追い視点（第10弾）：キャラの 真うしろ・少し はなれて、キャラの 向きに ついていく
   swipe: 0.008,                       // スワイプの 強さ
   minDist: 2.0,                       // かべぎわで これより 近づく 時は 上へ にげる（キャラが 画面を ふさがない ように）
   follow: 2.2,                        // スワイプして から この 秒数 たつと、歩く 方向へ ゆっくり カメラが まわりこむ
@@ -213,14 +216,14 @@ export const ASMR = {
   // 第8弾：かべぞい 周回の 道（参考：かべに そって のぼり、角の 踊り場で 向きを かえる タワー）
   wall: {
     inset: 1.15,     // かべから 足場の まんなかまで（m）。かべと 足場の あいだに 少し すき間（ふみはずすと 落ちる）
-    len: 2.3,        // かべぞいの ジャンプの 足場の 長さ（かべに そって）
-    walk: 4.6,       // 歩行区間（つながった 長い 足場）の 長さ（第9弾）
-    walkLast: 3.6,   // さいごの 面（吹き抜けの 手前）の 歩行区間の 長さ
+    len: 2.5,        // かべぞいの ジャンプの 足場の 長さ（かべに そって）。足場の すき間は 約0.5m
+    walk: 4.8,       // 歩行区間（つながった 長い 足場）の 長さ（第9弾）
+    walkLast: 4.2,   // さいごの 面（吹き抜けの 手前）の 歩行区間の 長さ
     dep: 1.7,        // 足場の おくゆき（かべから 部屋の 内がわへ）
     // かど と かど の あいだ：ジャンプ → 歩行区間 → ジャンプ。さいごの 面は 歩行区間 → ジャンプ → さいごの 段
     land: 2.8,       // 角の 踊り場（正方形）の 1辺
     landInset: 1.5,  // かべから 踊り場の まんなかまで
-    lastD: 5.6,      // さいごの 段（吹き抜けの となり）の、吹き抜けの すみ からの きょり
+    lastD: 4.55,     // さいごの 段（吹き抜けの となり）の まんなかの、かどの 線（かべから inset）から の きょり。第10弾：5.6 だと 吹き抜けの 1段目まで 1.2〜1.4m あいて とどかない ことが あった → 4.55（すき間 約0.35m）
     lastLen: 1.6,    // さいごの 段の 長さ
   },
   pariBack: 5,       // われた せんべいが もどるまで（秒）
