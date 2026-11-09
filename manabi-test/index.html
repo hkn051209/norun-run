@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f3ecff">
+<title>のるん まなび【テスト版】</title>
+<style>
+/* 丸い 文字：M PLUS Rounded 1c（OFL・つかう 文字だけの サブセット。ない 文字は 端末の 丸ゴシックへ） */
+@font-face{font-family:"NorunMaru";src:url("/norun-run/manabi/assets/fonts/mplus-rounded-1c-Medium.woff") format("woff");font-weight:100 600;font-display:swap}
+@font-face{font-family:"NorunMaru";src:url("/norun-run/manabi/assets/fonts/mplus-rounded-1c-ExtraBold.woff") format("woff");font-weight:700 900;font-display:swap}
+:root{--ink:#3b2a5a;--sub:#7d6b9c;--pink:#ff7eb6;--pinkd:#d6558f;--sky:#5bc0eb;--skyd:#2e8fbf;--ok:#3cc98a;--okd:#249a66;--ng:#ff6b6b;--card:#ffffff;--soft:#f6f2fc;--line:#e6ddf3}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"NorunMaru","Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans-serif;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+body{background:linear-gradient(160deg,#fdf0ff 0%,#eaf4ff 55%,#fff7e8 100%)}
+button{font-family:inherit;cursor:pointer;color:inherit}
+.hidden{display:none !important}
+input,textarea,select{font-family:inherit;font-size:18px;-webkit-user-select:text;user-select:text}
+
+/* 画面 */
+.screen{position:fixed;inset:0;overflow:auto;padding:max(14px,env(safe-area-inset-top)) 16px 20px;touch-action:pan-y;z-index:2}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:clamp(34px,6vw,52px);margin:10px 0 4px;color:var(--pink);text-align:center;letter-spacing:.04em}
+h2{font-size:26px;margin:8px 0 12px}
+h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
+.note{color:var(--sub);font-size:16px;margin:6px 0}
+.center{text-align:center}
+.card{background:var(--card);border-radius:24px;padding:16px 18px;box-shadow:0 6px 0 var(--line);margin:12px 0}
+.big{display:block;width:100%;margin:10px 0;padding:16px;border:0;border-radius:20px;font-size:22px;font-weight:900;color:#fff;background:var(--pink);box-shadow:0 5px 0 var(--pinkd)}
+.big:active{transform:translateY(3px);box-shadow:0 2px 0 var(--pinkd)}
+.big.kokugo{background:#5fbf7f;box-shadow:0 5px 0 #3f9a5d}
+.big small{display:block;font-size:14px;font-weight:700;opacity:.9;margin-top:2px}
+.big.alt{background:var(--sky);box-shadow:0 5px 0 var(--skyd)}
+.big.gray{background:#ddd5ea;box-shadow:0 5px 0 #bdb3cf;color:var(--ink)}
+.big.danger{background:var(--ng);box-shadow:0 5px 0 #c94a4a}
+.big:disabled{opacity:.5}
+.small{padding:9px 14px;border:0;border-radius:14px;font-size:16px;font-weight:800;background:#ffe08a;color:#5a3d00}
+.small.danger{background:#ffc2c2;color:#7a1b1b}
+.small.gray{background:#ebe5f5;color:var(--ink)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row>.big{flex:1;min-width:140px}
+.back{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;z-index:6;border:0;background:#fff;border-radius:999px;padding:10px 16px;font-size:17px;font-weight:900;box-shadow:0 3px 0 var(--line)}
+
+/* タイトル：プロフィール */
+#profileList{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin:16px 0}
+.prof{display:flex;align-items:center;gap:12px;padding:16px;border:0;border-radius:22px;background:#fff;box-shadow:0 5px 0 var(--line);font-size:24px;font-weight:900;text-align:left}
+.prof .face{font-size:44px}
+.prof small{display:block;font-size:14px;color:var(--sub)}
+#parentBtn{position:fixed;right:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:6;border:0;border-radius:999px;padding:10px 16px;background:rgba(255,255,255,.85);font-size:14px;font-weight:800;color:var(--sub);overflow:hidden}
+#parentBtn .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:#ffe08a;z-index:-1}
+
+/* 合言葉 */
+.passSlots{display:flex;justify-content:center;gap:12px;margin:12px 0}
+.slot{width:76px;height:76px;border-radius:20px;background:#fff;border:4px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:44px}
+.slot.on{border-style:solid;border-color:#ffb800}
+#passGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:520px;margin:10px auto}
+.pic{aspect-ratio:1;border:0;border-radius:22px;background:#fff;font-size:clamp(36px,8vw,56px);box-shadow:0 5px 0 var(--line)}
+.pic.on{background:#fff3c4;box-shadow:0 5px 0 #f0c64a}
+.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+
+/* マイページ */
+.myHead{display:flex;align-items:center;gap:12px}
+.myHead .face{font-size:52px}
+.myHead .name{font-size:28px;font-weight:900}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.stat{background:var(--soft);border-radius:16px;padding:10px;text-align:center}
+.stat b{display:block;font-size:28px}
+.stat span{font-size:14px;color:var(--sub);font-weight:700}
+.myLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+.stage{height:230px}           /* のるんが立つ場所（キャンバスは この上に重なる。高さは固定） */
+@media (min-width:820px) and (orientation:landscape){
+  .myLayout{grid-template-columns:280px minmax(0,1fr);gap:18px;align-items:start}
+  .stage{height:340px;position:sticky;top:50px}
+}
+#kukuTable{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;font-weight:900}
+#kukuTable div{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:clamp(10px,2.2vw,16px);background:#f1ecf8;color:#b9aecb}
+#kukuTable .hd{background:transparent;color:var(--sub)}
+#kukuTable .lv1{background:#ffd9ea;color:#a8486f}
+#kukuTable .lv2{background:var(--pink);color:#fff}
+.legend{display:flex;gap:12px;font-size:14px;color:var(--sub);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px}
+.revList{display:flex;flex-wrap:wrap;gap:8px}
+.revList span{background:var(--soft);border-radius:12px;padding:6px 10px;font-weight:800}
+.hatRow{display:flex;gap:8px;flex-wrap:wrap}
+.hatSw{width:34px;height:34px;border-radius:50%;border:3px solid var(--line)}
+
+/* コースえらび */
+#danGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dan{border:4px solid transparent;border-radius:18px;background:#fff;box-shadow:0 4px 0 var(--line);padding:12px 6px;font-size:22px;font-weight:900}
+.dan small{display:block;font-size:13px;color:var(--sub);margin-top:2px}
+.dan.on{border-color:#ffb800;background:#fff6d6}
+.chip{flex:1;padding:12px;border:4px solid transparent;border-radius:16px;background:#fff;font-size:18px;font-weight:900;box-shadow:0 4px 0 var(--line)}
+.chip.on{border-color:#ffb800;background:#fff6d6}
+.chip:disabled{opacity:.55}
+
+/* 選択ラン（学習）：3Dの走る画面の上に 問題と進みぐあいを重ねる */
+#runView,#towerView{position:fixed;inset:0;width:100%;height:100%;display:none;z-index:1}
+#scPlayRun{background:transparent;padding-top:max(10px,env(safe-area-inset-top));overflow:hidden;touch-action:none}
+.pbar{display:flex;align-items:center;gap:10px;position:relative;z-index:3}
+.pbar .back{position:static;box-shadow:0 3px 0 var(--line)}
+#pDist{font-size:clamp(30px,7vw,48px);font-weight:900;color:#fff;text-shadow:0 3px 0 rgba(59,42,90,.45);margin-left:auto;margin-right:auto}
+#pCtl{position:fixed;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:flex-end;padding:0 max(14px,env(safe-area-inset-left));z-index:5;pointer-events:none}
+.jumpBtn{pointer-events:auto;width:clamp(116px,28vw,170px);height:clamp(116px,28vw,170px);border:0;border-radius:50%;background:rgba(255,216,77,.94);box-shadow:0 7px 0 rgba(59,42,90,.28);font-size:clamp(20px,5vw,28px);font-weight:900;color:#5a3d00;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;touch-action:none;margin-bottom:22px}
+.jumpBtn b{font-size:clamp(40px,10vw,62px)}
+.jumpBtn:active,.jumpBtn.press{transform:translateY(5px);box-shadow:0 2px 0 rgba(59,42,90,.28);background:#fff3c4}
+#pStick{pointer-events:auto;position:relative;width:clamp(150px,38vw,200px);height:clamp(150px,38vw,200px);border-radius:50%;background:rgba(255,255,255,.55);border:4px solid rgba(255,255,255,.95);box-shadow:0 6px 0 rgba(59,42,90,.18),inset 0 0 0 10px rgba(255,158,199,.25);touch-action:none;display:none}
+#pStick::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,transparent 58%,rgba(255,255,255,.0) 59%),
+  conic-gradient(from -8deg,rgba(255,126,182,.55) 0 16deg,transparent 0 74deg,rgba(255,126,182,.55) 0 106deg,transparent 0 164deg,rgba(255,126,182,.55) 0 196deg,transparent 0 254deg,rgba(255,126,182,.55) 0 286deg,transparent 0);border-radius:50%;-webkit-mask:radial-gradient(circle,transparent 70%,#000 71%);mask:radial-gradient(circle,transparent 70%,#000 71%)}
+#pKnob{position:absolute;left:50%;top:50%;width:44%;height:44%;margin:-22% 0 0 -22%;border-radius:50%;background:#ff7eb6;box-shadow:0 5px 0 #d65a94,inset 0 -6px 0 rgba(0,0,0,.08);transition:transform .08s}
+#pStick.on #pKnob{transition:none}
+#scPlayRun.tower #pStick{display:block}
+#scPlayRun.tower .laneBtn{display:none}
+#scPlayRun.tower .jumpBtn{margin-bottom:10px}
+.pRight{display:flex;flex-direction:column;align-items:center;gap:10px}
+.skillBtn{pointer-events:auto;width:clamp(84px,20vw,116px);height:clamp(84px,20vw,116px);border:0;border-radius:50%;background:rgba(143,211,255,.95);box-shadow:0 6px 0 rgba(59,42,90,.25);font-size:clamp(15px,3.8vw,20px);font-weight:900;color:#1d4f7a;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;touch-action:none}
+.skillBtn b{font-size:clamp(28px,7vw,40px)}
+.skillBtn.press{transform:translateY(4px);box-shadow:0 2px 0 rgba(59,42,90,.25)}
+.charRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.charBtn{border:3px solid var(--line);background:#fff;border-radius:16px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:900;color:var(--ink);font-size:15px}
+.charBtn i{font-style:normal;font-size:38px}
+.charBtn span{font-size:11px;font-weight:700;color:#7d6b9c;text-align:center}
+.charBtn.on{border-color:#ff7eb6;background:#fff0f7}
+.charBtn:disabled{opacity:.45;filter:grayscale(1)}
+/* 横画面（スマホを 横に した時）：ボタンを 小さめに して、画面の 下に おさめる */
+#pCamBtns{position:fixed;right:max(10px,env(safe-area-inset-right));top:calc(max(10px,env(safe-area-inset-top)) + 64px);display:none;flex-direction:column;gap:8px;z-index:5}
+#scPlayRun.asmr #pCamBtns{display:flex}
+.camBtn{width:74px;height:62px;border:0;border-radius:18px;background:rgba(255,255,255,.88);box-shadow:0 4px 0 rgba(59,42,90,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#3b2a5a;touch-action:none}
+.camBtn b{font-size:24px;line-height:1}
+.camBtn span{font-size:10px;font-weight:800;white-space:nowrap}
+.camBtn.on{background:#ffe4f1;box-shadow:0 4px 0 #ff7eb6}
+.camBtn.press{transform:translateY(3px);box-shadow:0 1px 0 rgba(59,42,90,.2)}
+.roundSm{width:44px;height:44px;font-size:20px}
+@media (orientation:landscape) and (max-height:600px){
+  #pCamBtns{top:calc(max(6px,env(safe-area-inset-top)) + 52px);flex-direction:row}
+  .camBtn{width:64px;height:52px}
+}
+#pMsg{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);width:max-content;max-width:92vw;text-align:center;font-size:clamp(40px,10vw,72px);font-weight:900;color:#fff;text-shadow:0 4px 0 rgba(59,42,90,.5);z-index:4;pointer-events:none;opacity:0;transition:opacity .2s;line-height:1.2}
+#pMsg.show{opacity:1}
+.playCard{display:flex;align-items:center;gap:14px;text-align:left}
+.playCard .ic{font-size:54px}
+.playCard .big{flex:1}
+.pinSlots{display:flex;gap:10px;justify-content:center;margin-bottom:12px}
+.pinSlot{width:64px;height:64px;border-radius:50%;border:3px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:34px;background:#fff;position:relative}
+.pinSlot.on{border-style:solid;border-color:#ffd86b;background:#fff7e0}
+.pinSlot small{position:absolute;bottom:-18px;font-size:11px;color:#7d6b9c}
+.pinGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+.pinBtn{border:2px solid var(--line);background:#fff;border-radius:14px;padding:8px 4px;font-size:13px;font-weight:800;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:2px}
+.pinBtn i{font-style:normal;font-size:30px}
+.pinBtn.on{border-color:#ffb800;background:#fff3c4}
+.pinBtn:disabled{opacity:.45;filter:grayscale(1)}
+.pinBtn span{font-size:10px;font-weight:700;color:#7d6b9c}
+.badgeRow{display:flex;gap:8px;flex-wrap:wrap}
+.badge{display:flex;flex-direction:column;align-items:center;width:76px;padding:6px 2px;border-radius:14px;background:#fff7e0;border:2px solid #ffd86b;font-size:11px;font-weight:800;text-align:center}
+.badge i{font-style:normal;font-size:30px}
+.badge.off{background:#f3f0f7;border-color:#e2dcea;filter:grayscale(1);opacity:.45}
+#scQuiz{background:transparent;padding-top:max(10px,env(safe-area-inset-top));overflow:hidden;touch-action:none}
+.qbar{display:flex;align-items:center;gap:10px;position:relative;z-index:3}
+.qbar .back{position:static;box-shadow:0 3px 0 var(--line)}
+#qDots{flex:1;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+#qDots i{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.75)}
+#qDots i.ok{background:var(--ok)} #qDots i.ng{background:var(--ng)} #qDots i.now{background:#ffb800}
+.pill{background:#fff;border-radius:999px;padding:8px 12px;font-weight:900;font-size:17px;box-shadow:0 3px 0 var(--line);white-space:nowrap}
+#qBox{position:relative;z-index:3;margin:10px auto 0;width:fit-content;max-width:94vw;background:rgba(255,255,255,.94);border-radius:26px;padding:8px 20px 10px;box-shadow:0 6px 0 rgba(59,42,90,.18);display:flex;flex-direction:column;align-items:center;gap:4px;transition:opacity .2s}
+#qBox.off{opacity:0}
+#qText{font-size:clamp(40px,8vw,72px);font-weight:900;letter-spacing:.03em;line-height:1.1}
+#qVis{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center}
+.dots{display:grid;grid-template-columns:repeat(5,auto);gap:5px}
+.dots i{width:clamp(20px,4.2vw,32px);height:clamp(20px,4.2vw,32px);border-radius:50%;display:block}
+.dots.a i{background:#ff7eb6} .dots.b i{background:#5bc0eb}
+.plus{font-size:clamp(30px,6vw,46px);font-weight:900;color:var(--sub)}
+#qSub{font-size:clamp(20px,3.6vw,28px);font-weight:900;color:var(--sub)}
+#btnSpeak{border:0;border-radius:999px;background:#f1ecf9;padding:6px 16px;font-size:19px;font-weight:900}
+/* レーン移動の 大きな矢印ボタン（走っているあいだ ずっと出ている） */
+#laneBtns{position:fixed;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;padding:0 max(14px,env(safe-area-inset-left));z-index:5;pointer-events:none}
+.laneBtn{pointer-events:auto;width:clamp(104px,24vw,150px);height:clamp(104px,24vw,150px);border:0;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 7px 0 rgba(59,42,90,.28);font-size:clamp(52px,12vw,76px);font-weight:900;color:var(--pink);display:flex;align-items:center;justify-content:center;line-height:1;touch-action:none}
+.laneBtn:active,.laneBtn.press{transform:translateY(5px);box-shadow:0 2px 0 rgba(59,42,90,.28);background:#fff3c4}
+#judge{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%) scale(.6);font-size:120px;font-weight:900;opacity:0;z-index:4;pointer-events:none;transition:transform .12s,opacity .12s}
+#judge.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#flash{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity .2s}
+#toast{position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.9);background:#fff;border-radius:20px;padding:10px 22px;font-size:26px;font-weight:900;color:var(--pink);opacity:0;transition:.15s;z-index:8;pointer-events:none;box-shadow:0 5px 0 var(--line);white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+/* 結果 */
+#resBig{font-size:clamp(40px,8vw,64px);font-weight:900;color:var(--pink)}
+
+/* 帽子 */
+#hatGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.hat{border:4px solid transparent;border-radius:18px;background:#fff;box-shadow:0 4px 0 var(--line);padding:10px 6px;font-size:16px;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:6px}
+.hat .sw{width:48px;height:48px;border-radius:50%;border:3px solid var(--line)}
+.hat.on{border-color:#ffb800;background:#fff6d6}
+
+/* 保護者 */
+#pinShow{font-size:40px;letter-spacing:.3em;text-align:center;min-height:52px}
+#pinPad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:320px;margin:0 auto}
+#pinPad button{padding:16px 0;border:0;border-radius:16px;background:#fff;font-size:26px;font-weight:900;box-shadow:0 4px 0 var(--line)}
+.pRow{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;padding:12px 0;border-bottom:2px dashed var(--line)}
+.pRow .face{font-size:38px}
+.pRow .ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pRow select{padding:6px;border-radius:10px;border:2px solid var(--line)}
+.field{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.field input,.field select{padding:10px;border-radius:12px;border:2px solid var(--line)}
+.kjTools select,.kjTools input{padding:8px;border-radius:10px;border:2px solid var(--line)}
+.kjTools input{flex:1;min-width:120px}
+.kjWrap{max-height:60vh;overflow:auto;margin:10px 0;border-radius:12px;border:2px solid var(--line);-webkit-overflow-scrolling:touch}
+.kjTable{border-collapse:collapse;width:100%;font-size:16px}
+.kjTable th{position:sticky;top:0;background:#f1ecf8;padding:6px 4px;font-size:13px;z-index:1}
+.kjTable td{border-top:1px solid #eee6f6;padding:2px}
+.kjTable input{width:100%;box-sizing:border-box;padding:6px 4px;border:1px solid transparent;border-radius:8px;font-size:16px;background:transparent}
+.kjTable input:focus{border-color:var(--sky);background:#fff}
+.kjTable td:nth-child(1){width:15%}.kjTable td:nth-child(2){width:28%}.kjTable td:nth-child(3){width:30%}.kjTable td:nth-child(4){width:18%}
+.kjTable tr.bad td{background:#ffe8e8}
+.kjTable tr.changed td{background:#fff8dc}
+.kjDel{border:0;background:none;font-size:18px;color:#c94a4a;padding:4px 8px}
+textarea{width:100%;min-height:90px;border-radius:12px;border:2px solid var(--line);padding:8px;font-size:12px}
+.faces{display:flex;gap:6px;flex-wrap:wrap}
+.faces button{font-size:28px;border:3px solid transparent;border-radius:12px;background:#fff;padding:2px 6px}
+.faces button.on{border-color:#ffb800}
+
+/* 応援ののるん（1つのキャンバスを 画面ごとに 場所と大きさを変えて使う） */
+#norunView{position:fixed;z-index:3;pointer-events:none;width:240px;height:260px;left:0;bottom:0;display:block;transition:none}
+body[data-screen="scTitle"] #norunView{width:260px;height:280px;left:8px;bottom:8px}
+body[data-screen="scQuiz"] #norunView,body[data-screen="scPlayRun"] #norunView,body[data-screen="scKokugo"] #norunView,body[data-screen="scPlay"] #norunView{display:none}
+body[data-screen="scResult"] #norunView{width:280px;height:300px;left:50%;transform:translateX(-50%);bottom:4px}
+body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,body[data-screen="scPin"] #norunView,body[data-screen="scConfirm"] #norunView,body[data-screen="loading"] #norunView{display:none}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;z-index:9;background:#f6f0ff;white-space:pre-line;text-align:center}
+
+/* =========================================================
+   かわいい みため（のるんの せかい：ラベンダー・ミルク・ピンク・ほし）
+   ========================================================= */
+:root{--ink:#4a3470;--sub:#8b78ad;--pink:#ff8fc2;--pinkd:#e46aa5;--sky:#7cc4ff;--skyd:#4f9fe0;--ok:#4fcf9a;--okd:#2fa877;--ng:#ff7b8a;--lav:#b59cff;--lavd:#8c6fe6;--butter:#ffe17a;--butterd:#e8b93a;--card:#fffdfb;--soft:#f7f1ff;--line:#ecdffb}
+body{background:
+  radial-gradient(circle at 12% 18%,rgba(255,255,255,.9) 0 2px,transparent 3px) 0 0/90px 90px,
+  radial-gradient(circle at 62% 70%,rgba(255,200,230,.55) 0 3px,transparent 4px) 0 0/120px 120px,
+  radial-gradient(circle at 30% 80%,rgba(190,170,255,.35) 0 4px,transparent 5px) 0 0/150px 150px,
+  linear-gradient(165deg,#f3eaff 0%,#fdf0f8 45%,#fff8ec 100%)}
+body.uiBg{background:url("/norun-run/manabi/assets/ui/bg-pattern.png") 0 0/256px 256px,linear-gradient(165deg,#f3eaff 0%,#fdf0f8 45%,#fff8ec 100%)}
+h1{font-size:clamp(40px,9vw,60px);color:#ff8fc2;letter-spacing:.06em;-webkit-text-stroke:8px #fff;paint-order:stroke fill;text-shadow:0 6px 0 #d9c6ff;margin:14px 0 2px;position:relative}
+h1::before,h1::after{content:"★";position:absolute;top:-6px;font-size:.42em;color:#ffd75e;-webkit-text-stroke:4px #fff;text-shadow:none;animation:twinkle 2.4s ease-in-out infinite}
+h1::before{left:6%} h1::after{right:6%;top:30%;animation-delay:1.2s;color:#b59cff}
+@keyframes twinkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(18deg)}}
+#logoImg{display:block;width:min(86vw,520px);margin:6px auto 0}
+h2{color:var(--ink)}
+h3{color:var(--lavd)}
+h3::before{content:"✦ ";color:#ffc94d}
+.card{background:var(--card);border:3px solid #f3eaff;border-radius:28px;box-shadow:0 6px 0 #e6d9f8,0 12px 24px rgba(140,111,230,.08)}
+.big{border-radius:26px;box-shadow:0 6px 0 var(--pinkd),inset 0 -6px 0 rgba(0,0,0,.07),inset 0 5px 0 rgba(255,255,255,.35);text-shadow:0 2px 0 rgba(90,40,90,.18);letter-spacing:.04em}
+.big:active{box-shadow:0 2px 0 var(--pinkd),inset 0 -4px 0 rgba(0,0,0,.07),inset 0 4px 0 rgba(255,255,255,.35)}
+.big.kokugo{background:#6fd6a6;box-shadow:0 6px 0 #3fb07f,inset 0 -6px 0 rgba(0,0,0,.07),inset 0 5px 0 rgba(255,255,255,.35)}
+.big.alt{background:var(--sky);box-shadow:0 6px 0 var(--skyd),inset 0 -6px 0 rgba(0,0,0,.07),inset 0 5px 0 rgba(255,255,255,.35)}
+.big.gray{background:var(--lav);color:#fff;box-shadow:0 6px 0 var(--lavd),inset 0 -6px 0 rgba(0,0,0,.07),inset 0 5px 0 rgba(255,255,255,.35)}
+.big.danger{box-shadow:0 6px 0 #d4566a}
+.big .ico,.prof .face,.playCard .ic{font-style:normal}
+.row>.big{white-space:nowrap;font-size:clamp(17px,4.9vw,22px);padding-left:8px;padding-right:8px}
+.big{letter-spacing:.02em}
+.ico img,.ic img{width:1.5em;height:1.5em;vertical-align:middle;object-fit:contain;margin:-.3em .1em -.2em 0}
+.playCard .ic img{width:64px;height:64px;margin:0}
+.back{color:var(--ink);border:3px solid #f3eaff;box-shadow:0 4px 0 #e6d9f8}
+.prof{border:3px solid #f3eaff;border-radius:28px;box-shadow:0 6px 0 #e6d9f8}
+.prof .face{width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 30%,#f3eaff 70%);display:flex;align-items:center;justify-content:center;font-size:38px;flex:none;box-shadow:inset 0 -3px 0 #e6d9f8}
+.myHead .face{width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 30%,#f3eaff 70%);display:flex;align-items:center;justify-content:center;font-size:44px;box-shadow:inset 0 -3px 0 #e6d9f8}
+.stat{background:linear-gradient(180deg,#fff 0%,#f7f1ff 100%);border:2px solid #f0e6ff;border-radius:20px}
+.pill{border:2px solid #f3eaff;color:var(--ink)}
+#parentBtn{border:2px solid #f3eaff}
+.playCard .ic{width:72px;height:72px;border-radius:24px;background:#f7f1ff;display:flex;align-items:center;justify-content:center;flex:none;font-size:44px}
+.charBtn{border-radius:20px;border-color:#f0e6ff}
+.charBtn.on{border-color:var(--pink);background:#fff0f8;box-shadow:0 4px 0 #ffc6e0}
+.jumpBtn{background:radial-gradient(circle at 38% 30%,#fff6c9 0 18%,rgba(255,221,105,.96) 55%);box-shadow:0 7px 0 #d9a92e,0 10px 18px rgba(90,60,0,.18);color:#6b4600;border:4px solid #fff}
+.jumpBtn:active,.jumpBtn.press{box-shadow:0 2px 0 #d9a92e}
+.skillBtn{border:4px solid #fff}
+#pKnob{background:radial-gradient(circle at 35% 30%,#ffd1e6 0 20%,#ff8fc2 60%);box-shadow:0 5px 0 #e46aa5}
+.camBtn{border:3px solid #fff;background:rgba(255,253,251,.9);color:var(--ink)}
+#pDist{text-shadow:0 3px 0 rgba(140,111,230,.6),0 0 10px rgba(140,111,230,.35)}
+#pMsg{-webkit-text-stroke:7px #8c6fe6;paint-order:stroke fill;text-shadow:0 5px 0 rgba(74,52,112,.35)}
+#toast{border:3px solid #f3eaff}
+#qBox{border:3px solid #fff}
+#resBig{-webkit-text-stroke:8px #fff;paint-order:stroke fill;text-shadow:0 6px 0 #d9c6ff}
+.badge{border-radius:18px}
+#loading{background:linear-gradient(165deg,#f3eaff 0%,#fdf0f8 100%);color:var(--lavd)}
+/* 横画面（あとに 書いて 上の ふつうの 指定より 優先させる） */
+@media (orientation:landscape) and (max-height:600px){
+  #scPlayRun{padding-top:max(6px,env(safe-area-inset-top))}
+  .pbar .back{width:44px;height:44px;font-size:18px}
+  #pDist{font-size:30px}
+  #pCtl{bottom:max(8px,env(safe-area-inset-bottom));padding:0 max(18px,env(safe-area-inset-left)) 0 max(18px,env(safe-area-inset-left))}
+  /* 第7弾：横画面の パッドは たて画面より 大きく（176px）。大きく した ぶん 少し すけさせる */
+  #pStick{width:min(176px,46vh);height:min(176px,46vh);background:rgba(255,255,255,.4)}
+  .jumpBtn{width:min(124px,32vh);height:min(124px,32vh);margin-bottom:6px;font-size:17px}
+  .jumpBtn b{font-size:40px}
+  .skillBtn{width:min(84px,22vh);height:min(84px,22vh);font-size:14px}
+  .skillBtn b{font-size:26px}
+  .pRight{flex-direction:row-reverse;align-items:flex-end}
+  .laneBtn{width:96px;height:96px}
+  #pMsg{font-size:34px;top:30%}
+  body[data-screen="scResult"] #norunView{display:none}   /* 横画面の 結果では のるんが 文字に かぶるので かくす */
+}
+/* 【テスト版】常時表示バッジ（本番と 見間違えないため） */
+#testBadge{position:fixed;top:6px;right:6px;z-index:9999;pointer-events:none;background:#e0342b;color:#fff;font-weight:900;font-size:13px;line-height:1;padding:6px 10px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.35);letter-spacing:.08em}
+#testRoomSel{flex:1;font-size:16px;padding:10px;border-radius:10px;border:2px solid #c7b3ff;background:#fff;color:#4a3470}
+</style>
+<script type="importmap">
+{ "imports": { "three": "/norun-run/manabi/lib/three.module.min.js", "three/addons/": "/norun-run/manabi/lib/addons/" } }
+</script>
+</head>
+<body data-screen="loading">
+<div id="loading">よみこみちゅう…</div>
+<canvas id="runView"></canvas>
+<canvas id="towerView"></canvas>
+<canvas id="norunView"></canvas>
+<div id="flash"></div>
+<div id="toast"></div>
+<div id="testBadge">テスト版</div>
+
+<!-- タイトル：だれが あそぶ？ -->
+<div id="scTitle" class="screen hidden">
+  <div class="wrap">
+    <h1 id="logoText">のるん まなび</h1>
+    <p class="note center">だれが あそぶ？</p>
+    <div id="profileList"></div>
+    <p class="note center" id="noProfile">おうちのひとに なまえを つくってもらってね</p>
+    <div style="height:260px"></div>
+  </div>
+  <button id="parentBtn"><span class="fill"></span>おうちのかたへ（ながおし）</button>
+</div>
+
+<!-- 合言葉 -->
+<div id="scPass" class="screen hidden">
+  <button class="back" id="passBack">← もどる</button>
+  <div class="wrap center" style="padding-top:44px">
+    <h2 id="passTitle"></h2>
+    <p class="note" id="passNote"></p>
+    <div class="passSlots"><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+    <div id="passGrid"></div>
+    <button class="small gray" id="passClear" style="margin-top:6px">やりなおす</button>
+  </div>
+</div>
+
+<!-- マイページ -->
+<div id="scMy" class="screen hidden">
+  <button class="back" id="myBack">おわる</button>
+  <div class="wrap" style="padding-top:44px">
+    <div class="myLayout">
+      <div class="stage" id="myStage"></div>
+      <div>
+        <div class="card">
+          <div class="myHead"><span class="face" id="myFace"></span><div><div class="name" id="myName"></div><div class="note" id="myGrade"></div></div></div>
+          <div class="row">
+            <button class="big" id="btnStudy">✏️ さんすう</button>
+            <button class="big kokugo" id="btnKokugo"><i class="ico" data-ui="ic-kokugo">📖</i> こくご</button>
+          </div>
+          <div class="row">
+            <button class="big alt" id="btnReview">🔁 ふくしゅう</button>
+            <button class="big alt" id="btnShop"><i class="ico" data-ui="ic-kisekae">👒</i> きせかえ<small>ぼうし・バッジ</small></button>
+          </div>
+          <button class="big gray" id="btnPlay"><i class="ico" data-ui="ic-play">🎮</i> あそぶ<small>ラン・アスレ・ASMRタワー</small></button>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">きろく</h3>
+          <div class="stats" id="myStats"></div>
+        </div>
+        <div class="card" id="kukuCard">
+          <h3 style="margin-top:0">くくの ひょう</h3>
+          <div id="kukuTable"></div>
+          <div class="legend"><span><i style="background:#f1ecf8"></i>まだ</span><span><i style="background:#ffd9ea"></i>せいかいした</span><span><i style="background:#ff7eb6"></i>おぼえた（3かい つづけて せいかい）</span></div>
+        </div>
+        <div class="card" id="kinderCard">
+          <h3 style="margin-top:0">たしざん</h3>
+          <div id="kinderProg"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">ふくしゅう リスト</h3>
+          <p class="note" id="revInfo"></p>
+          <div class="revList" id="revList"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">あそびの きろく</h3>
+          <div class="stats" id="myPlay"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">バッジ</h3>
+          <div class="badgeRow" id="myBadges"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">もっている もの</h3>
+          <div class="hatRow" id="myHats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 九九：段えらび -->
+<div id="scKuku" class="screen hidden">
+  <button class="back" id="kukuBack">← もどる</button>
+  <div class="wrap" style="padding-top:44px">
+    <h2 class="center">どの だんを れんしゅうする？</h2>
+    <div id="danGrid"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="chip" id="kOrder">じゅんばん</button>
+      <button class="chip" id="kRandom">ランダム</button>
+    </div>
+    <p class="note center" id="kNote"></p>
+    <button class="big" id="kGo">はじめる</button>
+  </div>
+</div>
+
+<!-- 年長：たしざん -->
+<div id="scKinder" class="screen hidden">
+  <button class="back" id="kindBack">← もどる</button>
+  <div class="wrap center" style="padding-top:44px">
+    <h2>たしざん</h2>
+    <button class="big" id="kLv1">🍓 5までの たしざん</button>
+    <button class="big alt" id="kLv2">🍩 10までの たしざん</button>
+    <p class="note" id="kLvNote"></p>
+  </div>
+</div>
+
+<!-- 国語：コースえらび -->
+<div id="scKokugo" class="screen hidden">
+  <button class="back" id="kokuBack">← もどる</button>
+  <div class="wrap center" style="padding-top:44px">
+    <h2 id="kokuTitle">こくご</h2>
+    <div id="kokuBtns"></div>
+    <p class="note" id="kokuNote"></p>
+  </div>
+</div>
+
+<!-- 遊び：えらぶ -->
+<div id="scPlay" class="screen hidden">
+  <button class="back" id="playBack">← もどる</button>
+  <div class="wrap" style="padding-top:44px">
+    <h2 class="center">なにで あそぶ？</h2>
+    <div class="card playCard"><span class="ic" data-ui="ic-run">🏃</span><div style="flex:1"><button class="big" id="goRun">ラン</button><div class="note" id="runBest"></div></div></div>
+    <div class="card playCard"><span class="ic" data-ui="ic-athle">🧗</span><div style="flex:1"><button class="big alt" id="goTower">アスレ</button><div class="note" id="towerBest"></div></div></div>
+    <div class="card playCard"><span class="ic" data-ui="ic-asmr">🎧</span><div style="flex:1"><button class="big kokugo" id="goAsmr">ASMRタワー</button><div class="note" id="asmrBest"></div></div></div>
+    <div class="card">
+      <h3 style="margin-top:0">だれで あそぶ？ <small class="note">（アスレ・ASMRタワー）</small></h3>
+      <div class="charRow" id="charRow"></div>
+    </div>
+    <div class="card" id="testRoomCard">
+      <h3 style="margin-top:0">🧪 テスト：部屋えらび <small class="note">（ASMRタワー・テスト版だけの機能）</small></h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="testRoomSel" aria-label="ASMRタワーの 開始する部屋"></select>
+      </div>
+      <p class="note">えらんだ部屋から ASMRタワーを はじめられます。そのあとの部屋は いつもの順番で つづきます。</p>
+    </div>
+    <p class="note center">ラン：◀ ▶ と ジャンプ ／ アスレ・ASMR：まるい パッドで あるく・ジャンプ</p>
+  </div>
+</div>
+
+<!-- 遊び：プレイ中（ラン・塔 共通） -->
+<div id="scPlayRun" class="screen hidden">
+  <div class="pbar">
+    <button class="back" id="pQuit">✕</button>
+    <div id="pDist">0m</div>
+    <span class="pill" id="pKira">✨0</span>
+    <span class="pill" id="pBest">🏅0m</span>
+    <button class="back roundSm" id="pFull" aria-label="よこがめん">⤢</button>
+  </div>
+  <div id="pCamBtns">
+    <button class="camBtn" id="pView" aria-label="してんを かえる"><b>👁</b><span>おいかけ</span></button>
+    <button class="camBtn" id="pFront" aria-label="まえを むく"><b>⬆</b><span>まえを むく</span></button>
+  </div>
+  <div id="pMsg"></div>
+  <div id="pCtl">
+    <div id="pStick" aria-label="いどうの パッド"><div id="pKnob"></div></div>
+    <button class="laneBtn" id="pLeft" aria-label="ひだりへ">◀</button>
+    <div class="pRight">
+      <button class="skillBtn hidden" id="pSkill" aria-label="すべる"><b>🛷</b>すべる</button>
+      <button class="jumpBtn" id="pJump" aria-label="ジャンプ"><b>⤒</b>ジャンプ</button>
+    </div>
+    <button class="laneBtn" id="pRight" aria-label="みぎへ">▶</button>
+  </div>
+</div>
+
+<!-- 選択ラン（学習） -->
+<div id="scQuiz" class="screen hidden">
+  <div class="qbar">
+    <button class="back" id="qQuit">✕</button>
+    <div id="qDots"></div>
+    <span class="pill" id="qStreak">🔥0</span>
+    <span class="pill" id="qPts">⭐0</span>
+  </div>
+  <div id="qBox">
+    <div id="qVis"></div>
+    <div id="qText"></div>
+    <div id="qSub"></div>
+    <button id="btnSpeak">🔊 よむ</button>
+  </div>
+  <div id="laneBtns"><button class="laneBtn" id="btnLeft" aria-label="ひだりへ">◀</button><button class="laneBtn" id="btnRight" aria-label="みぎへ">▶</button></div>
+  <div id="judge"></div>
+</div>
+
+<!-- 結果 -->
+<div id="scResult" class="screen hidden">
+  <div class="wrap center" style="padding-top:20px">
+    <div id="resBig"></div>
+    <div class="card" id="resText" style="font-size:20px;font-weight:800;white-space:pre-line;text-align:center"></div>
+    <div class="row">
+      <button class="big" id="resAgain">もういちど</button>
+      <button class="big alt" id="resMy">マイページ</button>
+    </div>
+    <div style="height:300px"></div>
+  </div>
+</div>
+
+<!-- 帽子の色と交換 -->
+<div id="scShop" class="screen hidden">
+  <button class="back" id="shopBack">← もどる</button>
+  <div class="wrap" style="padding-top:44px">
+    <h2 class="center">きせかえ</h2>
+    <div class="card">
+      <h3 style="margin-top:0">ぼうしの バッジ（3こまで）</h3>
+      <div class="pinSlots" id="pinSlots"></div>
+      <div class="pinGrid" id="pinGrid"></div>
+      <p class="note">タップで つける／はずす。バッジは きろくを のばすと ふえるよ</p>
+    </div>
+    <h3 class="center">ぼうしの いろ</h3>
+    <p class="note center" id="shopPts"></p>
+    <div id="hatGrid"></div>
+    <div style="height:260px"></div>
+  </div>
+</div>
+
+<!-- 保護者：暗証番号 -->
+<div id="scPin" class="screen hidden">
+  <button class="back" id="pinBack">← もどる</button>
+  <div class="wrap center" style="padding-top:50px">
+    <h2 id="pinTitle">おうちのかたへ</h2>
+    <p class="note" id="pinNote"></p>
+    <div id="pinShow"></div>
+    <div id="pinPad"></div>
+  </div>
+</div>
+
+<!-- 保護者画面 -->
+<div id="scParent" class="screen hidden">
+  <button class="back" id="parentBack">とじる</button>
+  <div class="wrap" style="padding-top:50px">
+    <h2>保護者画面</h2>
+    <div class="card">
+      <h3 style="margin-top:0">プロフィール</h3>
+      <div id="pList"></div>
+      <h3>プロフィールを追加</h3>
+      <div class="field"><input id="newName" maxlength="10" placeholder="なまえ"><select id="newGrade"></select></div>
+      <div class="faces" id="newFaces"></div>
+      <button class="big" id="btnAdd" style="margin-top:10px">追加する</button>
+      <p class="note">合言葉（絵3つ）は、お子さまが最初に入るときに自分で選びます。</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">あそびの せってい（この端末）</h3>
+      <div class="row" style="align-items:center">
+        <span>ランの はじめの速さ</span>
+        <select id="setRunSpeed" style="padding:8px;border-radius:10px;border:2px solid var(--line)"></select>
+      </div>
+      <p class="note">走りだしの速さです。走るほど 少しずつ速くなります（config.js の RUN_SPEEDS で数値を変えられます）</p>
+      <h3>音（この端末）</h3>
+      <label class="row" style="align-items:center;gap:10px"><input type="checkbox" id="setBgm" style="width:26px;height:26px"> BGM を ながす</label>
+      <label class="row" style="align-items:center;gap:10px"><input type="checkbox" id="setSe" style="width:26px;height:26px"> 効果音を ならす</label>
+      <p class="note" id="audioFiles"></p>
+      <p class="note">曲・効果音は /norun-run/manabi/assets/audio/ に 決まった名前の ファイルを おくと 差しかわります（くわしくは AUDIO.md）。読み上げ（年長の 問題）は どちらを 切っても ながれます。</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">こくご（漢字）の 出題データ</h3>
+      <p class="note">学年別漢字配当表（2020年度〜）の漢字から つくった 最初のデータです。ことば・よみ・送り仮名は ここで確認・直せます。<br>送り仮名の行は「おくりがなクイズ」、空の行は「よみ」「かんじえらび」に出ます。</p>
+      <div class="row kjTools">
+        <select id="kjGrade"></select>
+        <input id="kjFilter" placeholder="さがす（漢字・よみ）">
+        <span class="note" id="kjCount"></span>
+      </div>
+      <div class="kjWrap"><table class="kjTable"><thead><tr><th>配当漢字</th><th>ことば</th><th>よみ</th><th>送り仮名</th><th></th></tr></thead><tbody id="kjBody"></tbody></table></div>
+      <div class="row">
+        <button class="small" id="kjAdd">＋ 行を追加</button>
+        <button class="small" id="kjMore">もっと表示</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="big" id="kjSave">保存する</button>
+        <button class="big gray" id="kjReset">最初のデータに戻す</button>
+      </div>
+      <p class="note" id="kjMsg"></p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">バックアップ</h3>
+      <p class="note">データはこの端末の中だけに保存されています。ときどき書き出しておくと、消えてしまったときに戻せます。</p>
+      <div class="row">
+        <button class="big alt" id="btnExport">書き出す（ファイル）</button>
+        <button class="big gray" id="btnCopy">テキストをコピー</button>
+      </div>
+      <h3>読みこむ（いまのデータは すべて置きかわります）</h3>
+      <input type="file" id="importFile" accept=".json,application/json">
+      <p class="note">または、書き出したテキストを貼りつけ：</p>
+      <textarea id="importText" placeholder="ここに貼りつけ"></textarea>
+      <button class="big danger" id="btnImport">読みこむ</button>
+      <p class="note" id="ioMsg"></p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">暗証番号</h3>
+      <button class="small" id="btnPinChange">暗証番号を変える</button>
+    </div>
+  </div>
+</div>
+
+<!-- 確認 -->
+<div id="scConfirm" class="screen hidden">
+  <div class="wrap center" style="padding-top:80px">
+    <h2 id="cfText"></h2>
+    <p class="note" id="cfNote"></p>
+    <button class="big danger" id="cfYes"></button>
+    <button class="big gray" id="cfNo">やめる</button>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
