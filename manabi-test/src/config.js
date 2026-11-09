@@ -178,17 +178,25 @@ export const ASMR_THEMES = [
   { id: "key",   name: "キーボード", sub: "カチャカチャ",   walk: 1.0,  jump: 1.0,  grip: 16, press: 0.16, stepEvery: 1, shapes: ["key", "key", "spacebar"],
     // 踏むたびに ランダムで えらぶ（実録版と 生成版を まぜる）
     sounds: { step: ["step_key", "step_key_alt", "step_key_gen"], land: ["land_key", "land_key_gen"] } },
-  { id: "puni",  name: "ぷにぷに",   sub: "グミ",           walk: 1.0,  jump: 1.45, grip: 14, bounce: 1, hopH: 0.55, stepEvery: 1, shapes: ["gumdrop", "button"] },
+  { id: "puni",  name: "ぷにぷに",   sub: "グミ",           walk: 1.0,  jump: 1.45, grip: 14, bounce: 1, hopH: 0.55, stepEvery: 1, shapes: ["gumdrop", "button"],
+    sounds: { step: ["step_puni_r1", "step_puni_r2"], land: ["land_puni", "land_puni_r1"] } },
   { id: "shari", name: "しゃりしゃり", sub: "かきごおり",   walk: 1.15, jump: 1.0,  grip: 0.9, stepEvery: 1, shapes: ["icecube", "spoon"],
-    sounds: { step: ["step_shari", "step_shari_gen"], land: ["land_shari", "land_shari_gen"] } },   // ElevenLabs 版は 上書きでも _gen で まぜても よい
-  { id: "neba",  name: "ねばねば",   sub: "はちみつ",       walk: 0.35, jump: 0.72, grip: 45, sinkRate: 0.35, sinkMax: 0.5, stepEvery: 2, shapes: ["jar", "spoon"] },
-  { id: "zaku",  name: "ざくざく",   sub: "クッキー",       walk: 0.95, jump: 1.0,  grip: 18, crumbs: true, stepEvery: 1, shapes: ["cookie", "button"] },
-  { id: "slime", name: "スライム",   sub: "ぷるんぷるん",   walk: 0.9,  jump: 1.7,  grip: 10, bounce: 1, hopH: 0.75, wobble: true, stepEvery: 1, shapes: ["blob", "gumdrop"] },
+    sounds: { step: ["step_shari", "step_shari_gen", "step_shari_r1", "step_shari_r2", "step_shari_r3"], land: ["land_shari", "land_shari_gen", "land_shari_r1", "land_shari_r2"] } },   // ElevenLabs 版は 上書きでも _gen で まぜても よい
+  { id: "neba",  name: "ねばねば",   sub: "はちみつ",       walk: 0.35, jump: 0.72, grip: 45, sinkRate: 0.35, sinkMax: 0.5, stepEvery: 2, shapes: ["jar", "spoon"],
+    sounds: { step: ["step_neba", "step_neba_r1"], land: ["land_neba"] } },
+  { id: "zaku",  name: "ざくざく",   sub: "クッキー",       walk: 0.95, jump: 1.0,  grip: 18, crumbs: true, stepEvery: 1, shapes: ["cookie", "button"],
+    sounds: { step: ["step_zaku", "step_zaku_r1", "step_zaku_r2", "step_zaku_r3", "step_zaku_r4", "step_zaku_r5"], land: ["land_zaku", "land_zaku_r1", "land_zaku_r2", "land_zaku_r3"] } },
+  { id: "slime", name: "スライム",   sub: "ぷるんぷるん",   walk: 0.9,  jump: 1.7,  grip: 10, bounce: 1, hopH: 0.75, wobble: true, stepEvery: 1, shapes: ["blob", "gumdrop"],
+    sounds: { step: ["step_slime", "step_slime_r1", "step_slime_r2"], land: ["land_slime", "land_slime_r1"] } },
   { id: "fuwa",  name: "ふわふわ",   sub: "わたあめ",       walk: 0.9,  jump: 1.1,  grip: 8,  grav: 0.4, stepEvery: 2, shapes: ["cotton"] },
-  { id: "pari",  name: "ぱりぱり",   sub: "おせんべい",     walk: 1.0,  jump: 1.0,  grip: 16, breakT: 0.6, stepEvery: 1, shapes: ["senbei"] },
-  { id: "koro",  name: "ころころ",   sub: "ビーズ",         walk: 1.2,  jump: 1.0,  grip: 0.5, drift: 1.2, stepEvery: 1, shapes: ["bead", "button"] },
-  { id: "choco", name: "チョコマシュマロ", sub: "いたチョコと マシュマロ", walk: 1.0, jump: 1.05, grip: 16, stepEvery: 1, shapes: ["chocobar", "mallow"] },
-  { id: "push",  name: "プッシュポップ", sub: "シリコンの ポコポコ", walk: 1.0, jump: 1.1, grip: 16, stepEvery: 1, shapes: ["popit"] },
+  { id: "pari",  name: "ぱりぱり",   sub: "おせんべい",     walk: 1.0,  jump: 1.0,  grip: 16, breakT: 0.6, stepEvery: 1, shapes: ["senbei"],
+    sounds: { step: ["step_pari", "step_pari_r1", "step_pari_r2"], land: ["land_pari", "land_pari_r1"] } },
+  { id: "koro",  name: "ころころ",   sub: "ビーズ",         walk: 1.2,  jump: 1.0,  grip: 0.5, drift: 1.2, stepEvery: 1, shapes: ["bead", "button"],
+    sounds: { step: ["step_koro", "step_koro_r1", "step_koro_r2", "step_koro_r3"], land: ["land_koro", "land_koro_r1"] } },
+  { id: "choco", name: "チョコマシュマロ", sub: "チョコの 中に マシュマロ", walk: 1.0, jump: 1.05, grip: 16, stepEvery: 1, shapes: ["chocomallow"],
+    sounds: { step: ["step_choco"], land: ["land_choco", "land_choco_r1", "land_choco_r2"] } },   // 第11弾：板チョコ＋マシュマロ べつべつ → チョコで つつんだ マシュマロ
+  { id: "push",  name: "プッシュポップ", sub: "シリコンの ポコポコ", walk: 1.0, jump: 1.1, grip: 16, stepEvery: 1, shapes: ["popit"],
+    sounds: { step: ["step_push", "step_push_r1", "step_push_r2", "step_push_r3"], land: ["land_push"] } },
 ];
 /* 足場の 形ごとの 音の きまり（テーマの 音より 優先）
    kind："step"（軽く ふむ）／"land"（着地・強く ふむ）を いつも つかう。rate：音の 高さ（1＝そのまま、小さいほど ひくい）
@@ -197,7 +205,20 @@ export const SHAPE_SOUND = {
   spacebar: { kind: "land", rate: 0.78 },   // 大きな キーは ひくい 着地系の 音
   chocobar: { kind: "land", rate: 1.0 },    // 板チョコ：パキッ（割れる 音）
   mallow:   { rate: 0.85 },                 // マシュマロ：やわらかく ひくめ
+  // チョコマシュマロ：はじめて 踏むと チョコが パキッ（land）、われた あとは 中の マシュマロが ふにゅっ（step・ひくめ）
 };
+
+/* 第11弾：床そのものを あじわう「プール区間」。1周の うち 1面は、角から 角まで つながった 長い プールを 歩いて わたる。
+   walk：歩く 速さ / sink：キャラが しずむ 深さ（見た目）/ snd：鳴らす 音の テーマ（踏んだ 素材の 音）/ every：何m 歩くごとに 鳴らすか */
+export const ASMR_POOLS = {
+  beads:  { name: "ビーズプール",     walk: 0.72, sink: 0.32, snd: "koro",  every: 0.55 },
+  slime:  { name: "スライムプール",   walk: 0.62, sink: 0.38, snd: "slime", every: 0.6 },
+  ice:    { name: "かきごおりプール", walk: 0.85, sink: 0.18, snd: "shari", every: 0.5 },
+  cotton: { name: "わたあめプール",   walk: 0.75, sink: 0.42, snd: "fuwa",  every: 0.65 },
+  choco:  { name: "とろとろチョコ",   walk: 0.58, sink: 0.36, snd: "neba",  every: 0.7 },
+};
+/* 部屋（テーマ）ごとの プール。同じ ものばかりに ならない ように まぜる */
+export const ASMR_POOL_OF = { key: "beads", puni: "slime", shari: "ice", neba: "beads", zaku: "cotton", slime: "slime", fuwa: "cotton", pari: "beads", koro: "beads", choco: "choco", push: "slime" };
 /* ASMRの カメラ（キャラに 寄った 視点。スワイプで まわす） */
 export const ASMR_CAM = {
   dist: 3.1, height: 2.1, lookUp: 0.55, ahead: 3.0,
@@ -225,6 +246,7 @@ export const ASMR = {
     landInset: 1.5,  // かべから 踊り場の まんなかまで
     lastD: 4.55,     // さいごの 段（吹き抜けの となり）の まんなかの、かどの 線（かべから inset）から の きょり。第10弾：5.6 だと 吹き抜けの 1段目まで 1.2〜1.4m あいて とどかない ことが あった → 4.55（すき間 約0.35m）
     lastLen: 1.6,    // さいごの 段の 長さ
+    pool: { gap: 0.3, dep: 2.4 },   // プール区間（第11弾）：角の 踊り場との すき間・おくゆき
   },
   pariBack: 5,       // われた せんべいが もどるまで（秒）
   traps: 1,          // 2かい より上の 床に あける よけいな 穴（落とし穴）の 数

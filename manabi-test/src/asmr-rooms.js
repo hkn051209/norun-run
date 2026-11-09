@@ -5,7 +5,7 @@
    さいごは 天井の 穴（上の フロアの 床の 穴）まで のびる 柱
    ========================================================= */
 import * as THREE from "three";
-import { ASMR_THEMES, ASMR, PLAY_TOWER as P } from "./config.js";
+import { ASMR_THEMES, ASMR, PLAY_TOWER as P, ASMR_POOLS, ASMR_POOL_OF } from "./config.js";
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -165,7 +165,26 @@ function roomMats(id) {
   const floor = new THREE.MeshLambertMaterial({ map: floorTex, emissive: 0xffffff, emissiveIntensity: 0.1 });
   const side = new THREE.MeshLambertMaterial({ color: L.wall, emissive: L.wall, emissiveIntensity: 0.15 });
   const wall = new THREE.MeshLambertMaterial({ map: wallTex, color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.12, side: THREE.DoubleSide });
+  // 第11弾：本物の 素材の 写真（/norun-run/manabi/assets/tex/<id>-floor.jpg ・ <id>-wall.jpg）が あれば、それに さしかえる（なければ いまの 絵の まま）
+  photoTex(`${id}-floor`, (t) => { t.repeat.set(1, 1); floor.map = t; floor.needsUpdate = true; });
+  photoTex(`${id}-wall`, (t) => { t.repeat.set(ASMR.room / 4.4, ASMR.floorH / 4.4); wall.map = t; wall.needsUpdate = true; });
   return { floor, side, wall, list: [floor, side, wall] };
+}
+/* 素材の 写真（MATERIALS.md の リスト）：あれば 読みこんで わたす。ない 時は なにも しない */
+//   /norun-run/manabi/assets/tex/list.json に のっている 名前だけ 読みにいく（ない ファイルを 何回も 読みに いかない）。写真を 足したら list.json にも 名前を 足す
+const photoCache = new Map(), texLoader = new THREE.TextureLoader();
+const photoList = fetch("/norun-run/manabi/assets/tex/list.json").then((r) => (r.ok ? r.json() : [])).catch(() => []);
+export function photoTex(name, use) {
+  if (!photoCache.has(name)) photoCache.set(name, photoList.then((list) => (list.includes(name) ? new Promise((ok) => texLoader.load(`/norun-run/manabi/assets/tex/${name}.jpg`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; ok(t); }, undefined, () => ok(null))) : null)));
+  photoCache.get(name).then((t) => { if (t) use(t.clone()); });
+}
+/* 足場の 上の面に 写真の まるい 板を のせる（写真が ある 時だけ） */
+function photoTop(g, name, w, d, y) {
+  photoTex(name, (t) => {
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.needsUpdate = true;
+    const m = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), new THREE.MeshLambertMaterial({ map: t, emissive: 0xffffff, emissiveIntensity: 0.1 }));
+    m.rotation.x = -Math.PI / 2; m.scale.set(w * 0.98, d * 0.98, 1); m.position.y = y; g.add(m);
+  });
 }
 const partMat = (id, c) => {
   const L = LOOK[id];
@@ -208,6 +227,72 @@ function garland(group, a, b, y, sag) {
     const f = new THREE.Mesh(flagGeo, flagMats[k % flagMats.length]);
     f.position.copy(pts[k]); f.rotation.y = yaw; group.add(f);
   }
+}
+
+/* ---------- プール（第11弾）：角から 角まで つながった 長い 床。sw × sd、上の面が y=0 ---------- */
+const POOL_LOOK = {
+  beads:  { tray: 0xbfe6ff, colors: [0xff9ec7, 0xffe17a, 0xb59cff, 0x8fd3ff, 0x9be39b, 0xffffff, 0xffb27a] },
+  cotton: { tray: 0xffd6ea, colors: [0xffc4e1, 0xc9e4ff, 0xffffff, 0xe6d4ff] },
+  slime:  { tray: 0xd8c8ff, color: 0x7ee08a, opacity: 0.72 },
+  ice:    { tray: 0xbfe6ff, color: 0xf4fbff, opacity: 1, syrup: [0xff8fb1, 0x8fd3ff, 0xc5f08a] },
+  choco:  { tray: 0xffd6e6, color: 0x6b3a1e, opacity: 1 },
+};
+export function makePool(type, sw, sd) {
+  const g = new THREE.Group(), L = POOL_LOOK[type] || POOL_LOOK.beads;
+  const trayM = new THREE.MeshLambertMaterial({ color: L.tray, emissive: L.tray, emissiveIntensity: 0.25 });
+  const rimM = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.2 });
+  const box = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); g.add(o); return o; };
+  box(sw, 0.3, sd, trayM, 0, -0.75, 0);                                       // そこ
+  for (const sgn of [-1, 1]) { box(sw + 0.24, 0.85, 0.12, trayM, 0, -0.4, sgn * (sd / 2 + 0.06)); box(0.12, 0.85, sd, trayM, sgn * (sw / 2 + 0.06), -0.4, 0); }
+  for (const sgn of [-1, 1]) { box(sw + 0.3, 0.1, 0.18, rimM, 0, 0.05, sgn * (sd / 2 + 0.06)); box(0.18, 0.1, sd + 0.3, rimM, sgn * (sw / 2 + 0.06), 0.05, 0); }   // ふち
+  const fx = { type };
+  if (type === "beads" || type === "cotton") {
+    // ビーズ・わたあめ：つぶを しきつめる（踏むと まわりへ よけて しずむ）
+    const r = type === "beads" ? 0.11 : 0.27, step = r * 2.05;
+    const nx = Math.max(1, Math.floor(sw / step)), nz = Math.max(1, Math.floor(sd / step)), n = nx * nz * (type === "beads" ? 2 : 1);
+    const mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(r, type === "beads" ? 8 : 12, type === "beads" ? 6 : 10), new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x333333, emissiveIntensity: 0.25 }), n);
+    const pos = new Float32Array(n * 3), off = new Float32Array(n * 3), sc = new Float32Array(n), m4 = new THREE.Matrix4(), col = new THREE.Color();
+    for (let k = 0; k < n; k++) {
+      const layer = type === "beads" ? Math.floor(k / (nx * nz)) : 0, q = k % (nx * nz), i = q % nx, j = Math.floor(q / nx);
+      pos[k * 3] = -sw / 2 + (i + 0.5) * (sw / nx) + rand(-0.03, 0.03) + (layer ? step / 2 : 0);
+      pos[k * 3 + 1] = (type === "beads" ? -r - layer * r * 1.6 : -r * 0.75) + rand(-0.03, 0.03);
+      pos[k * 3 + 2] = -sd / 2 + (j + 0.5) * (sd / nz) + rand(-0.03, 0.03) + (layer ? step / 2 : 0);
+      pos[k * 3] = Math.min(sw / 2 - r, pos[k * 3]); pos[k * 3 + 2] = Math.min(sd / 2 - r, pos[k * 3 + 2]);
+      sc[k] = type === "cotton" ? rand(0.85, 1.25) : 1;
+      m4.makeScale(sc[k], sc[k] * (type === "cotton" ? 0.8 : 1), sc[k]).setPosition(pos[k * 3], pos[k * 3 + 1], pos[k * 3 + 2]);
+      mesh.setMatrixAt(k, m4); mesh.setColorAt(k, col.setHex(pick(L.colors)));
+    }
+    g.add(mesh);
+    if (type === "cotton") photoTex("pool-cotton", (t) => { mesh.material.map = t; mesh.material.needsUpdate = true; });   // 本物の わたあめの 写真
+    if (type === "beads") box(sw, 0.5, sd, new THREE.MeshLambertMaterial({ color: 0xffffff }), 0, -0.55, 0);   // した の つぶは 白で うめる
+    Object.assign(fx, { mesh, pos, off, sc, n });
+  } else {
+    // スライム・かきごおり・とろとろチョコ：表面（踏むと へこむ）
+    const segX = Math.max(8, Math.round(sw / 0.25)), segZ = Math.max(4, Math.round(sd / 0.25));
+    const geo = new THREE.PlaneGeometry(sw, sd, segX, segZ); geo.rotateX(-Math.PI / 2);
+    const pa = geo.attributes.position, base = new Float32Array(pa.count);
+    for (let k = 0; k < pa.count; k++) { base[k] = type === "ice" ? rand(-0.02, 0.06) : 0; pa.setY(k, base[k]); }
+    if (type === "ice") {   // かき氷：白い つぶつぶ ＋ シロップの しみ
+      const c = new Float32Array(pa.count * 3), col = new THREE.Color(), spots = Array.from({ length: Math.round(sw * sd / 3) }, () => ({ x: rand(-sw / 2, sw / 2), z: rand(-sd / 2, sd / 2), r: rand(0.5, 1.0), c: pick(L.syrup) }));
+      for (let k = 0; k < pa.count; k++) {
+        col.setHex(L.color); const x = pa.getX(k), z = pa.getZ(k);
+        for (const sp of spots) { const dd = Math.hypot(x - sp.x, z - sp.z); if (dd < sp.r) col.lerp(new THREE.Color(sp.c), (1 - dd / sp.r) * 0.75); }
+        c.set([col.r, col.g, col.b], k * 3);
+      }
+      geo.setAttribute("color", new THREE.BufferAttribute(c, 3));
+    }
+    geo.computeVertexNormals();
+    const mat = type === "slime"
+      ? new THREE.MeshPhongMaterial({ color: L.color, emissive: 0x2a8a3a, emissiveIntensity: 0.3, specular: 0xffffff, shininess: 90, transparent: true, opacity: L.opacity, depthWrite: false })
+      : type === "ice" ? new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x9fb8cc, emissiveIntensity: 0.25 })
+      : new THREE.MeshPhongMaterial({ color: L.color, emissive: 0x2e180c, emissiveIntensity: 0.3, specular: 0xffe1c4, shininess: 70 });
+    const mesh = new THREE.Mesh(geo, mat); mesh.renderOrder = 2; g.add(mesh);
+    photoTex(`pool-${type}`, (t) => { t.repeat.set(sw / 2, sd / 2); t.needsUpdate = true; mat.map = t; mat.color.set(0xffffff); if (mat.vertexColors) mat.vertexColors = false; mat.needsUpdate = true; });
+    if (type === "slime") { const body = box(sw, 0.6, sd, new THREE.MeshPhongMaterial({ color: 0x6fd47c, emissive: 0x2a8a3a, emissiveIntensity: 0.3, transparent: true, opacity: 0.45, depthWrite: false }), 0, -0.31, 0); body.renderOrder = 2; }
+    Object.assign(fx, { mesh, base, cur: new Float32Array(pa.count) });
+  }
+  g.userData.poolFx = fx;
+  return g;
 }
 
 /* ---------- 足場の 形（上の面が y=0、w×d の はばに おさまる） ---------- */
@@ -269,6 +354,7 @@ function makeShape(kind, w, d, theme) {
     }
     case "cookie":     // クッキー
       add(new THREE.CylinderGeometry(w / 2, w / 2, 0.34, 28), M, (m) => { m.position.y = -0.17; m.scale.z = d / w; });
+      photoTop(g, "obj-cookie", w, d, 0.002);   // 本物の クッキーの 写真（第11弾）
       for (let i = 0; i < 6; i++) add(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshLambertMaterial({ color: 0x5a3418 }), (m) => { const a = rand(0, 6.28), r = rand(0, w * 0.35); m.position.set(Math.cos(a) * r, 0.01, Math.sin(a) * r * (d / w)); m.scale.y = 0.5; });
       break;
     case "blob":       // スライムの かたまり
@@ -281,6 +367,7 @@ function makeShape(kind, w, d, theme) {
     case "senbei":     // おせんべい（のると われる）
       add(new THREE.CylinderGeometry(w / 2, w / 2, 0.16, 28), M, (m) => { m.position.y = -0.08; m.scale.z = d / w; });
       add(new THREE.PlaneGeometry(w * 0.32, d * 0.98), new THREE.MeshLambertMaterial({ color: 0x1f3324, side: THREE.DoubleSide }), (m) => { m.rotation.x = -Math.PI / 2; m.position.y = 0.006; });
+      photoTop(g, "obj-senbei", w, d, 0.003);   // 本物の せんべいの 写真（第11弾）
       break;
     case "bead":       // ビーズ（大きな たま）
       add(new THREE.SphereGeometry(Math.min(w, d) / 2, 22, 16), M, (m) => { m.position.y = -Math.min(w, d) / 2 + 0.05; });
@@ -301,6 +388,21 @@ function makeShape(kind, w, d, theme) {
       const mm = new THREE.MeshLambertMaterial({ color: mc, emissive: mc, emissiveIntensity: 0.25 });
       add(new THREE.CylinderGeometry(w * 0.46, w * 0.5, 0.75, 28), mm, (m) => { m.position.y = -0.47; m.scale.z = d / w; });
       add(new THREE.SphereGeometry(w * 0.46, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), mm, (m) => { m.scale.set(1, 0.22, d / w); m.position.y = -0.1; });
+      break;
+    }
+    case "chocomallow": {   // チョコマシュマロ：チョコで つつんだ ふっくら マシュマロ。踏むと チョコが われて 中の 白い マシュマロが 見える
+      const ch = new THREE.MeshPhongMaterial({ color: 0x5b3420, emissive: 0x2e180c, emissiveIntensity: 0.25, specular: 0xffe1c4, shininess: 55 });
+      const drz = new THREE.MeshLambertMaterial({ color: pick([0xffb3cf, 0xfff3e6, 0x9a6440]), emissiveIntensity: 0.3 });
+      add(new THREE.SphereGeometry(0.5, 28, 16), ch, (m) => { m.scale.set(w, 0.9, d); m.position.y = -0.45; });        // ふっくらした チョコの まるみ（上が 0）
+      for (let k = 0; k < 3; k++) add(new THREE.TorusGeometry(0.5, 0.025, 6, 30, Math.PI), drz, (m) => { m.rotation.y = Math.PI / 2; m.scale.set(d * 0.9, 0.3, 1); m.position.set(-w * 0.25 + k * w * 0.25, -0.33, 0); m.rotation.z = 0; });   // チョコの すじ
+      // われた 時に 見える 中の マシュマロ（白い 断面）と チョコの ふち
+      const inner = new THREE.Group(); inner.visible = false; g.add(inner);
+      const mm = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.06, 24), new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xfff4fa, emissiveIntensity: 0.35 }));
+      mm.scale.set(w * 0.62, 1, d * 0.62); mm.position.y = 0.0; inner.add(mm);
+      photoTex("obj-chocoinner", (t) => { mm.material = [mm.material, new THREE.MeshLambertMaterial({ map: t, emissive: 0xffffff, emissiveIntensity: 0.12 }), mm.material]; });   // 中の 断面の 写真
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.05, 6, 24), ch); rim.rotation.x = Math.PI / 2; rim.scale.set(w * 0.64, d * 0.64, 1); rim.position.y = 0.02; inner.add(rim);
+      for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2 + rand(-0.3, 0.3); const sh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.12), ch); sh.position.set(Math.cos(a) * w * 0.36, 0.04, Math.sin(a) * d * 0.36); sh.rotation.set(rand(-0.6, 0.6), a, rand(-0.6, 0.6)); inner.add(sh); }
+      g.userData.crack = inner;
       break;
     }
     case "popit": {    // プッシュポップ（シリコンの いた に まるい ポコポコが 3×3）
@@ -350,8 +452,7 @@ export function buildRoom(r, entry, api, used = new Set(), themeIdx = null) {
   const hCeil = Math.max(1.0, ceilBottom - 1.0 - Math.min(jumpH, 1.9) * 0.95);   // 天井の 下で ジャンプしても 頭が ぶつからない 高さ
   // 1周の 1段の 上がり幅は、しずんで ジャンプが ひくく なっても とどく 高さ まで（はちみつ）。のこりは 吹き抜けで のぼる
   const sunkJ = (P.jumpV * th.jump * (1 - (th.sinkMax || 0) * 0.15)) ** 2 / (2 * P.gravity * (th.grav || 1));
-  const LAP_N = 16;                                                            // 1周の 足場の 数（踊り場4・ジャンプ7・歩行区間4・さいご1）
-  const hOut = Math.min(hCeil, LAP_N * Math.min(1.2, sunkJ * 0.7));
+  const hOutOf = (n) => Math.min(hCeil, n * Math.min(1.2, sunkJ * 0.7));        // 1周の 足場の 数 n で きまる 高さ
   const start = entry ? entry.start : { x: 0, z: 4.2 };
   const W = ASMR.wall;                                                          // かべぞいの 足場の 大きさ・間かく
   const ins = W.inset, side = R - 2 * ins;
@@ -361,15 +462,21 @@ export function buildRoom(r, entry, api, used = new Set(), themeIdx = null) {
   const inSq = (p, c, m) => Math.abs(p.x - c.x) < T + m && Math.abs(p.z - c.z) < T + m;
   const atOf = (sx, sz) => { const i = sx < 0 ? 0 : N - 2, j = sz < 0 ? 0 : N - 2; return { i, j, c: { x: -half + T * (i + 1), z: T * (j + 1) } }; };
   // かど a → かど b の かべぞいに、長さ lens の 足場を 間を そろえて ならべる（from〜to は a から の きょり）
-  const lay = (a, b, kinds, from, to, walkLen = W.walk) => {
+  const lay = (a, b, kinds, from, to, walkLen = W.walk, poolGap = null) => {
     const pa = inPt(a), pb = inPt(b), L = Math.hypot(pb.x - pa.x, pb.z - pa.z), ux = (pb.x - pa.x) / L, uz = (pb.z - pa.z) / L;
     const along = a.sz === b.sz ? "x" : "z", nx = along === "z" ? a.sx : 0, nz = along === "x" ? a.sz : 0;
-    const lens = kinds.map((k) => (k === "W" ? walkLen : W.len));
+    const lens = kinds.map((k) => (k === "W" ? walkLen : k === "P" ? to - from - 2 * poolGap.gap : W.len));
     const gap = (to - from - lens.reduce((p, q) => p + q, 0)) / (lens.length + 1);
     let d = from + gap;
-    return kinds.map((k, i) => { const c = d + lens[i] / 2; d += lens[i] + gap; return { x: pa.x + ux * c, z: pa.z + uz * c, along, nx, nz, len: lens[i], walk: k === "W" }; });
+    return kinds.map((k, i) => {
+      const c = d + lens[i] / 2; d += lens[i] + gap;
+      const pool = k === "P", sh = pool ? poolGap.dep / 2 - W.dep / 2 : 0;   // プールは おくゆきが ひろい ぶん 部屋の 内がわへ
+      return { x: pa.x + ux * c - nx * sh, z: pa.z + uz * c - nz * sh, along, nx, nz, len: lens[i], walk: k === "W", pool: pool ? poolType : null, dep: pool ? poolGap.dep : W.dep };
+    });
   };
   const PAT = [["J", "W", "J"]];   // ジャンプ と 歩行区間が 交互（角の 踊り場も ジャンプで のる）
+  // 第11弾：1周の うち 1面（2面目）は、角から 角まで つながった 長い プール（床そのものを 歩いて あじわう）
+  const poolType = ASMR_POOL_OF[th.id] || "beads";
   // X＝吹き抜けの すみ、endWall＝さいごに そって くる かべ。X の 踊り場から はじめて、X の もう1つの かべ → 角 → … と 1周し、
   // endWall に そって X へ もどって 吹き抜けへ
   const wallRoute = (sx, sz, endWall) => {
@@ -383,7 +490,7 @@ export function buildRoom(r, entry, api, used = new Set(), themeIdx = null) {
     out.push({ ...cornerPt(X), corner: true });
     out.push(...lay(X, c3, pick(PAT), L0s, side - L0s));
     out.push({ ...cornerPt(c3), corner: true });
-    out.push(...lay(c3, c2, pick(PAT), L0s, side - L0s));
+    out.push(...lay(c3, c2, ["P"], L0s, side - L0s, W.walk, W.pool));
     out.push({ ...cornerPt(c2), corner: true });
     out.push(...lay(c2, c1, pick(PAT), L0s, side - L0s));
     out.push({ ...cornerPt(c1), corner: true });
@@ -393,6 +500,8 @@ export function buildRoom(r, entry, api, used = new Set(), themeIdx = null) {
     return out;
   };
   // 吹き抜けの すみ と 向きを えらぶ：低い 段が 下からの 穴の 上に 来ない・スタートから さいしょの 踊り場まで 少し 歩く
+  // （歩くのが おそい テーマ＝ねばねばは 床を 歩く きょりを みじかめに）
+  const wMin = th.walk < 0.6 ? 3 : 5, wMax = th.walk < 0.6 ? 7 : 13;
   const cands = [];
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const atc = atOf(sx, sz);
@@ -400,16 +509,17 @@ export function buildRoom(r, entry, api, used = new Set(), themeIdx = null) {
     for (const ew of ["z", "x"]) {
       const route = wallRoute(sx, sz, ew);
       let bad = 0;
-      route.forEach((p, k) => { if (entry && (hOut * (k + 1)) / route.length < 3.2 && inSq(p, ecOf(entry), 1.3)) bad++; });
+      route.forEach((p, k) => { if (entry && (hOutOf(route.length) * (k + 1)) / route.length < 3.2 && inSq(p, ecOf(entry), 1.3)) bad++; });
       const walk = Math.hypot(route[0].x - start.x, route[0].z - start.z);
       // スタートから さいしょの 踊り場まで まっすぐ 歩いて、下からの 穴に 落ちない こと
       if (entry) for (let t = 0.05; t < 1; t += 0.05) { const p = { x: start.x + (route[0].x - start.x) * t, z: start.z + (route[0].z - start.z) * t }; if (inSq(p, ecOf(entry), 0.5)) { bad++; break; } }
-      cands.push({ sx, sz, ew, route, atc, sc: -bad * 10 - Math.abs(Math.min(Math.max(walk, 5), 13) - walk) + Math.random() * 2 });
+      cands.push({ sx, sz, ew, route, atc, sc: -bad * 10 - Math.abs(Math.min(Math.max(walk, wMin), wMax) - walk) + Math.random() * 2 });
     }
   }
   cands.sort((p, q) => q.sc - p.sc);
   const pickC = cands[0];
-  const nOut = pickC.route.length;   // ＝ LAP_N
+  const nOut = pickC.route.length;
+  const hOut = hOutOf(nOut);
   const { sx, sz } = pickC, at = pickC.atc, ac = at.c;
   const walkIn = { a: start, b: pickC.route[0] };   // 床を 歩く 区間（落とし穴を ここに あけない）
   // 吹き抜けの 中の 4つの 場所：すみ（C）・かべぞい（E1＝z の かべぞい・E2＝x の かべぞい）・内がわ（I：床に 2辺 せっする）
@@ -441,6 +551,13 @@ export function buildRoom(r, entry, api, used = new Set(), themeIdx = null) {
     const { x: px, z: pz, top } = st;
     let kind = pick(th.shapes);
     if ((st.atrium || st.corner) && kind === "spacebar") kind = "key";
+    if (st.pool) {   // プール区間：角から 角まで つながった 長い 床（しずみながら 歩く・歩くたびに 素材の 音）
+      const alongX = st.along === "x", sw = alongX ? st.len : st.dep, sd = alongX ? st.dep : st.len;
+      const g = makePool(st.pool, sw, sd); g.position.set(st.x, top, st.z); objGroup.add(g);
+      const pp = ASMR_POOLS[st.pool];
+      room.objs.push(api.add({ x0: st.x - sw / 2, x1: st.x + sw / 2, y0: top - 0.45, y1: top, z0: st.z - sd / 2, z1: st.z + sd / 2, g, mat: th.id, room: r, kind: "pool", pool: { ...pp, type: st.pool }, snd: pp.snd, baseY: top, oneWay: true, noBreak: true }));
+      continue;
+    }
     if (st.walk) {   // 歩行区間：つながった 長い 足場（キーは 横に ずらっと。ほかは テーマの 物を すき間なく 2こ ならべる）
       const alongX = st.along === "x";
       if (kind === "key" || kind === "spacebar") {
@@ -474,9 +591,14 @@ export function buildRoom(r, entry, api, used = new Set(), themeIdx = null) {
       const ox = st.atrium || st.corner ? sx : st.nx, oz = st.atrium || st.corner ? sz : st.nz, ol = Math.hypot(ox, oz) || 1;
       g.rotation.y = Math.atan2(-ox / ol, -oz / ol);
     }
+    // ぱりぱり：角の 踊り場の せんべいは われない（のりを まいた かたい せんべい。第11弾）
+    if (st.corner && th.breakT) {   // 見分けやすく：ぶあつい 焼き色の 台（われない しるし）
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(sw / 2, sw / 2 * 0.92, 0.42, 28), new THREE.MeshLambertMaterial({ color: 0xa8662c, emissive: 0x5a3010, emissiveIntensity: 0.3 }));
+      base.position.y = -0.37; base.scale.z = sd / sw; g.add(base);
+    }
     g.position.set(px, top, pz);
     objGroup.add(g);
-    room.objs.push(api.add({ x0: px - sw / 2, x1: px + sw / 2, y0: top - 0.45, y1: top, z0: pz - sd / 2, z1: pz + sd / 2, g, mat: th.id, room: r, kind, baseY: top, oneWay: true, last: st.last }));
+    room.objs.push(api.add({ x0: px - sw / 2, x1: px + sw / 2, y0: top - 0.45, y1: top, z0: pz - sd / 2, z1: pz + sd / 2, g, mat: th.id, room: r, kind, baseY: top, oneWay: true, last: st.last, noBreak: !!st.corner }));
   }
   // 吹き抜けの しるし：4すみに 黄色い 柱（「ここから 上の かいへ」）
   for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {

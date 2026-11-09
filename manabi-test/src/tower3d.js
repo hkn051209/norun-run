@@ -635,9 +635,43 @@ export function towerStick(x, y) {
   const k = m > 1 ? 1 / m : 1;
   stick.x = x * k; stick.y = y * k;
 }
-const floorProps = () => (me.on && me.on.mat ? { ...NORMAL, ...themeOf(me.on.mat) } : NORMAL);
+// プールの 上は、部屋の テーマでは なく プールの 素材の 手ざわり（はちみつの 部屋でも ビーズの 上は ビーズ。しずみ・はねは なし）
+const floorProps = () => (me.on && me.on.pool ? { ...NORMAL, walk: me.on.pool.walk } : me.on && me.on.mat ? { ...NORMAL, ...themeOf(me.on.mat) } : NORMAL);
 /* ASMR：いまいる フロアの テーマ（ふわふわの 重力などは 部屋ぜんたいに かかる） */
 const roomTheme = () => (B.mode === "asmr" && A.rooms[A.k] ? A.rooms[A.k].theme : null);
+/* プール（第11弾）：キャラの まわりが へこむ。ビーズ・わたあめは つぶが よけて しずみ、スライム・かき氷・チョコは 表面が へこむ */
+const _m4 = new THREE.Matrix4();
+function poolFx(s, dt) {
+  const fx = s.g.userData.poolFx, on = me.on === s;
+  if (!on && !(s.fxT > 0)) return;
+  s.fxT = on ? 1.5 : s.fxT - dt;
+  const lx = me.x - s.g.position.x, lz = me.z - s.g.position.z, R = 0.85, k = 1 - Math.exp(-10 * dt);
+  if (fx.pos) {
+    for (let i = 0; i < fx.n; i++) {
+      const px = fx.pos[i * 3], pz = fx.pos[i * 3 + 2], dx = px - lx, dz = pz - lz, d = Math.hypot(dx, dz);
+      let ox = 0, oy = 0, oz = 0;
+      if (on && d < R) { const f = (R - d) / R; oy = -f * (fx.type === "cotton" ? 0.4 : 0.32); ox = (dx / (d || 1)) * f * 0.22; oz = (dz / (d || 1)) * f * 0.22; }
+      const o = fx.off, a = i * 3;
+      if (Math.abs(o[a] - ox) + Math.abs(o[a + 1] - oy) + Math.abs(o[a + 2] - oz) < 0.002) continue;
+      o[a] += (ox - o[a]) * k; o[a + 1] += (oy - o[a + 1]) * k; o[a + 2] += (oz - o[a + 2]) * k;
+      const sc = fx.sc[i];
+      _m4.makeScale(sc, sc * (fx.type === "cotton" ? 0.8 * (1 + o[a + 1]) : 1), sc).setPosition(px + o[a], fx.pos[a + 1] + o[a + 1], pz + o[a + 2]);
+      fx.mesh.setMatrixAt(i, _m4);
+    }
+    fx.mesh.instanceMatrix.needsUpdate = true;
+  } else {
+    const pa = fx.mesh.geometry.attributes.position, depth = s.pool.sink * 0.9, t = T.time;
+    for (let i = 0; i < pa.count; i++) {
+      const d2 = (pa.getX(i) - lx) ** 2 + (pa.getZ(i) - lz) ** 2;
+      let y = on ? -depth * Math.exp(-d2 / 0.28) : 0;
+      if (on && fx.type === "slime") y += Math.sin(Math.sqrt(d2) * 7 - t * 9) * 0.025 * Math.exp(-d2 / 1.5);   // スライムは ぷるぷる 波
+      if (on && fx.type === "ice") y = Math.min(fx.cur[i], y);                                          // かき氷は あしあとが のこる
+      fx.cur[i] += (y - fx.cur[i]) * (fx.type === "ice" ? (on ? k : 0.004) : k);
+      pa.setY(i, fx.base[i] + fx.cur[i]);
+    }
+    pa.needsUpdate = true; fx.mesh.geometry.computeVertexNormals();
+  }
+}
 /* ASMR：天井（上の フロアの 床）に 頭を ぶつけない 速さに おさえる（吹き抜けの 中は 天井が ないので そのまま）。
    第10弾：ぷにぷにで 天井に 頭を ぶつけて はね方が みだれ、上れなく なるのを ふせぐ */
 function capCeil(v) {
@@ -689,7 +723,7 @@ export const towerState = () => (T ? {
   best: T.best, falls: T.falls, cpN: T.cpN, speed: T.speed, mode: B.mode, char: nr.cur && nr.cur.id, theme: T.themeIdx, floor: A.k, approach: !!A.approach,
   rooms: A.rooms.map((r) => ({ r: r.r, theme: r.theme.id, exit: r.exit, holes: r.holes })),
   me: { ...me, on: !!me.on, onMat: me.on && me.on.mat, onConv: !!(me.on && me.on.conv) },
-  solids: solids.map((s) => ({ x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1, z0: s.z0, z1: s.z1, pad: !!s.pad, mov: !!s.mov, van: !!s.van, off: !!s.off, conv: !!s.conv, mat: s.mat, room: s.room, floor: !!s.floor, bound: !!s.bound, pillar: !!s.pillar, deco: !!s.deco, ghostWall: !!s.ghostWall })),
+  solids: solids.map((s) => ({ x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1, z0: s.z0, z1: s.z1, pad: !!s.pad, mov: !!s.mov, van: !!s.van, off: !!s.off, conv: !!s.conv, mat: s.mat, room: s.room, floor: !!s.floor, bound: !!s.bound, pillar: !!s.pillar, deco: !!s.deco, ghostWall: !!s.ghostWall, kind: s.kind, noBreak: !!s.noBreak })),
   bars: bars.map((b) => ({ cz: b.cz, y: b.y, ang: b.ang, half: b.half })),
   zones: zones.map((z) => ({ kind: z.kind, z: z.z, z0: z.z0, z1: z.z1, x: z.x, open: z.open, y: z.y })),
 } : null);
@@ -808,7 +842,7 @@ function loop() {
     // スライム：ぷるぷる ゆれる
     if (th.wobble) { s.wob = Math.max(0, (s.wob || 0) - dt * 1.2); const w = Math.sin(t * 16 + s.x0) * 0.16 * s.wob; s.g.scale.set(1 + w, 1 - w * 1.4, 1 + w); }
     // ぱりぱり：のると われる（しばらくして もどる）
-    if (th.breakT && !s.pillar && !s.deco) {
+    if (th.breakT && !s.pillar && !s.deco && !s.noBreak) {   // 角の 踊り場（noBreak）は われない（第11弾）
       if (s.off) { s.brkBack -= dt; if (s.brkBack <= 0) { s.off = false; s.g.visible = true; s.g.scale.setScalar(1); s.brk = -1; } }
       else {
         if (me.on === s && !(s.brk >= 0)) s.brk = 0;
@@ -863,7 +897,7 @@ function loop() {
   if (me.on && fp.sinkRate) me.neba = Math.min(fp.sinkMax, me.neba + fp.sinkRate * dt);
   else me.neba = Math.max(0, me.neba - dt * 2);
   const canMove = me.wait <= 0 && me.stun <= 0;
-  T.speed = P.speed * (me.on ? fp.walk * (1 - me.neba * 0.8) : 1);
+  T.speed = P.speed * (me.on ? fp.walk * (1 - me.neba * 0.8) : 1);   // プールの 中は プールの 速さ（floorProps）
   // スティックの 向き → ワールドの 向き（ASMR は カメラの 向きに あわせる。アスレは いつも 前が +z）
   const cy = asmr ? cam.yawS : 0;
   const fx = Math.sin(cy), fz = Math.cos(cy), rx = -Math.cos(cy), rz = Math.sin(cy);   // 前・画面の 右
@@ -926,7 +960,7 @@ function loop() {
     const fall = prevY - sup.y1;
     const wasAir = !me.on;
     ny = sup.y1; me.vy = 0; me.on = sup; me.jumps = 0; me.airT = 0;
-    const lp = sup.mat ? { ...NORMAL, ...themeOf(sup.mat) } : NORMAL;
+    const lp = sup.pool ? NORMAL : sup.mat ? { ...NORMAL, ...themeOf(sup.mat) } : NORMAL;   // プールは はねない・しずまない（プールの 手ざわり）
     if (wasAir && (fall > 0.15 || impact > 3)) {
       me.squash = Math.min(0.45, 0.1 + impact * 0.02 + (lp.bounce ? 0.15 : 0));
       me.sink = lp.bounce ? 0.4 : lp.sinkRate ? 0.3 : 0.12;
@@ -988,11 +1022,23 @@ function loop() {
   // 踏み音：その テーマの 足場を 踏んだ 瞬間に 鳴らす（歩く リズムでは 鳴らさない）
   me.ph += dt * (me.on && going ? 9.5 * Math.max(0.5, fp.walk) : 4);
   const hit = me.on || touched;
+  // 第11弾：鳴らすのは「足音」では なく、踏んだ 素材 そのものの 音（hit.snd が あれば その 素材の 音）
   if (hit && hit.mat && (hit !== me.lastOn || landedNow) && !(hit.g && hit.g.userData.pop) && T.onStep) {
     const rule = SHAPE_SOUND[hit.kind] || {};
-    const kind = rule.kind || (landedNow && landImpact > 4.5 ? "land" : "step");
-    T.onStep(hit.mat, kind, rule.rate || 1);
+    let kind = rule.kind || (landedNow && landImpact > 4.5 ? "land" : "step"), rate = rule.rate || 1;
+    if (hit.kind === "chocomallow") {   // はじめは チョコが パキッ、われた あとは 中の マシュマロが ふにゅっ
+      const cr = hit.g.userData.crack;
+      if (cr && !cr.visible) { cr.visible = true; kind = "land"; spawnCrumbs(hit, 0x5b3420, 8, me.x, me.z); } else { kind = "step"; rate = 0.82; }
+      hit.crackT = 7;
+    }
+    T.onStep(hit.snd || hit.mat, kind, rate);
     if (hit.kind === "chocobar") spawnCrumbs(hit, 0x5a331d, landedNow ? 8 : 4, me.x, me.z);   // パキッ（かけら）
+    me.poolDist = 0;
+  }
+  // プールの 上を 歩いている 間は、何歩か ぶん（every m）歩くたびに 素材の 音（ビーズが じゃらっ・スライムが ぷちゅっ …）
+  if (me.on && me.on.pool && going && T.onStep) {
+    me.poolDist = (me.poolDist || 0) + Math.hypot(me.vx, me.vz) * dt;
+    if (me.poolDist > me.on.pool.every) { me.poolDist = 0; T.onStep(me.on.snd, "step", 0.9 + Math.random() * 0.22); }
   }
   // かざりの ほし：くるくる・ふわふわ
   if (asmr) for (const room of A.rooms) if (room.group.visible && room.twinkle) for (const st of room.twinkle) {
@@ -1066,7 +1112,7 @@ function loop() {
     nr.pose.position.y = damp(nr.pose.position.y, sliding ? PAN_SLIDE.y * sc : 0, 18, dt);
   }
   const bob = ch && ch.def.skills.phase ? Math.sin(t * 2.4) * OBAKE.bob + OBAKE.bob : 0;   // おばけ：ふわふわ（ルートの position.y で）
-  const mallowSink = me.on && me.on.kind === "mallow" ? 0.18 : 0;
+  const mallowSink = me.on && (me.on.kind === "mallow" || me.on.kind === "chocomallow") ? 0.16 : me.on && me.on.pool ? me.on.pool.sink : 0;   // マシュマロ・プールに しずむ
   me.msink = damp(me.msink || 0, mallowSink, 7, dt);
   nr.root.position.set(me.x, me.y + (bob ? bob : hop) - me.sink * 0.25 - me.neba * 1.1 - me.msink, me.z);
   // はちみつに しずんでいる時：まわりに はちみつの わ（ねっとり）
@@ -1083,6 +1129,11 @@ function loop() {
     if (!s.g || s.floor) continue;
     if (s.mat === "puni") s.g.scale.y = damp(s.g.scale.y, me.on === s ? 0.8 : 1, 12, dt);
     if (s.kind === "mallow") s.g.scale.y = damp(s.g.scale.y, me.on === s ? 0.72 : 1, 7, dt);   // マシュマロ：ふわっと しずむ
+    if (s.kind === "chocomallow") {   // チョコマシュマロ：ふにゅっと へこむ。われた チョコは しばらくして もとに もどる
+      s.g.scale.y = damp(s.g.scale.y, me.on === s ? 0.78 : 1, 9, dt);
+      if (s.crackT > 0 && me.on !== s) { s.crackT -= dt; if (s.crackT <= 0) s.g.userData.crack.visible = false; }
+    }
+    if (s.g.userData.poolFx) poolFx(s, dt);
   }
   // 影
   let sy = null;
