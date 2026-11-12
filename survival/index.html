@@ -4,7 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#cdbdf5">
-<title>のるんの ほしぞらサバイバル</title>
+<title>のるんのだいぼうけん</title>
+<!-- PWA：ホーム画面に追加できるように（manifest.webmanifest／sw.js は この index.html と同じフォルダ） -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="のるんのだいぼうけん">
 <!-- 丸ゴシック：M PLUS Rounded 1c（のるん まなび と そろえる） -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -327,6 +334,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 .l1{font-size:54px}
 .l1 .fr{background:linear-gradient(#fff 0,#fff 36%,#c6e8ff 60%,#7fb4ff 100%);-webkit-background-clip:text;background-clip:text}
 .l2{font-size:50px;margin-top:6px}
+.l2.dai{font-size:clamp(38px,12.4vw,52px)}
 .l2 .bk{-webkit-text-stroke:12px var(--ink2);text-shadow:0 8px 0 var(--ink2),0 14px 16px rgba(20,10,50,.5)}
 .l2 .fr{background:linear-gradient(#fffbe0 0,#fff3a8 40%,#ffd257 68%,#ffab33 100%);-webkit-background-clip:text;background-clip:text}
 .lst.s1{left:-22px;top:34px}.lst.s2{right:-18px;top:18px}.lst.s3{left:-10px;bottom:0}
@@ -465,6 +473,52 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 .hico{z-index:2}
 #xpfill{z-index:0}
 #xpfill::after{z-index:3}
+
+/* ===================== v8：のるんのだいぼうけん（モード選択・絵本・本棚・おとボタン） ===================== */
+.mrow{display:flex;gap:12px;width:100%}
+.mrow .bb{flex:1;min-width:0;font-size:18px;letter-spacing:.02em;padding-left:40px}
+.mrow .bb i{left:8px;width:34px;height:34px;font-size:17px}
+.bb.sky{background:linear-gradient(#a9e4ff,#5fb2f0);box-shadow:0 0 0 3px #3f8fd0,0 8px 0 3px #2f6fae}
+.bb.sky:active{box-shadow:0 0 0 3px #3f8fd0,0 3px 0 3px #2f6fae}
+.bb.sky i{color:#3f8fd0}
+.bb.mint{background:linear-gradient(#b8f0d6,#5fc79c);box-shadow:0 0 0 3px #3ea57c,0 8px 0 3px #2d8462}
+.bb.mint:active{box-shadow:0 0 0 3px #3ea57c,0 3px 0 3px #2d8462}
+#smenu .big,#smenu .ghost{min-width:210px}
+#smInfo{margin:2px 0 6px;line-height:1.6}
+#smNew.warn{background:linear-gradient(#ffd0a0,#ff9a5a)}
+#book{padding:10px;background:rgba(20,14,48,.72);justify-content:center}
+.bkbox{position:relative;width:100%;max-width:520px;max-height:100%;display:flex;flex-direction:column;gap:10px;
+  background:linear-gradient(#fffaf3,#fff0e2);border:3px solid #fff;border-radius:24px;padding:12px 12px 12px;box-shadow:0 10px 30px rgba(10,6,40,.45);overflow:hidden}
+.bkimg{position:relative;width:100%;aspect-ratio:4/3;max-height:56vh;flex:none;margin:0 auto;border-radius:16px;overflow:hidden;background:#efe6ff}
+.bkimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+.bkfall{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  background:radial-gradient(circle at 50% 40%,#fff6d8 0,#d9ccff 55%,#a99be6 100%);color:#5a4374;font-weight:800}
+.bkfall .bn{font-size:54px;line-height:1;color:#fff;text-shadow:0 3px 0 #7e66cf}
+.bkfall small{font-size:12px;opacity:.75}
+.bkcover{position:absolute;left:0;right:0;top:7%;display:none;flex-direction:column;align-items:center;line-height:1.05;pointer-events:none}
+.bkcover .l0{font-size:clamp(18px,5.5vw,26px)}
+.bkcover .l2.dai{font-size:clamp(32px,10vw,50px)}
+.bktxt{flex:1 1 auto;min-height:0;overflow-y:auto;text-align:left;padding:0 6px}
+.bktxt b{display:block;font-size:19px;color:var(--ink);margin-bottom:4px}
+.bktxt b::before{content:"★ ";color:var(--star)}
+.bktxt p{margin:0;white-space:pre-line;font-size:16.5px;line-height:1.85;color:#4a3a62}
+.bknav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.bknav .big{margin:0;padding:10px 28px}
+.bknav .ghost{margin:0;padding:8px 14px}
+#bkPg{margin-right:auto;font-size:12.5px;color:var(--sub);font-weight:800}
+#bkPrev{display:none}
+#shelf .panel{max-height:calc(100% - 10px);overflow-y:auto}
+.shsub{margin:0 0 8px;font-size:12.5px;color:var(--sub)}
+#shelfGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.shb{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:3px;padding:4px;border-radius:12px;border:2px solid var(--line);background:#fff;color:var(--ink);font-size:10.5px;line-height:1.25;min-width:0}
+.shb .th{position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:radial-gradient(circle at 50% 40%,#fff6d8 0,#d9ccff 70%);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;text-shadow:0 2px 0 #7e66cf}
+.shb .th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.shb span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800}
+.shb.lock{background:#ece8f4;border-color:#d9d3e6;color:#9d97ad}
+.shb.lock .th{background:#cfc9de;color:#f3f0fa;text-shadow:none}
+#shelfBack{margin-top:12px}
+#sndFloat{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));z-index:8;display:none}
+#sndFloat.on{display:block}
 </style>
 </head>
 <body>
@@ -497,20 +551,24 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 </div>
 <button id="btnUlt" aria-label="大技"><span class="in"><i class="st">★</i><b class="tx">大技</b></span><i class="sp s1">✦</i><i class="sp s2">✦</i><i class="sp s3">✧</i></button>
 <div id="banner"></div>
+<button class="hbtn" id="sndFloat" aria-label="おと">♪</button>
 
 <div class="ov on" id="title">
   <div class="tbox">
     <div class="logo">
       <span class="lgw l0"><span class="bk">のるんの</span><span class="fr">のるんの</span></span>
-      <span class="lgw l1"><span class="bk">ほしぞら</span><span class="fr">ほしぞら</span></span>
-      <span class="lgw l2"><span class="bk">サバイバル</span><span class="fr">サバイバル</span></span>
+      <span class="lgw l2 dai"><span class="bk">だいぼうけん</span><span class="fr">だいぼうけん</span></span>
       <i class="lst s1">★</i><i class="lst s2">✦</i><i class="lst s3">✧</i>
     </div>
     <canvas id="hero"></canvas>
     <div class="menu">
-      <button class="bb pink" id="btnStart"><i>▶</i>はじめる</button>
+      <div class="mrow">
+        <button class="bb pink" id="btnStart"><i>▶</i>つうじょう</button>
+        <button class="bb sky" id="btnStory"><i>📖</i>ストーリー</button>
+      </div>
       <button class="bb lav" id="btnForge"><i>🔨</i>つよさ工房</button>
       <button class="bb gold" id="btnEquip"><i>💎</i>レアアイテム<span class="nb" id="rareCount"></span></button>
+      <button class="bb mint" id="btnShelf"><i>📚</i>えほん<span class="nb" id="shelfCount"></span></button>
     </div>
     <div class="tcard" id="titleBag"></div>
     <p class="hint">スマホ：ドラッグで いどう・右下ボタンで 大技<br>キーボード：WASD／やじるし・スペースで 大技</p>
@@ -520,25 +578,65 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 <div class="ov" id="stage">
   <div class="mapwrap" id="mapWrap">
     <canvas id="mapCv"></canvas>
-    <div class="maphead"><small>のるんの ほしぞらサバイバル</small><b>ステージえらび</b></div>
+    <div class="maphead"><small>のるんのだいぼうけん</small><b>ステージえらび</b></div>
     <button class="navbtn" id="btnBack">← もどる</button>
     <div class="legend" id="mapLegend"></div>
     <div id="mapNodes"></div>
     <canvas id="mapNorun"></canvas><div class="sign">スタート！</div>
     <div id="mapToast"></div>
   </div>
-  <div id="stageSheet">
-    <div class="panel wide">
-      <button class="sx" id="sheetClose" aria-label="とじる">×</button>
-      <div class="shead"><img id="shStar" alt=""><div><b id="shName"></b><small id="shBest"></small></div></div>
-      <div class="sec">へんしん</div>
-      <div id="forms"></div>
-      <div id="formInfo"></div>
-      <div id="limits">じかん <button class="lbtn" data-l="180">3分</button><button class="lbtn" data-l="300">5分</button></div>
-      <p class="seq" id="shEq"></p>
-      <button class="big" id="shPlay">あそぶ</button>
-      <button class="ghost" id="shEndless">∞ エンドレス</button>
+</div>
+
+<div id="stageSheet">
+  <div class="panel wide">
+    <button class="sx" id="sheetClose" aria-label="とじる">×</button>
+    <div class="shead"><img id="shStar" alt=""><div><b id="shName"></b><small id="shBest"></small></div></div>
+    <div class="sec">へんしん</div>
+    <div id="forms"></div>
+    <div id="formInfo"></div>
+    <div id="limits">じかん <button class="lbtn" data-l="180">3分</button><button class="lbtn" data-l="300">5分</button></div>
+    <p class="seq" id="shEq"></p>
+    <button class="big" id="shPlay">あそぶ</button>
+    <button class="ghost" id="shEndless">∞ エンドレス</button>
+  </div>
+</div>
+
+<!-- ストーリー：つづきから／さいしょから -->
+<div class="ov" id="smenu">
+  <div class="panel">
+    <div class="ribbon lav">ストーリー</div>
+    <p id="smInfo"></p>
+    <button class="big" id="smCont">つづきから</button><br>
+    <button class="big" id="smNew">さいしょから</button><br>
+    <button class="ghost" id="smBack">もどる</button>
+  </div>
+</div>
+
+<!-- 絵本：画像＋本文を たてに。タップか「つぎへ」で すすむ -->
+<div class="ov" id="book">
+  <div class="bkbox" id="bkBox">
+    <div class="bkimg" id="bkImgBox">
+      <img id="bkImg" alt="">
+      <div class="bkfall" id="bkFall"></div>
+      <div class="bkcover" id="bkCover"><span class="lgw l0"><span class="bk">のるんの</span><span class="fr">のるんの</span></span><span class="lgw l2 dai"><span class="bk">だいぼうけん</span><span class="fr">だいぼうけん</span></span></div>
     </div>
+    <div class="bktxt" id="bkTxt"><b id="bkTitle"></b><p id="bkText"></p></div>
+    <div class="bknav">
+      <button class="ghost" id="bkPrev">◀ まえ</button>
+      <button class="ghost" id="bkSkip">とばす ⏭</button>
+      <span id="bkPg"></span>
+      <button class="big" id="bkNext">つぎへ</button>
+    </div>
+  </div>
+</div>
+
+<!-- えほんの本棚 -->
+<div class="ov" id="shelf">
+  <div class="panel wide">
+    <div class="ribbon gold">えほん</div>
+    <p class="shsub">よんだ ページを もう一度 よめるよ</p>
+    <div id="shelfGrid"></div>
+    <button class="ghost" id="shelfBack">もどる</button>
   </div>
 </div>
 
@@ -571,6 +669,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
     <div class="ribbon lav">ひとやすみ</div><br>
     <button class="big" id="btnResume">つづける</button>
     <button class="ghost" id="btnQuit">ちずへ</button>
+    <button class="ghost" id="btnReread" style="display:none">えほんを みる</button>
   </div>
 </div>
 
@@ -596,7 +695,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 
 <script>
 /* ============================================================
-   のるんの ほしぞらサバイバル v7.2
+   のるんのだいぼうけん v8（もと：のるんの ほしぞらサバイバル v7.2）
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -629,11 +728,8 @@ const CFG = {
   ENEMY_SCALE: {ant:1.2, bee:1.2, cat:2.45, crow:2.6, dog:1.55, bosscat:1.6, bosscrow:1.5, hand:1.3, roomba:1.6},
   EDGE_FIX: true,           // 絵が画像の端で切れている時（翼の先など）、切り口を丸い先端に整える
   FX_SPR: {   // スキルエフェクトの絵（透過PNG）。読みこめない時は 今までの描画になる
-    /* 波：a は「前後」（画面の上下）に進む時、b は「横」（左右）に進む時に使う。
-       ang＝絵の中で 波が進んでいく向き（右＝0、下＝90、左＝180、上＝-90 度）。flip＝true なら 逆向きの時に左右反転で使う（上下逆さまにしない）
-       size＝絵の大きさ（波の当たり判定の直径に対する倍率） */
-    waveA: {src:'img/fx-wave-chappi-a.png', ang:-90, flip:true, size:2.4},
-    waveB: {src:'img/fx-wave-chappi-b.png', ang:0,   flip:true, size:2.6},
+    /* ang＝絵の中で 進んでいく向き（右＝0、下＝90、左＝180、上＝-90 度）／size＝絵の大きさ（当たり判定の直径に対する倍率） */
+    slash: {src:'img/fx-water-slash-chappi.png', ang:0, size:2.5},   // 斬撃（水スキル）：三日月の水の刃。絵の右が進む向き。1枚を進む向きへ回して 全方向に使う（反転なし）
     grass: {src:'img/fx-grass-chappi.png', size:2.35, spin:0.25},   // 回復エリアの直径に対する倍率／ゆっくり回る速さ
     fire:  {src:'img/fx-fire-chappi.png',  size:2.5},                // 炎の範囲の直径に対する倍率
   },
@@ -665,12 +761,42 @@ const CFG = {
      dmgMul:0.6, dmgGrowth:0.2, spdGrowth:0.05, finaleSpawn:0.75, finaleHp:1.1, finaleCap:110,
      mix:{bee:[0.25,0.10,0.05], crow:[9,0,0], dog:[0.55,0.04,0.03]}, ant:[8,6,8], crowMax:0,
      bosses:[{at:0.6,type:'bosscat',hpMul:0.35}], handAt:null},
+    // 3 はなのそうげん：ハチとアリの花畑（v8で追加）
+    {id:3, name:'はなのそうげん', bg:'flower',
+     spawnInterval:[1.6,0.7], spawnExtra:1.4, hpMul:0.7, hpGrowth:1.2, enemyCap:110,
+     dmgMul:0.7, dmgGrowth:0.28, spdGrowth:0.08, finaleSpawn:0.7, finaleHp:1.15, finaleCap:140,
+     mix:{bee:[0.15,0.16,0.08], crow:[9,0,0], dog:[0.5,0.05,0.03]}, ant:[7,5,10], crowMax:0,
+     bosses:[{at:0.6,type:'bosscat',hpMul:0.5}], handAt:null},
+    // 4 まちはずれ：カラス初登場、いぬも多め（v8で追加）
+    {id:4, name:'まちはずれ', bg:'townedge',
+     spawnInterval:[1.35,0.55], spawnExtra:1.9, hpMul:0.82, hpGrowth:1.6, enemyCap:160,
+     dmgMul:0.82, dmgGrowth:0.36, spdGrowth:0.12, finaleSpawn:0.62, finaleHp:1.22, finaleCap:200,
+     mix:{bee:[0.2,0.10,0.06], crow:[0.3,0.08,0.05], dog:[0.25,0.10,0.06]}, ant:[8,5,8], crowMax:8,
+     bosses:[{at:0.45,type:'bosscat',hpMul:0.65},{at:0.75,type:'bosscrow',hpMul:0.8,escort:['crow',2]}], handAt:null},
     // 5 ほしのまち（v6までの ステージ3「町」。数値は そのまま）
     {id:5, name:'ほしのまち', bg:'town',
      spawnInterval:[1.15,0.4], spawnExtra:2.4, hpMul:0.95, hpGrowth:2.1, enemyCap:220,
      dmgMul:0.95, dmgGrowth:0.45, spdGrowth:0.18, finaleSpawn:0.55, finaleHp:1.3, finaleCap:280,
      mix:{bee:[0.1,0.12,0.08], crow:[0.1,0.14,0.08], dog:[0.2,0.10,0.08]}, ant:[8,5,8], crowMax:14,
      bosses:[{at:0.35,type:'bosscat',hpMul:0.9},{at:0.7,type:'bosscrow',hpMul:1.1,escort:['crow',4]}], handAt:null},
+    // 6 ゆうやけの丘：いぬ多め、夕方の色（v8で追加）
+    {id:6, name:'ゆうやけの丘', bg:'sunset',
+     spawnInterval:[1.1,0.38], spawnExtra:2.5, hpMul:1.0, hpGrowth:2.3, enemyCap:215,
+     dmgMul:1.0, dmgGrowth:0.5, spdGrowth:0.19, finaleSpawn:0.54, finaleHp:1.32, finaleCap:285,
+     mix:{bee:[0.2,0.10,0.06], crow:[0.25,0.10,0.06], dog:[0.1,0.13,0.08]}, ant:[7,4,9], crowMax:10,
+     bosses:[{at:0.38,type:'bosscat',hpMul:0.95},{at:0.7,type:'bosscrow',hpMul:1.15,escort:['crow',4]}], handAt:null},
+    // 7 並木の小道：アリ行列とハチ（v8で追加）
+    {id:7, name:'並木の小道', bg:'trees',
+     spawnInterval:[1.06,0.36], spawnExtra:2.6, hpMul:1.04, hpGrowth:2.45, enemyCap:225,
+     dmgMul:1.05, dmgGrowth:0.53, spdGrowth:0.2, finaleSpawn:0.53, finaleHp:1.34, finaleCap:288,
+     mix:{bee:[0.1,0.22,0.10], crow:[0.45,0.04,0.03], dog:[0.3,0.07,0.05]}, ant:[5.5,3.5,13], crowMax:6,
+     bosses:[{at:0.4,type:'bosscat',hpMul:1.0},{at:0.72,type:'bosscrow',hpMul:1.15,escort:['crow',4]}], handAt:null},
+    // 8 おうちの坂道：総合力の最終前哨（v8で追加）
+    {id:8, name:'おうちの坂道', bg:'slope',
+     spawnInterval:[1.04,0.35], spawnExtra:2.7, hpMul:1.06, hpGrowth:2.55, enemyCap:225,
+     dmgMul:1.08, dmgGrowth:0.54, spdGrowth:0.22, finaleSpawn:0.52, finaleHp:1.36, finaleCap:290,
+     mix:{bee:[0.1,0.16,0.08], crow:[0.2,0.09,0.05], dog:[0.2,0.10,0.06]}, ant:[6,3.5,12], crowMax:8,
+     bosses:[{at:0.4,type:'bosscat',hpMul:1.0},{at:0.72,type:'bosscrow',hpMul:1.2,escort:['crow',4]}], handAt:null},
     // 9 お庭：ハチとアリが多い。ほしのまち（5）より むずかしく、家の中（10）より やさしい
     {id:9, name:'お庭', bg:'garden',
      spawnInterval:[1.02,0.35], spawnExtra:2.7, hpMul:1.08, hpGrowth:2.6, enemyCap:230,
@@ -709,7 +835,11 @@ const CFG = {
   RARE_RATE: 0.10,          // ボス級（ボスネコ・ボスカラス・手・ルンバ）を倒した時、まだ持っていないレアアイテムが おちる確率
   GUARD_CD: 30,             // ほしのまもり：ふせいでから もどるまでの秒数
   REVIVE_HP: 0.5,           // いのちのほし：ふっかつ時のHP（さいだいHPに対する割合）
-  ROOMBA_HEART: {r:0.5, spd:240},   // ルンバの心：がめんの短い辺×r の はんいの かけらが、spd の速さで よってくる
+  ROOMBA_HEART: {r:0.5, spd:240},
+  /* BGM（ループ）：タイトル系の画面＝bgm_title、ステージ＝bgm_stage(番号)。ファイルが無い時は 鳴らないだけ
+     vol＝ふつうの音量 / dim＝ひとやすみ・レベルアップ・けっか画面の時の音量 */
+  BGM: {dir:'bgm/', vol:0.5, dim:0.22},
+  STORY_DIR: 'story/',   // 絵本の絵：00_cover.png／01_page.png〜14_page.png／15_backcover.png   // ルンバの心：がめんの短い辺×r の はんいの かけらが、spd の速さで よってくる
 };
 
 /* のるんの絵（透過PNG）。img/norun_{姿}_{front,back,side}.png。side は左向きの絵で、右へ進む時は左右反転する。無ければ仮絵。 */
@@ -753,7 +883,7 @@ const SKILLS = {
   thunder: {icon:'⚡', name:'かみなり',   desc:'敵から敵へ つたわり しびれさせる', up:'つたわる数とダメージ↑'},
   poison:  {icon:'🍄', name:'どく',       desc:'弾があたると じわじわダメージ',   up:'どくが つよく'},
   ice:     {icon:'❄️', name:'こおり',     desc:'つらぬく氷。敵が おそくなる',     up:'貫通↑ Lv3から こおる'},
-  water:   {icon:'🌊', name:'なみ',       desc:'波で 敵を おしながす',            up:'波が大きく・つよく'},
+  water:   {icon:'🌊', name:'斬撃',       desc:'水の刃で 切りつける',            up:'刃が大きく・つよく'},
   herb:    {icon:'🌿', name:'やくそう',   desc:'回復エリアが はえる。中にいると じわじわ回復', up:'エリアが広く 回復↑'},
   rate:    {icon:'⏩', name:'れんしゃ',   desc:'ぜんぶのスキルが 10%はやく',      boost:true, on:g=>{g.st.cd*=0.9;}},
   bspd:    {icon:'💫', name:'だんそく',   desc:'弾の速さ +20%',                   boost:true, max:3, on:g=>{g.st.bspd*=1.2;}},
@@ -842,12 +972,23 @@ function loadSave(){
   if(!s||typeof s!=='object') s={};
   s.best=s.best||{}; s.clears=s.clears||{}; s.totalKills=s.totalKills||0; s.stageClear=s.stageClear||{}; s.endless=s.endless||{};
   s.mats=s.mats||{}; s.forge=s.forge||{}; s.rares=s.rares||{}; s.firstKill=s.firstKill||{};
+  s.unlocked=s.unlocked||{};
+  const st=s.story&&typeof s.story==='object'?s.story:{}; s.story={step:st.step|0, started:!!st.started, done:!!st.done, seen:st.seen||{}};
+  /* v8の移行（1回だけ）：v7の解放チェーンは 1→2→5→9→10。そのとき あそべた面より前の 新しい面（3・4・6・7・8）は
+     「解放ずみ・未クリア」にして、あそべた面も そのまま あそべるように残す（解放を まきもどさない） */
+  if(!s.v8){
+    const OLD=[1,2,5,9,10]; let maxOpen=1;
+    OLD.forEach((id,i)=>{ if(i===0||s.stageClear[OLD[i-1]]){ s.unlocked[id]=true; maxOpen=Math.max(maxOpen,id); } });
+    for(const id of [3,4,6,7,8]) if(id<maxOpen) s.unlocked[id]=true;
+    s.v8=true; s._migrated=true;
+  }
   if(!FORMS[s.form]) s.form='normal';
   if(!CFG.LIMITS.includes(s.limit)) s.limit=CFG.DEFAULT_LIMIT;
   return s;
 }
 function persist(){ try{ localStorage.setItem(CFG.SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 let save = loadSave();
+if(save._migrated){ delete save._migrated; persist(); }
 const UNLOCK_ALL = /[?&]unlock=1/.test((window.location&&window.location.search)||'');
 const isOpen = f => UNLOCK_ALL || UNLOCK[f].ok(save);
 if(!isOpen(save.form)) save.form='normal';
@@ -858,8 +999,29 @@ if(/[?&]rich=1/.test((window.location&&window.location.search)||'')){ for(const 
 /* ---------- 効果音（仮：WebAudio合成音） ---------- */
 let AC=null, muted=!!save.mute;
 function initAudio(){
+  audioOk=true; bgmSync(true);   // BGM は ユーザーの操作のあとでないと 鳴らせない（スマホ）
   if(AC){ if(AC.state==='suspended') AC.resume(); return; }
   try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; }
+}
+/* ---------- BGM（ループ）：<audio> 1つを つかいまわす（スマホで 1回 鳴らせた要素は あとから 曲を かえても 鳴らせる） ---------- */
+let audioOk=false;
+const bgm={el:null,key:'',vol:-1,bad:{}};
+function bgmWant(){   // いまの画面で 鳴らす曲と 音量
+  if(state==='play') return ['stage'+G.stage.id,CFG.BGM.vol];
+  if(state==='levelup'||state==='pause'||state==='end') return [G&&G.stage?'stage'+G.stage.id:'title',CFG.BGM.dim];
+  return ['title',CFG.BGM.vol];
+}
+function bgmSync(force){
+  if(typeof Audio==='undefined') return;
+  const [key,vol]=bgmWant(), off=muted||!audioOk||(typeof document!=='undefined'&&document.hidden)||bgm.bad[key];
+  if(!force&&key===bgm.key&&vol===bgm.vol&&!!off===!!bgm.off) return;
+  try{
+    if(!bgm.el){ bgm.el=new Audio(); bgm.el.loop=true; bgm.el.preload='auto';
+      bgm.el.addEventListener('error',()=>{ if(bgm.key) bgm.bad[bgm.key]=true; }); }   // ファイルが無い曲は もう ためさない
+    if(key!==bgm.key){ bgm.key=key; bgm.el.src=CFG.BGM.dir+'bgm_'+key+'.mp3'; }
+    bgm.vol=vol; bgm.off=off; bgm.el.volume=vol;
+    if(off) bgm.el.pause(); else { const p=bgm.el.play(); if(p&&p.catch) p.catch(()=>{}); }
+  }catch(e){}
 }
 function tone(freq,dur,type,vol,slide,delay){
   if(!AC||muted) return;
@@ -916,9 +1078,12 @@ window.addEventListener('keydown',e=>{
   else if(state==='play' && (k===' '||k==='e')) useUlt();
   else if((k==='p'||k==='escape') && state==='play') pause();
   else if((k==='p'||k==='escape') && state==='pause') resume();
+  else if(state==='book' && (k===' '||k==='enter'||k==='arrowright')) bookNext();
+  else if(state==='book' && k==='arrowleft') bookPrev();
+  else if(k==='escape' && state==='book') bookSkip();
   else if(k==='enter' && state==='title') toStages();
-  else if(k==='escape' && (state==='stage'||state==='forge')) toTitle();
-  else if(k==='enter' && state==='end') start();
+  else if(k==='escape' && (state==='stage'||state==='forge'||state==='smenu'||state==='shelf')) toTitle();
+  else if(k==='enter' && state==='end') { if(G&&G.story&&$('btnNext').style.display!=='none') $('btnNext').onclick(); else if($('btnRetry').style.display!=='none') start(); }
 });
 window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
 window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
@@ -1621,13 +1786,14 @@ function buildTitle(){
     '<h4>つよさ（素体レベル）</h4><div class="chips">'+Object.keys(FORGE).map(k=>'<span class="schip">'+FORGE[k].icon+FORGE[k].short+' <b>Lv'+(f[k]||0)+'</b></span>').join('')+'</div>'+
     '<h4>そざい</h4><div class="matgrid">'+Object.keys(MATS).map(k=>matChip(k,save.mats[k]||0,(save.mats[k]||0)?'':'zero')).join('')+'</div>'+
     '<h4>きろく</h4><div class="eqline" style="min-height:0">クリアした ステージ '+nClear+' / '+STAGE_MAP.length+'　・　たおした合計 '+save.totalKills+'</div>';
+  $('shelfCount').textContent=STORY.filter((p,i)=>pageOpen(i)).length+' / '+STORY.length;
 }
 /* ---------- ステージのシート（地図でマスをタップ）：へんしん・じかんを えらんで あそぶ ---------- */
 let sheetId=1;
 function buildSheet(){
   const S=stageDef(sheetId), cleared=!!save.stageClear[sheetId];
   $('shStar').src=nodeURL(cleared?'done':'now');
-  $('shName').textContent=sheetId+'　'+S.name;
+  $('shName').textContent=(storyMode?'おはなし ':'')+sheetId+'　'+S.name;
   $('shBest').textContent=[bestText(sheetId,save.limit),endlessText(sheetId)].filter(Boolean).join('　');
   const box=$('forms'); box.innerHTML='';
   for(const f of Object.keys(FORMS)){
@@ -1650,7 +1816,7 @@ function buildSheet(){
   const eq=save.equip;
   $('shEq').innerHTML=(S.final?'<b>さいごの ステージ！</b> 手は かたい。つよさ工房で つよくしてから いどもう<br>':'')+'そうび：'+(eq?icoImg(eq)+' <b>'+RARES[eq].name+'</b>':'なし')+'（つよさ工房で かえられる）';
   $('shPlay').onclick=()=>{ closeSheet(); start(sheetId,false); };
-  const eb=$('shEndless'); eb.style.display=(cleared||UNLOCK_ALL)?'inline-block':'none';
+  const eb=$('shEndless'); eb.style.display=(!storyMode&&(cleared||UNLOCK_ALL))?'inline-block':'none';
   eb.onclick=()=>{ closeSheet(); start(sheetId,true); };
 }
 function openSheet(id){ sheetId=id; buildSheet(); $('stageSheet').classList.add('on'); }
@@ -1724,7 +1890,7 @@ let cur={stage:1,endless:false};
 const stIdx = id => CFG.STAGES.findIndex(S=>S.id===id);
 const nextStage = id => CFG.STAGES[stIdx(id)+1]||null;
 const prevStage = id => CFG.STAGES[stIdx(id)-1]||null;
-const stageOpen = n => { const pv=prevStage(n); return !pv || !!save.stageClear[pv.id] || UNLOCK_ALL; };
+const stageOpen = n => { const pv=prevStage(n); return !pv || !!save.stageClear[pv.id] || !!save.unlocked[n] || UNLOCK_ALL; };   // unlocked＝v8の移行で 解放ずみにした面
 /* 地図の10マス。x,y は地図の中の位置（0〜1）。CFG.STAGES に同じ id があるマスだけ あそべる */
 const STAGE_MAP = [
   {id:1, name:'ほしのもり',     x:.40, y:.930}, {id:2, name:'星空の草原',   x:.62, y:.849},
@@ -1897,17 +2063,125 @@ function drawMapBg(g,W,H){
   for(const [x,y] of [[16,H-16],[W-16,H-16],[W/2,H-13]]){ g.fillStyle='#f3d37e'; g.beginPath(); star5(g,x,y,6*u,2.8*u); g.fill(); }
 }
 function toStages(){
-  bankKills(); newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); closeSheet(); buildMap(); showOnly('stage'); $('stage').scrollTop=1e6;
+  bankKills(); storyMode=false; newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); closeSheet(); buildMap(); showOnly('stage'); $('stage').scrollTop=1e6;
+}
+
+
+/* ---------- ストーリーモード（絵本） ----------
+   STORY＝絵本の16まい（0＝表紙、1〜14＝本文、15＝裏表紙）。STORY_SEQ＝すすむ順（絵本 と ステージを こうごに）
+   進行は save.story（step＝STORY_SEQ の何番目か／started／done＝さいごまで よんだ／seen＝とうたつした ページ）
+   ストーリーの ステージは 通常モードの 解放に しばられない（進行が そのまま 解放）。クリアは 通常モードにも のこる */
+const STORY = [
+  {img:'00_cover.png', cover:true},
+  {img:'01_page.png', t:'ぼくは なに？', x:'ある よるの こと。ほしのもりで、のるんは めを さましました。「ぼく………なに………？」のるんは、じぶんが なにか、しりません。'},
+  {img:'02_page.png', t:'へんしんの ひび', x:'のるんは、へんしんが できます。とりに なったり、さかなに なったり、おはなに なったり。でも、いつも かおは のるんのまま。「どこ………いる………？」おなじ かおの なかまを、ずっと さがしています。'},
+  {img:'03_page.png', t:'あかり', x:'そのよる、とおくに あかりが みえました。ぽつん、と あたたかい ひかり。「あかり………いく………」のるんの だいぼうけんが はじまります。'},
+  {img:'04_page.png', t:'もりを ぬけて', x:'もりを ぬけました。ほしの かけらが、みちを てらします。「もり………ぬけた………」あかりは、まだ とおく。'},
+  {img:'05_page.png', t:'くさはら', x:'おおきな くさはら。かぜが、ふわーっと ふきます。「かぜ………ふく………」こたえは、かぜの おとだけ。'},
+  {img:'06_page.png', t:'なれない', x:'はなばたけで、のるんは おはなに へんしん。でも、やっぱり かおは のるん。「なれ………ない………」すこしだけ、しょんぼり。'},
+  {img:'07_page.png', t:'ふうしゃ', x:'ふうしゃが ゆっくり まわる、はたけの みち。ひとの くらしが、ちかづいてきました。「ひと………いる………」のるんは、そっと すすみます。'},
+  {img:'08_page.png', t:'ほしのまち', x:'まちは あかるくて、にぎやか。ひとが いっぱい、わらっています。「ひと………だけ………」なかまは、ここにも いませんでした。'},
+  {img:'09_page.png', t:'おかの うえ', x:'おかを のぼると、みえました。あかりの おうち！「みえた………！ うち………」むねが、どきどき します。'},
+  {img:'10_page.png', t:'なみきみち', x:'なみきみちを、はやあしで すすみます。「あと………ちょと………」あかりが、だんだん おおきく なります。'},
+  {img:'11_page.png', t:'さかみち', x:'おうちの まえの、さかみち。「どき………どき………」あと、ひとがんばり。'},
+  {img:'12_page.png', t:'おにわ', x:'おにわに、しのびこみました。「まど………そこ………」まどの あかりが、すぐ そこ。'},
+  {img:'13_page.png', t:'おおきな て', x:'まどから、そっと なかへ。そのとき――おおきな てが、のびてきました！「つか………まる………！」……でも、そのては、そっと すくいあげてくれました。'},
+  {img:'14_page.png', t:'おうち', x:'てのひらの うえは、あたたかくて、ふかふか。へんしんしなくても、そのままの のるんで いい。「て………やさ………しい………」「ここ………うち………」のるんは、ぼうしを かぶったまま、すやすや ねむりました。なかまさがしの たびは、おわり。――きょうから、ここが おうちです。'},
+  {img:'15_backcover.png', back:true},
+];
+const STORY_SEQ = [{book:[0,1,2,3]}];
+for(let n=1;n<=10;n++){ STORY_SEQ.push({stage:n}); STORY_SEQ.push({book:n<10?[n+3]:[13,14,15]}); }   // St1→絵本4→St2→…→St10→絵本13・14・裏表紙
+let storyMode=false;
+const storyStep = () => STORY_SEQ[clamp(save.story.step|0,0,STORY_SEQ.length-1)];
+const pageOpen = i => UNLOCK_ALL || (STORY[i].back ? !!save.story.done : !!save.story.seen[i]);
+function lastBookStep(){ for(let i=Math.min(save.story.step|0,STORY_SEQ.length-1);i>=0;i--) if(STORY_SEQ[i].book) return STORY_SEQ[i]; return null; }
+function stepLabel(st){ if(st.stage){ const S=stageDef(st.stage); return 'ステージ'+st.stage+'「'+S.name+'」'; } return st.book[0]===0?'えほん（はじまり）':'えほん '+st.book.map(p=>STORY[p].back?'うらびょうし':STORY[p].t?p+'ページ':'').filter(Boolean).join('・'); }
+function openStoryMenu(){
+  bankKills(); state='smenu'; setPlayUi(false); closeSheet();
+  const S=save.story, b=$('smNew'); b.classList.remove('warn');
+  $('smInfo').innerHTML=S.started?'つぎは：<b>'+stepLabel(storyStep())+'</b>':(S.done?'おはなしは さいごまで よんだよ！<br>もういちど たのしめるよ':'えほんと ステージを こうごに すすむ おはなしだよ');
+  $('smCont').style.display=S.started?'inline-block':'none';
+  b.textContent=S.started?'さいしょから':'はじめる';
+  showOnly('smenu');
+}
+function storyBegin(fromStart){
+  if(fromStart||!save.story.started) save.story.step=0;
+  save.story.started=true; persist(); storyMode=true; storyGo();
+}
+function storyGo(){   // いまの step を はじめる（絵本 か ステージ）
+  storyMode=true; const st=storyStep();
+  if(st.book) openBook(st.book,'story');
+  else { bankKills(); state='sstage'; setPlayUi(false); showOnly(null); openSheet(st.stage); }
+}
+/* 絵本の画面。mode：story＝おはなしの とちゅう／shelf＝本棚から よむ／reread＝ひとやすみ中に みなおす */
+const bk={pages:[],i:0,mode:'story',back:null};
+const bookImg = p => CFG.STORY_DIR+STORY[p].img;
+const bookText = x => (x||'').replace(/。(?!」)/g,'。\n').replace(/「/g,'\n「').replace(/」/g,'」\n').replace(/\n{2,}/g,'\n').trim();
+function openBook(pages,mode,at){
+  bk.pages=pages.slice(); bk.i=at||0; bk.mode=mode; bk.back=state;
+  if(mode==='story'){ state='book'; setPlayUi(false); closeSheet(); }
+  else if(mode==='shelf') state='book';
+  showOnly('book'); showPage();
+}
+function showPage(){
+  const p=bk.pages[bk.i], P=STORY[p], img=$('bkImg'), fall=$('bkFall'), box=$('bkImgBox');
+  if(bk.mode==='story'){ save.story.seen[p]=true; persist(); }
+  fall.style.display='none'; img.style.display='block'; box.style.aspectRatio='';
+  img.onload=()=>{ if(img.naturalWidth) box.style.aspectRatio=img.naturalWidth+' / '+img.naturalHeight; };
+  img.onerror=()=>{ img.style.display='none'; fall.style.display='flex'; };   // 絵が まだ無い時：ページ番号の かわりの絵
+  fall.innerHTML=P.cover?'':'<span class="bn">'+(P.back?'おわり':p)+'</span><small>'+STORY[p].img+'</small>';
+  img.src=bookImg(p);
+  $('bkCover').style.display=P.cover?'flex':'none';
+  const hasTxt=!!P.x; $('bkTxt').style.display=hasTxt?'block':'none';
+  $('bkTitle').textContent=P.t||''; $('bkText').textContent=bookText(P.x);
+  if($('bkTxt').scrollTo) $('bkTxt').scrollTop=0;
+  const last=bk.i>=bk.pages.length-1;
+  $('bkPg').textContent=P.cover?'ひょうし':P.back?'うらびょうし':p+' ページ';
+  $('bkNext').textContent=bk.mode==='story'?(last?(P.back?'おわり':'すすむ ▶'):'つぎへ'):(last?'とじる':'つぎへ');
+  $('bkSkip').style.display=(bk.mode==='story'&&!last)?'inline-block':'none';
+  $('bkPrev').style.display=(bk.i>0)?'inline-block':'none';
+}
+function bookNext(){ if(state!=='book'&&bk.mode!=='reread') return; if(bk.i<bk.pages.length-1){ bk.i++; showPage(); } else bookDone(); }
+function bookPrev(){ if(bk.i>0){ bk.i--; showPage(); } }
+function bookSkip(){   // この回の絵本を まるごと とばす（とばした ページも「とうたつ」として 本棚に のこす）
+  if(bk.mode!=='story'){ bookDone(); return; }
+  for(const p of bk.pages) save.story.seen[p]=true;
+  bookDone();
+}
+function bookDone(){
+  if(bk.mode==='shelf'){ openShelf(); return; }
+  if(bk.mode==='reread'){ showOnly('pause'); return; }
+  const st=storyStep();
+  for(const p of bk.pages) save.story.seen[p]=true;
+  if((save.story.step|0)>=STORY_SEQ.length-1){   // エンディング（裏表紙）まで よんだ → タイトルへ
+    save.story.done=true; save.story.started=false; save.story.step=0; persist(); toTitle(); return;
+  }
+  if(st&&st.book) save.story.step++;
+  persist(); storyGo();
+}
+function openShelf(){
+  bankKills(); state='shelf'; setPlayUi(false); closeSheet();
+  const g=$('shelfGrid'); g.innerHTML='';
+  STORY.forEach((P,i)=>{
+    const open=pageOpen(i), b=document.createElement('button'); b.className='shb'+(open?'':' lock');
+    const name=P.cover?'ひょうし':P.back?'うらびょうし':P.t;
+    b.innerHTML='<div class="th">'+(open?(P.cover?'表':P.back?'裏':i)+'<img src="'+bookImg(i)+'" alt="" onerror="this.remove()">':'？')+'</div><span>'+(open?name:'？？？')+'</span>';
+    b.onclick=()=>{ if(!open){ tone(220,0.12,'triangle',0.04,-60); return; }
+      const list=STORY.map((q,k)=>k).filter(pageOpen); openBook(list,'shelf',list.indexOf(i)); };
+    g.appendChild(b);
+  });
+  showOnly('shelf');
 }
 
 /* ---------- 画面遷移 ---------- */
-function showOnly(id){ for(const k of ['title','stage','forge','levelup','pause','end']) $(k).classList.toggle('on',k===id); }
+function showOnly(id){ for(const k of ['title','stage','forge','levelup','pause','end','smenu','book','shelf']) $(k).classList.toggle('on',k===id); $('sndFloat').classList.toggle('on',['title','stage','forge','smenu','book','shelf'].includes(id)); }
 function setPlayUi(on){ $('hud').classList.toggle('on',on); $('btnUlt').classList.toggle('on',on); }
 function start(stageId,endless,formOverride){   // 引数なし＝同じステージ・同じモードでもう一度
   initAudio();
   if(typeof stageId==='number'&&CFG.STAGES.some(S=>S.id===stageId)) cur={stage:stageId,endless:!!endless};
   const f=(typeof formOverride==='string'&&FORMS[formOverride])?formOverride:save.form;
-  newGame(f,save.limit,cur.stage,cur.endless); state='play'; showOnly(null); setPlayUi(true);
+  newGame(f,save.limit,cur.stage,cur.endless); G.story=storyMode&&!cur.endless; state='play'; showOnly(null); setPlayUi(true);
+  $('btnQuit').textContent=G.story?'タイトルへ':'ちずへ'; $('btnReread').style.display=G.story?'inline-block':'none';
   banner('ステージ'+G.stage.id+'「'+G.stage.name+'」'+(G.endless?' ∞':G.stage.final?' さいごの ステージ！':''));
 }
 function bankKills(){   // 1回のプレイの成果を もちかえる（たおした数・そざい）。やられても 途中でやめても もちかえる
@@ -1917,7 +2191,7 @@ function bankKills(){   // 1回のプレイの成果を もちかえる（たお
   persist();
 }
 function toTitle(){
-  bankKills(); if(!isOpen(save.form)) save.form='normal';
+  bankKills(); storyMode=false; closeSheet(); if(!isOpen(save.form)) save.form='normal';
   newGame(save.form,save.limit); state='title'; setPlayUi(false); buildTitle(); showOnly('title');
 }
 function pause(){ if(state!=='play') return; state='pause'; stickEnd(); showOnly('pause'); }
@@ -1933,10 +2207,11 @@ function endGame(clear){
   if(newT) b.time=time; if(newK) b.kills=G.kills;
   if(clear){ b.clear=true; save.anyClear=true; save.clears[G.form]=(save.clears[G.form]||0)+1; save.stageClear[S.id]=true; }
   if(firstClear&&S.final&&!save.rares.life){ save.rares.life=true; G.gotRares.push('life'); }   // 最終面の はじめてのクリア：いのちのほし
+  if(clear&&G.story){ const st=storyStep(); if(st.stage===S.id) save.story.step++; }   // ストーリー：クリアで つぎの絵本へ（通常モードの クリア記録にも 上で のこる）
   bankKills(); persist();
   const opened=Object.keys(FORMS).filter(f=>isOpen(f)&&!wasOpen.includes(f)), msg=[];
-  if(clear&&nx&&!nextWasOpen) msg.push('✨ ステージ'+nx.id+'「'+nx.name+'」が あそべるようになった！');
-  if(clear&&!G.endless&&firstClear) msg.push('∞ このステージの エンドレスが あそべるよ');
+  if(clear&&nx&&!nextWasOpen) msg.push('✨ '+(G.story?'つうじょうモードで ':'')+'ステージ'+nx.id+'「'+nx.name+'」が あそべるようになった！');
+  if(clear&&!G.endless&&firstClear&&!G.story) msg.push('∞ このステージの エンドレスが あそべるよ');
   if(opened.length) msg.push('✨ あたらしい へんしん：'+opened.map(f=>FORMS[f].name).join('・'));
   const et=$('endTitle'); et.className='ribbon'+(G.endless?' lav':clear?' gold':'');
   et.textContent=G.endless?'∞ エンドレス おしまい':clear?'ステージ'+S.id+' クリア！':'やられちゃった…';
@@ -1949,31 +2224,49 @@ function endGame(clear){
   $('eRare').innerHTML=G.gotRares.map(k=>'<div class="rareget">'+icoImg(k)+'<div><small>レアアイテム げっと！</small><b>'+RARES[k].name+'</b></div></div>').join('');
   $('unlockMsg').innerHTML=msg.join('<br>');
   $('bestEnd').textContent=G.endless?endlessText(S.id):bestText(S.id,G.limit);
-  $('btnNext').style.display=(clear&&nx&&!G.endless)?'inline-block':'none';
+  $('btnNext').style.display=(G.story?clear:(clear&&nx&&!G.endless))?'inline-block':'none';
+  $('btnNext').textContent=G.story?'おはなしの つづきへ ▶':'つぎのステージ';
+  $('btnRetry').style.display=(G.story&&clear)?'none':'inline-block';
+  $('btnToTitle').textContent=G.story?'タイトルへ':'ちずへ';
   showOnly('end');
   if(clear) SFX.clear(); else SFX.over();
 }
 function banner(txt){ const b=$('banner'); b.textContent=txt; b.classList.remove('go'); void b.offsetWidth; b.classList.add('go'); }
 
 $('btnStart').onclick=()=>{ initAudio(); toStages(); };
+$('btnStory').onclick=()=>{ initAudio(); openStoryMenu(); };
+$('btnShelf').onclick=()=>{ initAudio(); openShelf(); };
+$('smBack').onclick=toTitle;
+$('smCont').onclick=()=>storyBegin(false);
+$('smNew').onclick=()=>{ const b=$('smNew');
+  if(save.story.started&&!b.classList.contains('warn')){ b.classList.add('warn'); b.textContent='もう一度 おすと さいしょから'; return; }
+  storyBegin(true); };
+$('shelfBack').onclick=toTitle;
+$('bkNext').onclick=e=>{ e.stopPropagation(); bookNext(); };
+$('bkPrev').onclick=e=>{ e.stopPropagation(); bookPrev(); };
+$('bkSkip').onclick=e=>{ e.stopPropagation(); bookSkip(); };
+$('book').onclick=e=>{ if(e.target.closest('button')) return; bookNext(); };   // 絵本は どこを タップしても すすむ
+$('btnReread').onclick=()=>{ const st=lastBookStep(); if(st) openBook(st.book,'reread'); };
 $('btnForge').onclick=()=>{ initAudio(); openForge(); };
 $('btnEquip').onclick=()=>{ initAudio(); openForge(true); };   // レアアイテムは つよさ工房の中（そうびの所まで スクロール）
 $('btnForgeBack').onclick=toTitle;
 $('rarePrev').onclick=()=>stepRare(-1);
 $('rareNext').onclick=()=>stepRare(1);
-$('sheetClose').onclick=closeSheet;
-$('stageSheet').onclick=e=>{ if(e.target===$('stageSheet')) closeSheet(); };
+$('sheetClose').onclick=()=>{ if(storyMode) toTitle(); else closeSheet(); };
+$('stageSheet').onclick=e=>{ if(e.target===$('stageSheet')){ if(storyMode) toTitle(); else closeSheet(); } };
 $('btnBack').onclick=toTitle;
 $('btnRetry').onclick=()=>start();
-$('btnNext').onclick=()=>{ const nx=nextStage(cur.stage); if(nx) start(nx.id,false); };
-$('btnToTitle').onclick=toStages;
-$('btnQuit').onclick=toStages;
+$('btnNext').onclick=()=>{ if(G&&G.story){ bankKills(); storyGo(); return; } const nx=nextStage(cur.stage); if(nx) start(nx.id,false); };
+$('btnToTitle').onclick=()=>{ if(G&&G.story) toTitle(); else toStages(); };
+$('btnQuit').onclick=()=>{ if(G&&G.story) toTitle(); else toStages(); };
 $('btnResume').onclick=resume;
 $('btnPause').onclick=pause;
 $('btnUlt').onclick=useUlt;
-function sndLabel(){ $('btnSnd').textContent=muted?'×':'♪'; }
-$('btnSnd').onclick=()=>{ muted=!muted; save.mute=muted; persist(); sndLabel(); };
-document.addEventListener('visibilitychange',()=>{ if(document.hidden) pause(); });
+function sndLabel(){ $('btnSnd').textContent=muted?'×':'♪'; $('sndFloat').textContent=muted?'×':'♪'; }
+function toggleSnd(){ muted=!muted; save.mute=muted; persist(); sndLabel(); bgmSync(true); }
+$('btnSnd').onclick=toggleSnd;
+$('sndFloat').onclick=e=>{ e.stopPropagation(); initAudio(); toggleSnd(); };
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) pause(); bgmSync(true); });
 
 /* ---------- のるんの絵（仮：Canvas描画） ----------
    正本ルール：変身中は帽子なし／顔（眠そうな半目・小さい口・舌）は全姿共通／ペンギンにくちばし無し */
@@ -2382,21 +2675,21 @@ const THEME = {
   meadow:   {base:'#1b4a42', light:['#3f8a5d','#4d985f','#378056'], dark:['#123a36'], tree:['#22645a','#2a7262'], rim:'170,240,200',
              flower:['#ffffff','#d9c4ff','#ffc6e0'], rock:['#5b7a7a','#647f78'], mushc:['#c4a6ff'],
              props:{tree:1.6,bush:5,rock:3,mush:0.8,flower:14,tuft:26}},
-  flowers:  {base:'#22503f', light:['#4a8f5c','#3e8558','#5a9a62'], dark:['#163f36'], tree:['#2a6a5a'], rim:'200,240,210',
+  flower:   {base:'#22503f', light:['#4a8f5c','#3e8558','#5a9a62'], dark:['#163f36'], tree:['#2a6a5a'], rim:'200,240,210',
              flower:['#ff9fcf','#d7a6ff','#ffffff','#ffb38a','#9fb8ff'], rock:['#6a8078'], mushc:['#ffb3d0'],
              props:{tree:1,bush:3,rock:1.5,flower:22,tuft:20}},
-  outskirts:{base:'#2a4d3c', light:['#5a8a58','#6b9356','#4d7f55'], dark:['#1e3d33'], tree:['#2f6a58','#346f56'], rim:'230,220,170',
+  townedge: {base:'#2a4d3c', light:['#5a8a58','#6b9356','#4d7f55'], dark:['#1e3d33'], tree:['#2f6a58','#346f56'], rim:'230,220,170',
              flower:['#ffffff','#ffe0a8'], rock:['#7a7e72','#6e7468'], mushc:['#ffd9a0'],
-             props:{tree:1.5,bush:3,rock:3,fence:2,wheat:12,flower:4,tuft:14}},
+             props:{tree:1.5,bush:3,rock:3,fence:2.2,wheat:12,mill:0.5,lamp:0.6,flower:4,tuft:14}},
   town:     {base:'#2e3c50', light:['#46586f','#4d5f76','#3e5068'], dark:['#222d40'], tree:['#25585a','#2b6260'], rim:'255,226,160',
              flower:['#ffb3d0','#ffffff','#ffd98a'], rock:['#5a6478','#646d80','#4f5a6e'], mushc:['#ffd9a0'],
              props:{tree:1.4,lamp:3.2,planter:4,rock:10,flower:5,tuft:4}},
-  sunset:   {base:'#3a3f4a', light:['#6a5a5e','#7a6060','#5a6458'], dark:['#2a2c3a'], tree:['#3a5a56','#425e58'], rim:'255,190,150',
-             flower:['#ffc49a','#ffe0b0','#ffffff'], rock:['#6e6470','#776a72'], mushc:['#ffc49a'],
-             props:{tree:2,bush:4,rock:3,flower:6,tuft:16}},
-  avenue:   {base:'#2a4440', light:['#4e7a62','#5a7f68'], dark:['#1c3432'], tree:['#2a6058'], blossom:['#e9a8d8','#d7a6ef','#f3b8d8'], rim:'255,220,240',
+  sunset:   {base:'#4a3a4a', light:['#8a5e5e','#9a6a5a','#7a5a62','#6a6058'], dark:['#33283c','#3a2c40'], tree:['#4a5a52','#56604f','#5e5048'], rim:'255,190,140',
+             flower:['#ffc49a','#ffe0b0','#ffffff','#ff9fb0'], rock:['#7a6470','#846c70'], mushc:['#ffc49a'],
+             props:{tree:1.6,bush:4,rock:3,flower:7,wheat:5,tuft:16}},
+  trees:    {base:'#2a4440', light:['#4e7a62','#5a7f68'], dark:['#1c3432'], tree:['#2a6058'], blossom:['#e9a8d8','#d7a6ef','#f3b8d8'], rim:'255,220,240',
              flower:['#ffd0ec','#ffffff'], rock:['#6a7280'], mushc:['#ffd0ec'],
-             props:{blossom:5,lamp:1.4,bush:2,rock:2,flower:6,tuft:10}},
+             props:{blossom:5,tree:1.2,lamp:1.4,bush:2,rock:2,flower:6,tuft:10}},
   slope:    {base:'#2e3a48', light:['#4a5a68','#536274'], dark:['#222b38'], tree:['#2b5c58'], rim:'255,226,160',
              flower:['#ffffff','#d9c4ff'], rock:['#6a7488','#747c8e','#5e6880'], mushc:['#ffd9a0'],
              props:{rock:9,lamp:2,bush:3,tree:1,planter:1.2,flower:3,tuft:8}},
@@ -2407,7 +2700,7 @@ const THEME = {
              flower:['#ffb3d0','#ffffff'], rock:['#7a6a7c'], mushc:['#ffd0e0'],
              props:{rug:1.2,block:8,book:6,cushion:4,pot:3}},
 };
-const PROP_SIZE = {tree:170, blossom:170, bush:150, rock:120, flower:130, mush:110, tuft:110, lamp:130, fence:120, planter:130, wheat:120, rug:300, block:100, book:110, cushion:120, pot:120};   // 小物の絵（160×160）を描く大きさ
+const PROP_SIZE = {mill:230, tree:170, blossom:170, bush:150, rock:120, flower:130, mush:110, tuft:110, lamp:130, fence:120, planter:130, wheat:120, rug:300, block:100, book:110, cushion:120, pot:120};   // 小物の絵（160×160）を描く大きさ
 function rng(seed){ let a=seed>>>0; return ()=>{ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
 function mixHex(h,o,t){   // 色を まぜる（o は '#000000' や '#ffffff'）
   const a=parseInt(h.slice(1),16), b=parseInt(o.slice(1),16), m=(x,y)=>Math.round(x+(y-x)*t);
@@ -2483,6 +2776,16 @@ function propCv(kind,th,thKey,v){
       g.fillStyle='#2a2850'; g.beginPath(); g.moveTo(m-9,m-38); g.lineTo(m+9,m-38); g.lineTo(m+6,m-26); g.lineTo(m-6,m-26); g.closePath(); g.fill();
       g.fillStyle='#ffe9a0'; g.fillRect(m-4.5,m-36,9,8);
       break; }
+    case 'mill': {   // ふうしゃ（まちはずれ）
+      shadow(m+46,30,8);
+      g.fillStyle='#e9d8c4'; g.beginPath(); g.moveTo(m-15,m+44); g.lineTo(m-9,m-22); g.lineTo(m+9,m-22); g.lineTo(m+15,m+44); g.closePath(); g.fill();
+      g.fillStyle='rgba(0,0,0,.14)'; g.beginPath(); g.moveTo(m+3,m+44); g.lineTo(m+4,m-22); g.lineTo(m+9,m-22); g.lineTo(m+15,m+44); g.closePath(); g.fill();
+      g.fillStyle='#c26a6a'; g.beginPath(); g.moveTo(m-14,m-20); g.lineTo(m,m-36); g.lineTo(m+14,m-20); g.closePath(); g.fill();
+      g.fillStyle='#ffe29a'; rr(g,m-4,m+2,8,11,3); g.fill(); g.fillStyle='#6a4a52'; rr(g,m-5,m+30,10,14,4); g.fill();
+      const a0=R()*TAU; g.save(); g.translate(m,m-24);
+      for(let k=0;k<4;k++){ g.rotate(TAU/4); g.fillStyle='#8a6a5a'; g.fillRect(-1.5,0,3,40); g.fillStyle='#fff6e8'; rr(g,2,8,11,30,2); g.fill(); g.strokeStyle='rgba(138,106,90,.5)'; g.lineWidth=1; g.strokeRect(2,8,11,30); }
+      g.fillStyle='#6a4a52'; g.beginPath(); g.arc(0,0,4,0,TAU); g.fill(); g.restore(); void a0;
+      break; }
     case 'fence': {
       g.strokeStyle='rgba(0,0,0,.2)'; g.lineWidth=4; g.beginPath(); g.moveTo(m-38,m+16); g.lineTo(m+38,m+16); g.stroke();
       g.fillStyle='#8a7a92'; for(const x of [-34,-11,12,35]) { rr(g,m+x-3.5,m-12,7,28,2.5); g.fill(); }
@@ -2549,7 +2852,7 @@ function worldBg(S){
   // 小物：大きさ・色ちがい・向きを ばらばらにして 散らす（木どうしは 少し はなす）
   const CELL=400, cells=Math.ceil(W/CELL), grid=Array.from({length:cells*cells},()=>[]), trees=[];
   for(const kind in th.props){
-    const n=Math.round(th.props[kind]*W*W/1e6), big=kind==='tree'||kind==='blossom'||kind==='rug';
+    const n=Math.round(th.props[kind]*W*W/1e6), big=kind==='tree'||kind==='blossom'||kind==='rug'||kind==='mill';
     for(let i=0;i<n;i++){
       let x=0,y=0,ok=false;
       for(let t=0;t<8&&!ok;t++){ x=60+R()*(W-120); y=60+R()*(W-120); ok=!big||trees.every(q=>Math.hypot(q[0]-x,q[1]-y)>(kind==='rug'?320:120)); }
@@ -2633,7 +2936,7 @@ function drawHero(){
 let lastDt=0;
 const drawL=[];
 function render(){
-  if(state==='title'||state==='stage'||state==='forge'||state==='equip'){ renderSky(lastDt); if(state==='title') drawHero(); return; }
+  if(state==='title'||state==='stage'||state==='forge'||state==='equip'||state==='smenu'||state==='book'||state==='shelf'||state==='sstage'){ renderSky(lastDt); if(state==='title') drawHero(); return; }
   const c=ctx, p=G.p;
   c.setTransform(DPR*SC,0,0,DPR*SC,0,0);
   let cx=p.x-VW/2, cy=p.y-VH/2;
@@ -2763,15 +3066,13 @@ function render(){
     else if(b.kind==='homing'){ c.fillStyle='rgba(255,143,168,.4)'; c.beginPath(); c.arc(b.x-b.vx*0.03,b.y-b.vy*0.03,b.r*0.8,0,TAU); c.fill();
       c.fillStyle='#ff8fa8'; starPath(c,b.x,b.y,b.r+2,b.rot); c.fill(); }
     else if(b.kind==='ice'){ c.fillStyle='#bfefff'; starPath(c,b.x,b.y,b.r+2,Math.PI/8); c.fill(); c.fillStyle='#fff'; c.beginPath(); c.arc(b.x,b.y,2.5,0,TAU); c.fill(); }
-    else if(b.kind==='wave'&&(fxOk('waveA')||fxOk('waveB'))){   // なみ（絵）：上下に進む時は a、左右に進む時は b
-      const vert=Math.abs(b.vy)>Math.abs(b.vx), key=(vert&&fxOk('waveA'))||!fxOk('waveB')?'waveA':'waveB', F=CFG.FX_SPR[key];
-      const dir=Math.atan2(b.vy,b.vx), base=F.ang*Math.PI/180, sz=b.r*2*F.size*(1+0.04*Math.sin(animT*14));
-      let rot=dir-base, fl=false; rot=Math.atan2(Math.sin(rot),Math.cos(rot));
-      if(F.flip&&Math.abs(rot)>Math.PI/2){ fl=true; rot=dir-(Math.PI-base); rot=Math.atan2(Math.sin(rot),Math.cos(rot)); }   // 逆向きは 左右反転（上下逆さまにしない）
-      c.save(); c.translate(b.x,b.y); c.rotate(rot); if(fl) c.scale(-1,1); c.globalAlpha=clamp(b.life/0.25,0,1);
-      c.drawImage(fxImg[key],-sz/2,-sz/2,sz,sz); c.restore();
+    else if(b.kind==='wave'&&fxOk('slash')){   // 斬撃（絵）：1枚の刃を 進む向きへ 回す（絵の右が 進む向き）
+      const F=CFG.FX_SPR.slash, im=fxImg.slash, rot=Math.atan2(b.vy,b.vx)-F.ang*Math.PI/180, sz=b.r*2*F.size*(1+0.04*Math.sin(animT*14));
+      const asp=(im.naturalHeight&&im.naturalWidth)?im.naturalHeight/im.naturalWidth:1;
+      c.save(); c.translate(b.x,b.y); c.rotate(rot); c.globalAlpha=clamp(b.life/0.25,0,1);
+      c.drawImage(im,-sz/2,-sz*asp/2,sz,sz*asp); c.restore();
     }
-    else if(b.kind==='wave'){   // なみ：濃い青の三日月＋白い波がしら
+    else if(b.kind==='wave'){   // 斬撃（絵が無い時）：濃い青の三日月＋白いふち
       const R=b.r*1.15, A=1.25, wv=Math.sin(animT*16)*0.04;
       c.save(); c.translate(b.x,b.y); c.rotate(Math.atan2(b.vy,b.vx)); c.globalAlpha=clamp(b.life/0.25,0,1);
       c.fillStyle='rgba(70,160,255,.3)'; c.beginPath(); c.ellipse(-R*0.45,0,R*0.95,R,0,0,TAU); c.fill();          // 通ったあとの水
@@ -2960,11 +3261,16 @@ function frame(now){
     updateHud();
   }
   render();
+  bgmSync(false);
 }
 
 /* ---------- 起動 ---------- */
-sndLabel(); resize(); newGame(save.form,save.limit); buildTitle();
-window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet };   // デバッグ用
+sndLabel(); resize(); newGame(save.form,save.limit); buildTitle(); showOnly('title');
+window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet,
+  endGame, storyBegin, bookNext, bookSkip, openShelf, openStoryMenu, STORY, STORY_SEQ, get bgm(){return bgm;} };   // デバッグ用
+if(typeof navigator!=='undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){   // PWA：オフラインでも 起動できるように
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
 requestAnimationFrame(frame);
 })();
 </script>
