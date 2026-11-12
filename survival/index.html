@@ -31,7 +31,7 @@ button{font-family:var(--font);color:var(--ink);cursor:pointer}
 #hpbar{flex:1;height:24px;border-radius:12px;background:var(--cream);border:2px solid #fff;position:relative;overflow:hidden;
   box-shadow:0 0 0 2px var(--lav),0 3px 0 2px var(--shadow)}
 #hpfill{position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(#ffbfd1,#ff7fa6);border-radius:10px;transition:width .12s}
-#hpfill::after{content:"";position:absolute;left:6px;right:6px;top:2px;height:5px;border-radius:3px;background:rgba(255,255,255,.5)}
+#hpfill::after{content:none}
 .hico{position:absolute;left:7px;top:0;line-height:20px;font-size:13px;color:var(--pink-d);
   text-shadow:1px 0 0 #fff,-1px 0 0 #fff,0 1px 0 #fff,0 -1px 0 #fff}
 #hptxt{position:absolute;inset:0;font-size:12.5px;line-height:20px;text-align:center;font-weight:900;color:var(--ink);
@@ -456,6 +456,15 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 #rareInfo b{display:block;font-size:14.5px;color:#fff}
 #rareInfo span{display:block;font-size:11px;color:#e3dcff;line-height:1.4}
 #rareInfo button{flex:none;padding:5px 11px;border-radius:99px;border:1.5px solid var(--gold);background:var(--navy);color:#fff3d0;font-size:12px;font-weight:800}
+
+/* ===== v7.2：バー類に ツヤ（上半分の光沢） ===== */
+#hpbar::after,#xpbar::after,#ultbar::after{content:"";position:absolute;left:2px;right:2px;top:1px;height:46%;border-radius:9px 9px 5px 5px;pointer-events:none;
+  background:linear-gradient(rgba(255,255,255,.62),rgba(255,255,255,.12));z-index:1}
+#xpbar::after{border-radius:6px 6px 3px 3px}
+#hptxt,#ulttxt{z-index:2}
+.hico{z-index:2}
+#xpfill{z-index:0}
+#xpfill::after{z-index:3}
 </style>
 </head>
 <body>
@@ -587,7 +596,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 
 <script>
 /* ============================================================
-   のるんの ほしぞらサバイバル v7
+   のるんの ほしぞらサバイバル v7.2
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -619,10 +628,15 @@ const CFG = {
      ネコ・カラス・いぬは のるん（高さ50）の約2倍＝高さ100前後。ボスはさらに大きい（ボスネコ約216、ボスカラス約186） */
   ENEMY_SCALE: {ant:1.2, bee:1.2, cat:2.45, crow:2.6, dog:1.55, bosscat:1.6, bosscrow:1.5, hand:1.3, roomba:1.6},
   EDGE_FIX: true,           // 絵が画像の端で切れている時（翼の先など）、切り口を丸い先端に整える
-  BG_TILE: 512,             // 背景画像1枚を敷く大きさ（ゲーム内の長さ。1024pxの絵を半分の大きさで敷く）
-  /* 背景画像の見やすさ調整はステージごと（STAGES の bgSat / bgDim / bgSoft）。
-     bgSat=彩度（1=そのまま、0=白黒）  bgDim=暗くする量（0〜1）  bgSoft=ぼかす量（0〜1）。書かなければ そのまま */
-  BG_DIM: 0,                // 全ステージ共通で、さらに暗くする量（0〜1）。各ステージの bgDim に足される
+  FX_SPR: {   // スキルエフェクトの絵（透過PNG）。読みこめない時は 今までの描画になる
+    /* 波：a は「前後」（画面の上下）に進む時、b は「横」（左右）に進む時に使う。
+       ang＝絵の中で 波が進んでいく向き（右＝0、下＝90、左＝180、上＝-90 度）。flip＝true なら 逆向きの時に左右反転で使う（上下逆さまにしない）
+       size＝絵の大きさ（波の当たり判定の直径に対する倍率） */
+    waveA: {src:'img/fx-wave-chappi-a.png', ang:-90, flip:true, size:2.4},
+    waveB: {src:'img/fx-wave-chappi-b.png', ang:0,   flip:true, size:2.6},
+    grass: {src:'img/fx-grass-chappi.png', size:2.35, spin:0.25},   // 回復エリアの直径に対する倍率／ゆっくり回る速さ
+    fire:  {src:'img/fx-fire-chappi.png',  size:2.5},                // 炎の範囲の直径に対する倍率
+  },
   FX_AMOUNT: 1,             // エフェクトの粒子の量（倍率）
   FX_MAX: 420,              // 粒子の同時上限
   FX_AUTO: true,            // 重い端末では粒子を自動で間引く
@@ -640,31 +654,31 @@ const CFG = {
      地図の10マスの名前と位置は STAGE_MAP（ここに無い番号のマスは「まだ いけない」と出るだけ） */
   STAGES: [
     // 1 ほしのもり：いちばん やさしい（カラス・いぬ なし、ボスネコも よわい）
-    {id:1, name:'ほしのもり', bg:'forest', bgImg:'img/bg_stage1.png', bgSat:0.7, bgDim:0.3, bgSoft:0.4,
+    {id:1, name:'ほしのもり', bg:'forest',
      spawnInterval:[2.2,1.05], spawnExtra:0.8, hpMul:0.5, hpGrowth:0.7, enemyCap:60,
      dmgMul:0.5, dmgGrowth:0.15, spdGrowth:0.03, finaleSpawn:0.8, finaleHp:1.05, finaleCap:80,
      mix:{bee:[0.35,0.08,0.04], crow:[9,0,0], dog:[9,0,0]}, ant:[9,7,6], crowMax:0,
      bosses:[{at:0.65,type:'bosscat',hpMul:0.25}], handAt:null},
     // 2 星空の草原（v6までの ステージ1。数値は そのまま）
-    {id:2, name:'星空の草原', bg:'meadow', bgImg:'img/bg_stage2.png', bgSat:0.6, bgDim:0.36, bgSoft:0.45,
+    {id:2, name:'星空の草原', bg:'meadow',
      spawnInterval:[1.9,0.85], spawnExtra:1.0, hpMul:0.6, hpGrowth:0.9, enemyCap:80,
      dmgMul:0.6, dmgGrowth:0.2, spdGrowth:0.05, finaleSpawn:0.75, finaleHp:1.1, finaleCap:110,
      mix:{bee:[0.25,0.10,0.05], crow:[9,0,0], dog:[0.55,0.04,0.03]}, ant:[8,6,8], crowMax:0,
      bosses:[{at:0.6,type:'bosscat',hpMul:0.35}], handAt:null},
     // 5 ほしのまち（v6までの ステージ3「町」。数値は そのまま）
-    {id:5, name:'ほしのまち', bg:'town', bgImg:'img/bg_stage5.png',
+    {id:5, name:'ほしのまち', bg:'town',
      spawnInterval:[1.15,0.4], spawnExtra:2.4, hpMul:0.95, hpGrowth:2.1, enemyCap:220,
      dmgMul:0.95, dmgGrowth:0.45, spdGrowth:0.18, finaleSpawn:0.55, finaleHp:1.3, finaleCap:280,
      mix:{bee:[0.1,0.12,0.08], crow:[0.1,0.14,0.08], dog:[0.2,0.10,0.08]}, ant:[8,5,8], crowMax:14,
      bosses:[{at:0.35,type:'bosscat',hpMul:0.9},{at:0.7,type:'bosscrow',hpMul:1.1,escort:['crow',4]}], handAt:null},
     // 9 お庭：ハチとアリが多い。ほしのまち（5）より むずかしく、家の中（10）より やさしい
-    {id:9, name:'お庭', bg:'garden', bgImg:'img/bg_stage9.png', bgSat:0.55, bgDim:0.4, bgSoft:0.5,
+    {id:9, name:'お庭', bg:'garden',
      spawnInterval:[1.02,0.35], spawnExtra:2.7, hpMul:1.08, hpGrowth:2.6, enemyCap:230,
      dmgMul:1.1, dmgGrowth:0.56, spdGrowth:0.2, finaleSpawn:0.52, finaleHp:1.35, finaleCap:290,
      mix:{bee:[0.05,0.32,0.15], crow:[0.5,0.03,0.02], dog:[0.3,0.06,0.05]}, ant:[5,3,15], crowMax:5,
      bosses:[{at:0.4,type:'bosscat',hpMul:1.0},{at:0.72,type:'bosscrow',hpMul:1.2,escort:['crow',4]}], handAt:null},
     // 10 家の中（最終面）：つよさ工房で つよくしてから いどむ むずかしさ
-    {id:10, name:'家の中', bg:'house', bgImg:'img/bg_stage10.png', final:true,
+    {id:10, name:'家の中', bg:'house', final:true,
      spawnInterval:[1.0,0.34], spawnExtra:2.8, hpMul:1.15, hpGrowth:2.6, enemyCap:210,
      dmgMul:1.15, dmgGrowth:0.6, spdGrowth:0.24, finaleSpawn:0.5, finaleHp:1.4, finaleCap:280,
      mix:{bee:[0.05,0.14,0.06], crow:[0.15,0.07,0.05], dog:[0.15,0.09,0.07]}, ant:[7,4,10], crowMax:6,
@@ -2165,28 +2179,6 @@ function fixEdges(im){
 for(const k in ENEMY_SPRITES){ if(ENEMY_SPRITES[k]){ enemyImg[k]={}; for(const d in ENEMY_SPRITES[k]){
   const im=new Image(); im.onload=()=>{ const f=fixEdges(im); if(f) fixCv.set(im,f); }; im.src=ENEMY_SPRITES[k][d]; enemyImg[k][d]=im; } } }
 /* 背景画像を、彩度・明るさ・ぼかしを調整した1枚にしておく（ステージごとに最初の1回だけ作る） */
-const bgCv={};
-function bgTile(S){
-  const im=bgImg[S.id]; if(!imgOk(im)) return null;
-  if(bgCv[S.id]) return bgCv[S.id];
-  const sat=S.bgSat==null?1:S.bgSat, dim=Math.min(0.9,(S.bgDim||0)+CFG.BG_DIM), soft=S.bgSoft||0;
-  if(sat>=1&&dim<=0&&soft<=0) return bgCv[S.id]=im;
-  const n=Math.min(1024,im.naturalWidth), mk=k=>{ const q=document.createElement('canvas'); q.width=q.height=k; return q; };
-  const cvs=mk(n), g=cvs.getContext('2d'); g.drawImage(im,0,0,n,n);
-  if(soft>0){   // 小さくしてから引きのばした絵を重ねて、細かい模様をやわらげる
-    const s1=mk(Math.round(n/3)), s2=mk(Math.round(n/9));
-    s1.getContext('2d').drawImage(im,0,0,s1.width,s1.height); s2.getContext('2d').drawImage(s1,0,0,s2.width,s2.height);
-    g.globalAlpha=Math.min(1,soft); g.imageSmoothingEnabled=true; g.imageSmoothingQuality='high'; g.drawImage(s2,0,0,n,n); g.globalAlpha=1;
-  }
-  if(sat<1){
-    g.globalCompositeOperation='saturation';
-    if(g.globalCompositeOperation==='saturation'){ g.globalAlpha=1-sat; g.fillStyle='#808080'; g.fillRect(0,0,n,n); }
-    else{ g.globalAlpha=(1-sat)*0.5; g.fillStyle='#6a6f78'; g.fillRect(0,0,n,n); }
-    g.globalAlpha=1; g.globalCompositeOperation='source-over';
-  }
-  if(dim>0){ g.fillStyle='rgba(12,14,36,'+dim+')'; g.fillRect(0,0,n,n); }
-  return bgCv[S.id]=cvs;
-}
 /* 状態ごとの色：敵の絵そのものをこの色に寄せ、まわりに同じ色のオーラを出す（mix=色をかぶせる強さ、aura=オーラの濃さ） */
 const STATUS = {
   flash: {rgb:'255,255,255',mix:0.78,hue:false,aura:0},   // 攻撃が当たった瞬間
@@ -2239,7 +2231,6 @@ function flamePath(c,x,y,R){   // しずく形の炎ひとつ（y が根もと�
   c.moveTo(x,y-R*2); c.bezierCurveTo(x+R*0.3,y-R*1.1,x+R,y-R*0.55,x+R,y); c.arc(x,y,R,0,Math.PI);
   c.bezierCurveTo(x-R,y-R*0.55,x-R*0.3,y-R*1.1,x,y-R*2); c.closePath();
 }
-for(const S of CFG.STAGES){ if(S.bgImg){ const im=new Image(); im.src=S.bgImg; bgImg[S.id]=im; } }
 const glowCv={};
 function glow(c,x,y,r,rgb,a){   // ぼんやり光る玉（色ごとに1回だけ作って使い回す。shadowBlur より軽い）
   let g=glowCv[rgb];
@@ -2290,6 +2281,7 @@ function drawEnemy(c,e){
     c.fillStyle='#fff'; rr(c,e.x-bw/2-2.5,by-2.5,bw+5,12,6); c.fill();
     c.fillStyle='#5a4374'; rr(c,e.x-bw/2,by,bw,7,3.5); c.fill();
     c.fillStyle='#ff8fb1'; rr(c,e.x-bw/2,by,Math.max(7,bw*clamp(e.hp/e.maxHp,0,1)),7,3.5); c.fill();
+    c.fillStyle='rgba(255,255,255,.45)'; rr(c,e.x-bw/2+1.5,by+0.8,bw-3,2.6,1.3); c.fill();   // ツヤ
   }
 }
 
@@ -2378,68 +2370,215 @@ const icoImg = id => '<img src="'+iconURL(id)+'" alt="">';
 function matChip(k,n,cls){ return '<span class="mat'+(MATS[k]&&MATS[k].boss?' boss':'')+(cls?' '+cls:'')+'" title="'+(MATS[k]?MATS[k].name:'')+'">'+icoImg(k)+n+'</span>'; }
 
 /* ---------- 描画 ---------- */
-const BG = {   // ステージごとの地面。tile() は 160px のマス1つぶんを描く
-  meadow:{base:'#12263a', tile(c,tx,ty,bx,by,T){
-    c.strokeStyle='#1f4d4f'; c.lineWidth=2;
-    for(let i=0;i<3;i++){
-      const gx=bx+hash(tx*7+i,ty)*T, gy=by+hash(tx,ty*7+i)*T;
-      c.beginPath(); c.moveTo(gx-4,gy); c.lineTo(gx-6,gy-7); c.moveTo(gx,gy); c.lineTo(gx,gy-9); c.moveTo(gx+4,gy); c.lineTo(gx+6,gy-7); c.stroke();
-    }
-    for(let i=0;i<2;i++){
-      const sx=bx+hash(tx*13+i,ty+5)*T, sy=by+hash(tx+9,ty*13+i)*T, tw=0.35+0.3*Math.sin(animT*1.7+hash(tx+i,ty)*40);
-      c.fillStyle='rgba(255,236,170,'+tw.toFixed(2)+')'; starPath(c,sx,sy,3.2,0); c.fill();
-    }
-  }},
-  garden:{base:'#17382a', tile(c,tx,ty,bx,by,T){
-    c.strokeStyle='#2f6f49'; c.lineWidth=2;
-    for(let i=0;i<4;i++){
-      const gx=bx+hash(tx*7+i,ty)*T, gy=by+hash(tx,ty*7+i)*T;
-      c.beginPath(); c.moveTo(gx-4,gy); c.lineTo(gx-6,gy-7); c.moveTo(gx,gy); c.lineTo(gx,gy-9); c.moveTo(gx+4,gy); c.lineTo(gx+6,gy-7); c.stroke();
-    }
-    for(let i=0;i<2;i++){
-      const fx=bx+hash(tx*13+i,ty+5)*T, fy=by+hash(tx+9,ty*13+i)*T, col=['#ff9db0','#ffe27a','#f4f1ff'][(hash(tx+i*3,ty-i)*3)|0];
-      c.fillStyle=col; c.globalAlpha=0.8;
-      for(let k=0;k<5;k++){ const a=k/5*TAU; c.beginPath(); c.arc(fx+Math.cos(a)*4,fy+Math.sin(a)*4,3,0,TAU); c.fill(); }
-      c.fillStyle='#f5b94a'; c.beginPath(); c.arc(fx,fy,2.4,0,TAU); c.fill(); c.globalAlpha=1;
-    }
-  }},
-  forest:{base:'#10263a', tile(c,tx,ty,bx,by,T){   // ほしのもり：木かげ・ひかる きのこ・ほたる
-    for(let i=0;i<2;i++){ const x=bx+hash(tx*3+i,ty)*T, y=by+hash(tx,ty*3+i)*T, r=34+hash(tx+i,ty+i)*26;
-      c.fillStyle='rgba(8,22,30,.45)'; c.beginPath(); c.arc(x,y,r,0,TAU); c.arc(x+r*0.7,y+r*0.3,r*0.7,0,TAU); c.fill(); }
-    c.strokeStyle='#1d4a4a'; c.lineWidth=2;
-    for(let i=0;i<3;i++){ const gx=bx+hash(tx*7+i,ty)*T, gy=by+hash(tx,ty*7+i)*T;
-      c.beginPath(); c.moveTo(gx-4,gy); c.lineTo(gx-6,gy-7); c.moveTo(gx,gy); c.lineTo(gx,gy-9); c.moveTo(gx+4,gy); c.lineTo(gx+6,gy-7); c.stroke(); }
-    for(let i=0;i<3;i++){ const sx=bx+hash(tx*13+i,ty+5)*T, sy=by+hash(tx+9,ty*13+i)*T, tw=0.3+0.4*Math.sin(animT*1.4+hash(tx+i,ty)*40);
-      c.fillStyle=(i?'rgba(130,225,255,':'rgba(255,236,150,')+tw.toFixed(2)+')'; c.beginPath(); c.arc(sx,sy,i?2.2:2.8,0,TAU); c.fill(); }
-    if(hash(tx*5,ty*9)>0.72){ const x=bx+T*(0.15+0.7*hash(tx*11,ty*3)), y=by+T*(0.15+0.7*hash(tx*3,ty*11));
-      c.fillStyle='#e8e2ff'; c.fillRect(x-2,y,4,8); c.fillStyle='rgba(190,160,255,.9)'; c.beginPath(); c.ellipse(x,y,9,5.5,0,Math.PI,TAU); c.fill();
-      c.fillStyle='rgba(190,160,255,.22)'; c.beginPath(); c.arc(x,y,16,0,TAU); c.fill(); }
-  }},
-  house:{base:'#3d2f42', tile(c,tx,ty,bx,by,T){   // 家の中：フローリング＋ときどき ラグ・おもちゃ
-    for(let k=0;k<4;k++){
-      const y=by+k*40, off=hash(tx,ty*4+k)*T;
-      c.fillStyle=(k+ty)&1?'#45354a':'#4b3a50'; c.fillRect(bx,y,T,40);
-      c.strokeStyle='rgba(20,10,30,.35)'; c.lineWidth=2; c.beginPath(); c.moveTo(bx,y); c.lineTo(bx+T,y);
-      const jx=bx+off; c.moveTo(jx,y); c.lineTo(jx,y+40); c.stroke();
-      c.strokeStyle='rgba(255,230,210,.05)'; c.beginPath(); c.moveTo(bx,y+14); c.lineTo(bx+T,y+16); c.stroke();
-    }
-    const h=hash(tx*5,ty*3);
-    if(h>0.93){ const x=bx+T/2, y=by+T/2;
-      for(let i=0;i<4;i++){ c.strokeStyle=i&1?'rgba(185,164,240,.28)':'rgba(255,170,200,.28)'; c.lineWidth=9; c.beginPath(); c.ellipse(x,y,64-i*13,42-i*9,0,0,TAU); c.stroke(); } }
-    else if(h<0.05){ const x=bx+hash(tx+3,ty)*T*0.7+20, y=by+hash(tx,ty+3)*T*0.7+20;
-      c.fillStyle='rgba(255,207,90,.35)'; c.fillRect(x,y,16,16); c.fillStyle='rgba(143,212,255,.35)'; c.fillRect(x+18,y+4,14,14); }
-  }},
-  town:{base:'#252b3b', tile(c,tx,ty,bx,by,T){
-    c.strokeStyle='rgba(255,255,255,.05)'; c.lineWidth=2; c.strokeRect(bx,by,T,T);
-    const h=hash(tx*3,ty*5);
-    if(((ty%4)+4)%4===0){ c.fillStyle='rgba(255,255,255,.16)'; c.fillRect(bx+20,by+74,70,10); }          // 道路の白線
-    if(h>0.9){ c.strokeStyle='rgba(255,255,255,.12)'; c.lineWidth=3; c.beginPath(); c.arc(bx+T*0.5,by+T*0.3,20,0,TAU); c.stroke();
-               c.beginPath(); c.moveTo(bx+T*0.5-14,by+T*0.3); c.lineTo(bx+T*0.5+14,by+T*0.3); c.stroke(); }   // マンホール
-    else if(h<0.25){ const sx=bx+hash(tx,ty+7)*T, sy=by+hash(tx+7,ty)*T, tw=0.25+0.25*Math.sin(animT*1.5+h*60);
-               c.fillStyle='rgba(255,226,150,'+tw.toFixed(2)+')'; c.beginPath(); c.arc(sx,sy,14,0,TAU); c.fill(); }   // 街灯のあかり
-  }},
-};
 function hash(x,y){ let h=(x*374761393+y*668265263)|0; h=(h^(h>>>13))*1274126177|0; return ((h^(h>>>16))>>>0)/4294967296; }
+/* ---------- 背景：地面のむら（1枚の大きな絵）＋ 小物を ばらばらに散らす ----------
+   同じ形を くりかえさない。ステージごとの ちがいは THEME の色と小物の種類・数で つける。
+   props の数字は 1000×1000 あたりの数。tree/blossom=木 bush=しげみ rock=いし flower=花 mush=きのこ tuft=くさ
+   lamp=がいとう fence=さく planter=うえきばち wheat=むぎ rug=ラグ block=つみき book=えほん cushion=クッション pot=はちうえ */
+const THEME = {
+  forest:   {base:'#123f3c', light:['#2c6e56','#357a5a','#2a6a62'], dark:['#0a2a2c','#0d3134'], tree:['#1d5b55','#226a5f','#18504c','#24705f'], rim:'143,227,200',
+             flower:['#d9b8ff','#ffffff','#a9e6ff'], rock:['#4b6b72','#57767a'], mushc:['#c4a6ff','#9fd7ff'],
+             props:{tree:9,bush:7,rock:3,mush:5,flower:6,tuft:18}},
+  meadow:   {base:'#1b4a42', light:['#3f8a5d','#4d985f','#378056'], dark:['#123a36'], tree:['#22645a','#2a7262'], rim:'170,240,200',
+             flower:['#ffffff','#d9c4ff','#ffc6e0'], rock:['#5b7a7a','#647f78'], mushc:['#c4a6ff'],
+             props:{tree:1.6,bush:5,rock:3,mush:0.8,flower:14,tuft:26}},
+  flowers:  {base:'#22503f', light:['#4a8f5c','#3e8558','#5a9a62'], dark:['#163f36'], tree:['#2a6a5a'], rim:'200,240,210',
+             flower:['#ff9fcf','#d7a6ff','#ffffff','#ffb38a','#9fb8ff'], rock:['#6a8078'], mushc:['#ffb3d0'],
+             props:{tree:1,bush:3,rock:1.5,flower:22,tuft:20}},
+  outskirts:{base:'#2a4d3c', light:['#5a8a58','#6b9356','#4d7f55'], dark:['#1e3d33'], tree:['#2f6a58','#346f56'], rim:'230,220,170',
+             flower:['#ffffff','#ffe0a8'], rock:['#7a7e72','#6e7468'], mushc:['#ffd9a0'],
+             props:{tree:1.5,bush:3,rock:3,fence:2,wheat:12,flower:4,tuft:14}},
+  town:     {base:'#2e3c50', light:['#46586f','#4d5f76','#3e5068'], dark:['#222d40'], tree:['#25585a','#2b6260'], rim:'255,226,160',
+             flower:['#ffb3d0','#ffffff','#ffd98a'], rock:['#5a6478','#646d80','#4f5a6e'], mushc:['#ffd9a0'],
+             props:{tree:1.4,lamp:3.2,planter:4,rock:10,flower:5,tuft:4}},
+  sunset:   {base:'#3a3f4a', light:['#6a5a5e','#7a6060','#5a6458'], dark:['#2a2c3a'], tree:['#3a5a56','#425e58'], rim:'255,190,150',
+             flower:['#ffc49a','#ffe0b0','#ffffff'], rock:['#6e6470','#776a72'], mushc:['#ffc49a'],
+             props:{tree:2,bush:4,rock:3,flower:6,tuft:16}},
+  avenue:   {base:'#2a4440', light:['#4e7a62','#5a7f68'], dark:['#1c3432'], tree:['#2a6058'], blossom:['#e9a8d8','#d7a6ef','#f3b8d8'], rim:'255,220,240',
+             flower:['#ffd0ec','#ffffff'], rock:['#6a7280'], mushc:['#ffd0ec'],
+             props:{blossom:5,lamp:1.4,bush:2,rock:2,flower:6,tuft:10}},
+  slope:    {base:'#2e3a48', light:['#4a5a68','#536274'], dark:['#222b38'], tree:['#2b5c58'], rim:'255,226,160',
+             flower:['#ffffff','#d9c4ff'], rock:['#6a7488','#747c8e','#5e6880'], mushc:['#ffd9a0'],
+             props:{rock:9,lamp:2,bush:3,tree:1,planter:1.2,flower:3,tuft:8}},
+  garden:   {base:'#1d4c3e', light:['#3e8a5c','#4a9662','#357e57'], dark:['#143a33'], tree:['#22645a','#2a705f'], rim:'190,250,210',
+             flower:['#ff9fcf','#d7a6ff','#ffffff','#ffb38a'], rock:['#7a8078','#6e7470'], mushc:['#c4a6ff'],
+             props:{tree:1.4,bush:7,rock:3.5,flower:18,fence:1.2,pot:2,tuft:16}},
+  house:    {base:'#4a3a4c', light:['#5a4658','#54424f'], dark:['#3a2c3c'], tree:['#2f6a5a'], rim:'255,220,190', floor:true,
+             flower:['#ffb3d0','#ffffff'], rock:['#7a6a7c'], mushc:['#ffd0e0'],
+             props:{rug:1.2,block:8,book:6,cushion:4,pot:3}},
+};
+const PROP_SIZE = {tree:170, blossom:170, bush:150, rock:120, flower:130, mush:110, tuft:110, lamp:130, fence:120, planter:130, wheat:120, rug:300, block:100, book:110, cushion:120, pot:120};   // 小物の絵（160×160）を描く大きさ
+function rng(seed){ let a=seed>>>0; return ()=>{ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+function mixHex(h,o,t){   // 色を まぜる（o は '#000000' や '#ffffff'）
+  const a=parseInt(h.slice(1),16), b=parseInt(o.slice(1),16), m=(x,y)=>Math.round(x+(y-x)*t);
+  return 'rgb('+m(a>>16,b>>16)+','+m((a>>8)&255,(b>>8)&255)+','+m(a&255,b&255)+')';
+}
+/* 小物の絵（種類×色ちがいごとに1回だけ作って使い回す） */
+const PCV={};
+function propCv(kind,th,thKey,v){
+  const key=thKey+'|'+kind+'|'+v; if(PCV[key]) return PCV[key];
+  const S=160, m=80, c=document.createElement('canvas'); c.width=c.height=S; const g=c.getContext('2d'), R=rng(v*7919+kind.length*131+thKey.length*17);
+  const pick2=a=>a[(R()*a.length)|0], blobs=(list,col,dy)=>{ g.fillStyle=col; for(const b of list){ g.beginPath(); g.arc(b[0],b[1]+(dy||0),b[2],0,TAU); g.fill(); } };
+  const rim=(list,rgb,a)=>{ g.strokeStyle='rgba('+rgb+','+a+')'; g.lineWidth=2.6; g.lineCap='round'; for(const b of list){ g.beginPath(); g.arc(b[0],b[1],b[2]-1.5,Math.PI*1.05,Math.PI*1.62); g.stroke(); } };
+  const shadow=(y,rx,ry)=>{ g.fillStyle='rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(m,y,rx,ry,0,0,TAU); g.fill(); };
+  switch(kind){
+    case 'tree': case 'blossom': {
+      const col=pick2(kind==='blossom'?th.blossom:th.tree), list=[[m,m-14,27+R()*5]], n=5+((R()*3)|0);
+      for(let i=0;i<n;i++){ const a=i/n*TAU+R()*0.6, d=18+R()*13; list.push([m+Math.cos(a)*d,m-14+Math.sin(a)*d*0.72,17+R()*9]); }
+      shadow(m+46,48,12);
+      g.fillStyle='#2b2534'; g.beginPath(); g.moveTo(m-7,m+44); g.lineTo(m-4,m+6); g.lineTo(m+4,m+6); g.lineTo(m+7,m+44); g.closePath(); g.fill();
+      blobs(list,mixHex(col.length>7?'#2a6a5a':col,'#000000',0.35),6);
+      blobs(list,col);
+      g.globalAlpha=0.35; blobs(list.slice(0,3).map(b=>[b[0]-b[2]*0.25,b[1]-b[2]*0.3,b[2]*0.5]),mixHex(col.length>7?'#2a6a5a':col,'#ffffff',0.25)); g.globalAlpha=1;
+      rim(list,th.rim,0.5);
+      if(kind==='blossom'){ g.fillStyle='rgba(255,255,255,.7)'; for(let i=0;i<14;i++){ g.beginPath(); g.arc(m+(R()-0.5)*80,m-14+(R()-0.5)*56,1.6+R()*1.4,0,TAU); g.fill(); } }
+      break; }
+    case 'bush': {
+      const col=pick2(th.tree), list=[]; const n=3+((R()*3)|0);
+      for(let i=0;i<n;i++) list.push([m-22+i*(44/(n-1||1))+(R()-0.5)*6,m+8-R()*10,13+R()*8]);
+      shadow(m+24,34,8); blobs(list,mixHex(col,'#000000',0.35),5); blobs(list,mixHex(col,'#ffffff',0.06)); rim(list,th.rim,0.42);
+      if(R()<0.5){ g.fillStyle=pick2(th.flower); for(let i=0;i<5;i++){ g.beginPath(); g.arc(m-24+R()*48,m-2+R()*16,2.2,0,TAU); g.fill(); } }
+      break; }
+    case 'rock': {
+      const col=pick2(th.rock), n=7, rr0=22+R()*6, pts=[];
+      for(let i=0;i<n;i++){ const a=i/n*TAU, r=rr0*(0.75+R()*0.35); pts.push([m+Math.cos(a)*r*1.15,m+10+Math.sin(a)*r*0.7]); }
+      shadow(m+24,30,7);
+      const path=()=>{ g.beginPath(); pts.forEach((q,i)=>{ const nx=pts[(i+1)%n]; const mx=(q[0]+nx[0])/2, my=(q[1]+nx[1])/2; if(i===0) g.moveTo(mx,my); else g.quadraticCurveTo(q[0],q[1],mx,my); });
+        const q=pts[0], nx=pts[1]; g.quadraticCurveTo(q[0],q[1],(q[0]+nx[0])/2,(q[1]+nx[1])/2); g.closePath(); };
+      path(); g.fillStyle=mixHex(col,'#000000',0.25); g.fill();
+      g.save(); g.translate(0,-4); path(); g.fillStyle=col; g.fill(); g.restore();
+      g.fillStyle='rgba(255,255,255,.18)'; g.beginPath(); g.ellipse(m-6,m-2,10,4,-0.3,0,TAU); g.fill();
+      if(R()<0.4){ g.fillStyle='rgba(120,200,140,.5)'; g.beginPath(); g.ellipse(m+8,m+2,7,3,0.2,0,TAU); g.fill(); }   // こけ
+      break; }
+    case 'flower': {
+      const n=3+((R()*4)|0);
+      for(let i=0;i<n;i++){
+        const x=m+(R()-0.5)*44, y=m+(R()-0.5)*30, col=pick2(th.flower), r=3+R()*1.6;
+        g.strokeStyle='rgba(60,130,90,.8)'; g.lineWidth=1.4; g.beginPath(); g.moveTo(x,y); g.lineTo(x+(R()-0.5)*4,y+9); g.stroke();
+        g.fillStyle=col; for(let k=0;k<5;k++){ const a=k/5*TAU; g.beginPath(); g.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,r*0.75,0,TAU); g.fill(); }
+        g.fillStyle='rgba(255,236,170,.95)'; g.beginPath(); g.arc(x,y,r*0.55,0,TAU); g.fill();
+      }
+      break; }
+    case 'mush': {
+      const col=pick2(th.mushc), n=1+((R()*3)|0);
+      for(let i=0;i<n;i++){ const x=m+(i-(n-1)/2)*14+(R()-0.5)*4, y=m+8-(i%2)*6, s=0.7+R()*0.5;
+        const gr=g.createRadialGradient(x,y-4*s,0,x,y-4*s,22*s); gr.addColorStop(0,'rgba(220,200,255,.45)'); gr.addColorStop(1,'rgba(220,200,255,0)');
+        g.fillStyle=gr; g.beginPath(); g.arc(x,y-4*s,22*s,0,TAU); g.fill();
+        g.fillStyle='#ece6ff'; g.fillRect(x-2*s,y-4*s,4*s,11*s);
+        g.fillStyle=col; g.beginPath(); g.ellipse(x,y-4*s,9*s,6*s,0,Math.PI,TAU); g.fill();
+        g.fillStyle='rgba(255,255,255,.7)'; g.beginPath(); g.arc(x-3*s,y-7*s,1.4*s,0,TAU); g.fill(); }
+      break; }
+    case 'tuft': case 'wheat': {
+      const base=kind==='wheat'?'#c9b46a':mixHex(pick2(th.light),'#ffffff',0.15), n=5+((R()*4)|0);
+      g.strokeStyle=base; g.lineCap='round';
+      for(let i=0;i<n;i++){ const x=m+(R()-0.5)*26, h=12+R()*14, bend=(R()-0.5)*12; g.lineWidth=1.6+R();
+        g.beginPath(); g.moveTo(x,m+12); g.quadraticCurveTo(x+bend*0.4,m+12-h*0.6,x+bend,m+12-h); g.stroke();
+        if(kind==='wheat'){ g.fillStyle='#e6d38a'; g.beginPath(); g.ellipse(x+bend,m+12-h,2.2,4.5,bend*0.04,0,TAU); g.fill(); } }
+      break; }
+    case 'lamp': {
+      shadow(m+44,16,5);
+      g.fillStyle='#1c1a3e'; g.fillRect(m-2.5,m-30,5,74); g.fillRect(m-8,m+40,16,5);
+      const gr=g.createRadialGradient(m,m-34,0,m,m-34,44); gr.addColorStop(0,'rgba(255,226,150,.55)'); gr.addColorStop(1,'rgba(255,226,150,0)');
+      g.fillStyle=gr; g.beginPath(); g.arc(m,m-34,44,0,TAU); g.fill();
+      g.fillStyle='#2a2850'; g.beginPath(); g.moveTo(m-9,m-38); g.lineTo(m+9,m-38); g.lineTo(m+6,m-26); g.lineTo(m-6,m-26); g.closePath(); g.fill();
+      g.fillStyle='#ffe9a0'; g.fillRect(m-4.5,m-36,9,8);
+      break; }
+    case 'fence': {
+      g.strokeStyle='rgba(0,0,0,.2)'; g.lineWidth=4; g.beginPath(); g.moveTo(m-38,m+16); g.lineTo(m+38,m+16); g.stroke();
+      g.fillStyle='#8a7a92'; for(const x of [-34,-11,12,35]) { rr(g,m+x-3.5,m-12,7,28,2.5); g.fill(); }
+      g.fillRect(m-38,m-6,76,4.5); g.fillRect(m-38,m+4,76,4.5);
+      g.fillStyle='rgba(255,255,255,.18)'; g.fillRect(m-38,m-6,76,1.5);
+      break; }
+    case 'planter': {
+      shadow(m+22,30,7);
+      g.fillStyle='#7a5a4a'; rr(g,m-26,m+2,52,20,5); g.fill(); g.fillStyle='rgba(255,255,255,.15)'; g.fillRect(m-24,m+4,48,3);
+      const list=[[m-14,m-2,11],[m,m-6,13],[m+14,m-2,11]], col=pick2(th.tree);
+      blobs(list,mixHex(col,'#ffffff',0.05)); rim(list,th.rim,0.4);
+      g.fillStyle=pick2(th.flower); for(let i=0;i<6;i++){ g.beginPath(); g.arc(m-18+R()*36,m-10+R()*10,2.4,0,TAU); g.fill(); }
+      break; }
+    case 'pot': {
+      shadow(m+24,22,6);
+      g.fillStyle='#c78a6a'; g.beginPath(); g.moveTo(m-16,m+2); g.lineTo(m+16,m+2); g.lineTo(m+12,m+24); g.lineTo(m-12,m+24); g.closePath(); g.fill();
+      g.fillStyle='#d99c7a'; g.fillRect(m-18,m-2,36,6);
+      const col=pick2(th.tree), list=[[m-10,m-8,9],[m,m-14,11],[m+10,m-8,9]];
+      blobs(list,mixHex(col,'#ffffff',0.08)); rim(list,th.rim,0.4);
+      break; }
+    case 'rug': {
+      const cols=[['#8f74c8','#c9a8e8','#f0c6dc'],['#6a8fc0','#a8c8e8','#e8e0f8'],['#c87a9a','#e8b0c8','#f8e0ea']][v%3];
+      for(let i=0;i<3;i++){ g.fillStyle=cols[i]; g.globalAlpha=0.55; g.beginPath(); g.ellipse(m,m,70-i*20,46-i*13,0,0,TAU); g.fill(); }
+      g.globalAlpha=0.4; g.strokeStyle='#fff'; g.setLineDash([5,5]); g.lineWidth=2; g.beginPath(); g.ellipse(m,m,64,41,0,0,TAU); g.stroke(); g.setLineDash([]); g.globalAlpha=1;
+      break; }
+    case 'block': {
+      const col=pick2(['#ffcf5a','#8fd4ff','#ff9fb8','#b8e08a','#c9a8ff']);
+      shadow(m+18,18,5);
+      g.fillStyle=mixHex(col,'#000000',0.25); rr(g,m-14,m-6,28,24,4); g.fill(); g.fillStyle=col; rr(g,m-14,m-12,28,22,4); g.fill();
+      g.fillStyle='rgba(255,255,255,.75)'; g.font='800 14px sans-serif'; g.textAlign='center'; g.fillText(pick2(['★','あ','の','♪']),m,m+4);
+      break; }
+    case 'book': {
+      const col=pick2(['#8f74c8','#ff8fb1','#6aa8e0','#e0a85a']);
+      g.save(); g.translate(m,m); g.rotate((R()-0.5)*1.2); shadow(0,0,0);
+      g.fillStyle='rgba(0,0,0,.22)'; g.fillRect(-15,-9,32,24); g.fillStyle='#fff6e8'; g.fillRect(-17,-12,32,22); g.fillStyle=col; g.fillRect(-17,-12,32,20);
+      g.fillStyle='rgba(255,255,255,.55)'; starPath(g,0,-2,5,0); g.fill(); g.restore();
+      break; }
+    case 'cushion': {
+      const col=pick2(['#ffb3cb','#c9b8ff','#a8dcf0']);
+      shadow(m+20,26,6); g.fillStyle=mixHex(col,'#000000',0.2); rr(g,m-24,m-14,48,34,13); g.fill(); g.fillStyle=col; rr(g,m-24,m-18,48,32,13); g.fill();
+      g.fillStyle='rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(m-8,m-10,10,4,-0.2,0,TAU); g.fill(); g.fillStyle=mixHex(col,'#000000',0.3); g.beginPath(); g.arc(m,m-2,2.5,0,TAU); g.fill();
+      break; }
+  }
+  return PCV[key]=c;
+}
+/* ステージの背景データ（地面の絵と、小物の位置）。ステージごとに1回だけ作る。位置は毎回同じ */
+const WBG={};
+function worldBg(S){
+  if(WBG[S.id]) return WBG[S.id];
+  const thKey=THEME[S.bg]?S.bg:'meadow', th=THEME[thKey], W=CFG.WORLD, GS=0.25, R=rng(S.id*104729+7);
+  // 地面：やわらかい むら（明るい芝のまだら・暗いところ）。1枚の大きな絵なので くりかえしが出ない
+  const gc=document.createElement('canvas'); gc.width=gc.height=Math.round(W*GS); const g=gc.getContext('2d'), N=gc.width;
+  g.fillStyle=th.base; g.fillRect(0,0,N,N);
+  const blob=(col,a,rad)=>{ const x=R()*N, y=R()*N, r=rad*GS, gr=g.createRadialGradient(x,y,0,x,y,r);
+    gr.addColorStop(0,col); gr.addColorStop(1,'rgba(0,0,0,0)'); g.globalAlpha=a; g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,TAU); g.fill(); };
+  if(th.floor){   // 家の中：フローリング（板の長さと色を ばらつかせる）
+    for(let y=0;y<N;y+=10){ let x=-R()*120; while(x<N){ const len=60+R()*110; g.fillStyle=mixHex(th.base,R()<0.5?'#000000':'#ffffff',R()*0.08); g.fillRect(x,y,len-1,9); x+=len; } }
+    g.globalAlpha=0.35; g.fillStyle='#2a1e2c'; for(let y=0;y<N;y+=10) g.fillRect(0,y+9,N,1); g.globalAlpha=1;
+  }
+  for(let i=0;i<70;i++) blob(th.dark[i%th.dark.length],0.55,160+R()*260);
+  for(let i=0;i<260;i++) blob(th.light[i%th.light.length],0.28+R()*0.3,50+R()*190);
+  for(let i=0;i<1600;i++){ g.globalAlpha=0.15+R()*0.2; g.fillStyle=R()<0.5?th.light[i%th.light.length]:th.dark[0]; g.beginPath(); g.arc(R()*N,R()*N,0.6+R()*1.6,0,TAU); g.fill(); }
+  g.globalAlpha=1;
+  // 小物：大きさ・色ちがい・向きを ばらばらにして 散らす（木どうしは 少し はなす）
+  const CELL=400, cells=Math.ceil(W/CELL), grid=Array.from({length:cells*cells},()=>[]), trees=[];
+  for(const kind in th.props){
+    const n=Math.round(th.props[kind]*W*W/1e6), big=kind==='tree'||kind==='blossom'||kind==='rug';
+    for(let i=0;i<n;i++){
+      let x=0,y=0,ok=false;
+      for(let t=0;t<8&&!ok;t++){ x=60+R()*(W-120); y=60+R()*(W-120); ok=!big||trees.every(q=>Math.hypot(q[0]-x,q[1]-y)>(kind==='rug'?320:120)); }
+      if(!ok) continue; if(big) trees.push([x,y]);
+      const s=(0.72+R()*0.6)*PROP_SIZE[kind], o={x,y,s,kind,cv:propCv(kind,th,thKey,(R()*6)|0),flip:R()<0.5,flat:kind==='rug'||kind==='flower'||kind==='tuft'||kind==='wheat'};
+      grid[Math.min(cells-1,(y/CELL)|0)*cells+Math.min(cells-1,(x/CELL)|0)].push(o);
+    }
+  }
+  return WBG[S.id]={th,gc,GS,grid,CELL,cells};
+}
+const vis=[];
+function drawWorldBg(c,cx,cy){
+  const B=worldBg(G.stage), W=CFG.WORLD;
+  c.fillStyle=B.th.base; c.fillRect(cx-4,cy-4,VW+8,VH+8);
+  const x0=Math.max(0,cx), y0=Math.max(0,cy), x1=Math.min(W,cx+VW), y1=Math.min(W,cy+VH);
+  if(x1>x0&&y1>y0){ c.imageSmoothingEnabled=true; c.drawImage(B.gc,x0*B.GS,y0*B.GS,(x1-x0)*B.GS,(y1-y0)*B.GS,x0,y0,x1-x0,y1-y0); }
+  vis.length=0; const M=180, a0=Math.max(0,((cx-M)/B.CELL)|0), a1=Math.min(B.cells-1,((cx+VW+M)/B.CELL)|0), b0=Math.max(0,((cy-M)/B.CELL)|0), b1=Math.min(B.cells-1,((cy+VH+M)/B.CELL)|0);
+  for(let j=b0;j<=b1;j++) for(let i=a0;i<=a1;i++) for(const o of B.grid[j*B.cells+i]) if(o.x+o.s>cx&&o.x-o.s<cx+VW&&o.y+o.s>cy&&o.y-o.s<cy+VH) vis.push(o);
+  vis.sort((a,b)=>(a.flat===b.flat)?a.y-b.y:(a.flat?-1:1));   // ラグ・花・草を先に、木などは 奥から手前の順に
+  for(const o of vis){
+    if(o.flip){ c.save(); c.translate(o.x,o.y); c.scale(-1,1); c.drawImage(o.cv,-o.s/2,-o.s/2,o.s,o.s); c.restore(); }
+    else c.drawImage(o.cv,o.x-o.s/2,o.y-o.s/2,o.s,o.s);
+  }
+}
+/* スキルエフェクトの絵 */
+const fxImg={};
+for(const k in CFG.FX_SPR){ const im=new Image(); im.src=CFG.FX_SPR[k].src; fxImg[k]=im; }
+const fxOk = k => imgOk(fxImg[k]);
+
 const CANVAS_FONT='"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif';
 /* タイトルまわりの背景：ゆっくり またたく星と、ときどき 流れ星 */
 const SKY={st:null,sh:[],nt:1.2};
@@ -2499,26 +2638,19 @@ function render(){
   c.setTransform(DPR*SC,0,0,DPR*SC,0,0);
   let cx=p.x-VW/2, cy=p.y-VH/2;
   if(G.shake>0){ const A=G.shakeAmp; cx+=rand(-A,A); cy+=rand(-A,A); }
-  const bg=BG[G.stage.bg]||BG.meadow, bim=bgTile(G.stage);
-  c.fillStyle=bg.base; c.fillRect(0,0,VW,VH);
   c.save(); c.translate(-cx,-cy);
 
-  // 地面：背景画像があればタイル敷き（継ぎ目が出ないよう、1枚おきに左右・上下を反転して敷く）。無ければコード描画
+  // 地面と小物（タイル感なし）
   c.lineCap='round';
-  if(bim){
-    const T=CFG.BG_TILE, x0=Math.floor(cx/T), y0=Math.floor(cy/T), x1=Math.floor((cx+VW)/T), y1=Math.floor((cy+VH)/T);
-    for(let ty=y0;ty<=y1;ty++) for(let tx=x0;tx<=x1;tx++){
-      const fx=tx&1, fy=ty&1;   // となり同士を少し重ねて描き、すき間の線が出ないようにする
-      c.save(); c.translate(tx*T+(fx?T:0),ty*T+(fy?T:0)); c.scale(fx?-1:1,fy?-1:1); c.drawImage(bim,-0.5,-0.5,T+1,T+1); c.restore();
-    }
-  }else{
-    const T=160, x0=Math.floor(cx/T), y0=Math.floor(cy/T), x1=Math.floor((cx+VW)/T), y1=Math.floor((cy+VH)/T);
-    for(let ty=y0;ty<=y1;ty++) for(let tx=x0;tx<=x1;tx++) bg.tile(c,tx,ty,tx*T,ty*T,T);
-  }
+  drawWorldBg(c,cx,cy);
 
-  // ほのお（地面）：こげた地面と赤いふち。炎そのものは敵の上に描く
+  // ほのお（地面）：絵があれば 燃えている一帯の絵。無ければ こげた地面と赤いふち（炎そのものは敵の上に描く）
   for(const z of G.zones){
     const a=clamp(z.life/0.5,0,1)*clamp((z.max-z.life)/0.15,0.3,1);
+    if(fxOk('fire')){
+      const F=CFG.FX_SPR.fire, sz=z.r*2*F.size*(0.97+0.03*Math.sin(animT*11+z.seed))*clamp((z.max-z.life)/0.18,0.6,1);
+      c.globalAlpha=a*(0.88+0.12*Math.sin(animT*17+z.seed)); c.drawImage(fxImg.fire,z.x-sz/2,z.y-sz/2,sz,sz); c.globalAlpha=1; continue;
+    }
     c.fillStyle='rgba(46,14,8,'+(0.52*a).toFixed(2)+')'; c.beginPath(); c.arc(z.x,z.y,z.r,0,TAU); c.fill();
     c.strokeStyle='rgba(255,84,20,'+(0.9*a).toFixed(2)+')'; c.lineWidth=3; c.stroke();
     c.fillStyle='rgba(255,140,30,'+(0.3*a).toFixed(2)+')'; c.beginPath(); c.arc(z.x,z.y,z.r*0.7,0,TAU); c.fill();
@@ -2528,6 +2660,14 @@ function render(){
   for(const h of G.herbs){
     const R=h.r*(0.6+0.4*clamp((CFG.HERB_LIFE-h.life)/0.25,0,1));
     c.globalAlpha=clamp(h.life/1.5,0,1);
+    if(fxOk('grass')){
+      const F=CFG.FX_SPR.grass, sz=R*2*F.size, pr=(animT*0.9+h.seed)%1;
+      c.fillStyle='rgba(120,220,110,.14)'; c.beginPath(); c.arc(h.x,h.y,R,0,TAU); c.fill();
+      c.strokeStyle=(h.trod?'rgba(255,190,140,':'rgba(228,255,196,')+(0.7*(1-pr)).toFixed(2)+')'; c.lineWidth=3; c.beginPath(); c.arc(h.x,h.y,R*pr,0,TAU); c.stroke();
+      c.save(); c.translate(h.x,h.y); c.rotate(animT*F.spin+h.seed*6);
+      if(h.trod) c.globalAlpha*=0.75+0.25*Math.sin(animT*30);
+      c.drawImage(fxImg.grass,-sz/2,-sz/2,sz,sz); c.restore(); c.globalAlpha=1; continue;
+    }
     c.fillStyle='rgba(96,214,84,.36)'; c.beginPath(); c.arc(h.x,h.y,R,0,TAU); c.fill();
     c.fillStyle='rgba(206,255,150,.24)'; c.beginPath(); c.arc(h.x,h.y,R*0.62,0,TAU); c.fill();
     const pr=(animT*0.9+h.seed)%1;
@@ -2591,6 +2731,7 @@ function render(){
 
   // ほのお（炎）：赤→オレンジ→黄の3層の炎がゆらめく
   for(const z of G.zones){
+    if(fxOk('fire')) break;
     const a=clamp(z.life/0.5,0,1)*clamp((z.max-z.life)/0.15,0.3,1), n=5+Math.floor(z.r/13);
     c.globalAlpha=0.92*a;
     for(let L=0;L<3;L++){
@@ -2622,6 +2763,14 @@ function render(){
     else if(b.kind==='homing'){ c.fillStyle='rgba(255,143,168,.4)'; c.beginPath(); c.arc(b.x-b.vx*0.03,b.y-b.vy*0.03,b.r*0.8,0,TAU); c.fill();
       c.fillStyle='#ff8fa8'; starPath(c,b.x,b.y,b.r+2,b.rot); c.fill(); }
     else if(b.kind==='ice'){ c.fillStyle='#bfefff'; starPath(c,b.x,b.y,b.r+2,Math.PI/8); c.fill(); c.fillStyle='#fff'; c.beginPath(); c.arc(b.x,b.y,2.5,0,TAU); c.fill(); }
+    else if(b.kind==='wave'&&(fxOk('waveA')||fxOk('waveB'))){   // なみ（絵）：上下に進む時は a、左右に進む時は b
+      const vert=Math.abs(b.vy)>Math.abs(b.vx), key=(vert&&fxOk('waveA'))||!fxOk('waveB')?'waveA':'waveB', F=CFG.FX_SPR[key];
+      const dir=Math.atan2(b.vy,b.vx), base=F.ang*Math.PI/180, sz=b.r*2*F.size*(1+0.04*Math.sin(animT*14));
+      let rot=dir-base, fl=false; rot=Math.atan2(Math.sin(rot),Math.cos(rot));
+      if(F.flip&&Math.abs(rot)>Math.PI/2){ fl=true; rot=dir-(Math.PI-base); rot=Math.atan2(Math.sin(rot),Math.cos(rot)); }   // 逆向きは 左右反転（上下逆さまにしない）
+      c.save(); c.translate(b.x,b.y); c.rotate(rot); if(fl) c.scale(-1,1); c.globalAlpha=clamp(b.life/0.25,0,1);
+      c.drawImage(fxImg[key],-sz/2,-sz/2,sz,sz); c.restore();
+    }
     else if(b.kind==='wave'){   // なみ：濃い青の三日月＋白い波がしら
       const R=b.r*1.15, A=1.25, wv=Math.sin(animT*16)*0.04;
       c.save(); c.translate(b.x,b.y); c.rotate(Math.atan2(b.vy,b.vx)); c.globalAlpha=clamp(b.life/0.25,0,1);
