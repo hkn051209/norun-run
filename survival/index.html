@@ -483,9 +483,6 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 .bb.sky i{color:#3f8fd0}
 .bb.mint{background:linear-gradient(#b8f0d6,#5fc79c);box-shadow:0 0 0 3px #3ea57c,0 8px 0 3px #2d8462}
 .bb.mint:active{box-shadow:0 0 0 3px #3ea57c,0 3px 0 3px #2d8462}
-#smenu .big,#smenu .ghost{min-width:210px}
-#smInfo{margin:2px 0 6px;line-height:1.6}
-#smNew.warn{background:linear-gradient(#ffd0a0,#ff9a5a)}
 #book{padding:10px;background:rgba(20,14,48,.72);justify-content:center}
 .bkbox{position:relative;width:100%;max-width:520px;max-height:100%;display:flex;flex-direction:column;gap:10px;
   background:linear-gradient(#fffaf3,#fff0e2);border:3px solid #fff;border-radius:24px;padding:12px 12px 12px;box-shadow:0 10px 30px rgba(10,6,40,.45);overflow:hidden}
@@ -519,6 +516,294 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 #shelfBack{margin-top:12px}
 #sndFloat{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));z-index:8;display:none}
 #sndFloat.on{display:block}
+
+/* =====================================================================
+   v8.2 見た目寄せ：「星空の絵の世界・雲形の見出し・金のふちの まるくて ツヤのある パネル・星の飾り・紫〜ピンク」
+   ===================================================================== */
+:root{--gold:#f3d37e;--gold-l:#ffe9a6;--gold-d:#b98a2e;--navy:#1b1a4a;--navy2:#2b2a6a;--cream-t:#fff3d0;--glass:rgba(13,12,46,.55)}
+/* 雲の形（見出し・ロゴの うしろ）。SVG を のばして使う */
+.cloudh,.ribbon{--cloud:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 64' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23544aa8'/%3E%3Cstop offset='1' stop-color='%23231f60'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M22 56C6 56 2 40 13 33C8 20 24 11 37 16C43 4 63 2 73 12C83 2 104 1 113 11C123 1 145 3 151 14C163 8 180 15 178 28C193 29 199 44 188 52C184 60 170 61 161 57C140 61 60 61 40 58C32 61 24 60 22 56Z' fill='url(%23g)' stroke='%23f3d37e' stroke-width='2.6' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.ribbon.light{--cloud:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 64' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fbf6ff'/%3E%3Cstop offset='1' stop-color='%23cdbcf5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M22 56C6 56 2 40 13 33C8 20 24 11 37 16C43 4 63 2 73 12C83 2 104 1 113 11C123 1 145 3 151 14C163 8 180 15 178 28C193 29 199 44 188 52C184 60 170 61 161 57C140 61 60 61 40 58C32 61 24 60 22 56Z' fill='url(%23g)' stroke='%23f3d37e' stroke-width='3' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.ribbon{display:inline-block;position:relative;z-index:0;margin:-4px auto 10px;padding:16px 46px 13px;border-radius:0;box-shadow:none;
+  background:var(--cloud) center/100% 100% no-repeat;color:var(--cream-t);font-size:22px;letter-spacing:.08em;
+  text-shadow:0 2px 0 #14123e,0 0 8px rgba(20,18,62,.6);filter:drop-shadow(0 4px 6px rgba(8,6,30,.45)) drop-shadow(0 0 8px rgba(243,211,126,.35))}
+.ribbon::before,.ribbon::after{content:"★";position:absolute;z-index:1;top:50%;width:auto;height:auto;background:none;clip-path:none;transform:translateY(-38%);
+  font-size:20px;color:#ffd75e;text-shadow:0 0 0 #000,1px 1px 0 #a8741a,-1px 1px 0 #a8741a,1px -1px 0 #a8741a,-1px -1px 0 #a8741a,0 0 8px rgba(255,230,140,.9)}
+.ribbon::before{left:16px}.ribbon::after{right:16px}
+.ribbon.gold,.ribbon.lav{background:var(--cloud) center/100% 100% no-repeat;color:var(--cream-t);box-shadow:none;text-shadow:0 2px 0 #14123e}
+.ribbon.gold::before,.ribbon.gold::after,.ribbon.lav::before,.ribbon.lav::after{background:none}
+.ribbon.light{color:#33255e;text-shadow:0 2px 0 #fff,0 0 6px #fff}
+.ribbon.xl{font-size:30px;padding:20px 64px 16px}
+.ribbon.xl::before,.ribbon.xl::after{font-size:28px}
+.ribbon.xl::before{left:22px}.ribbon.xl::after{right:22px}
+.cloudh{background:var(--cloud) center/100% 100% no-repeat!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+  filter:drop-shadow(0 4px 6px rgba(8,6,30,.5)) drop-shadow(0 0 8px rgba(243,211,126,.35))}
+
+/* ---- パネル：紺のガラス＋金のふち（中では 文字の色を 明るく） ---- */
+.ov{background:rgba(16,12,52,.58)}
+.panel,.card,.bkbox,.hplate,.tcard{--ink:#fff3d0;--sub:#cfc8f0;--line:rgba(243,211,126,.42);--lav-l:rgba(13,12,46,.5);--orange:#ffd36b;--pink-d:#ffadc8}
+.panel{background:linear-gradient(rgba(74,64,156,.96),rgba(36,32,96,.97));border:2.5px solid var(--gold);border-radius:28px;color:var(--cream-t);
+  box-shadow:0 0 0 3px rgba(13,12,46,.9),0 0 22px rgba(243,211,126,.32),inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 30px rgba(140,120,255,.18),0 14px 28px rgba(0,0,0,.45)}
+.panel::before{content:"✦";color:var(--gold);text-shadow:0 0 6px #fff3a8}
+.panel::after{content:"★";color:var(--gold);text-shadow:0 0 6px #fff3a8}
+.panel p{color:#e3dcff}
+.panel p b{color:#ffd0e0}
+.sec{color:var(--gold)}
+.sec::before,.sec::after{background:linear-gradient(90deg,rgba(243,211,126,0),rgba(243,211,126,.7),rgba(243,211,126,0))}
+.best{color:var(--gold-l)}
+#unlockMsg{color:#ffd0e0}
+.new{background:linear-gradient(#ff9bbb,#ff5f93);border:1.5px solid #ffe2a0;font-weight:800;transform:rotate(-6deg);box-shadow:0 2px 0 #a8406e}
+/* ボタン：ピンク＝だいじな ボタン／クリーム＝ふつうの ボタン。どちらも 金のふちと ツヤ */
+.big{border:3px solid #ffe6a0;background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,0) 52%),linear-gradient(#ffa8c3,#ff6f9c);
+  text-shadow:0 2px 0 #b8467a;box-shadow:0 0 0 2px #9a3a68,0 5px 0 2px #6e2349,0 9px 14px rgba(10,6,40,.42)}
+.big:active{box-shadow:0 0 0 2px #9a3a68,0 1px 0 2px #6e2349}
+.ghost{border:2.5px solid #e9c46a;background:linear-gradient(#fffaf0,#efe0c0);color:#33255e;box-shadow:0 0 0 1.5px #7a5a22,0 4px 0 1.5px #4e3a16,0 6px 10px rgba(10,6,40,.35)}
+.ghost:active{transform:translateY(3px);box-shadow:0 0 0 1.5px #7a5a22,0 1px 0 1.5px #4e3a16}
+.sx{background:linear-gradient(#3a3990,#1b1a4a);border:2px solid var(--gold);color:var(--cream-t)}
+/* 小さな ガラスの 部品（そざい・タイル・選択） */
+.mat{background:var(--glass);border:1.5px solid rgba(243,211,126,.45);color:#fff}
+.mat.boss{border-color:#ffd36b;background:rgba(120,90,20,.45)}
+.tile{background:var(--glass);border:1.5px solid rgba(243,211,126,.45)}
+.tile b{color:var(--gold-l)}
+.fbtn{background:var(--glass);border:2px solid rgba(243,211,126,.35);color:var(--cream-t)}
+.fbtn.sel{background:linear-gradient(#6a5ab8,#3a3480);border-color:var(--gold);box-shadow:0 0 10px 2px rgba(243,211,126,.6)}
+#formInfo{background:var(--glass);border:1px solid rgba(243,211,126,.3)}
+.lbtn{background:var(--glass);border:2px solid rgba(243,211,126,.35);color:var(--cream-t)}
+.lbtn.sel{background:linear-gradient(#ffe48a,#ffb83d);border-color:#fff3c0;color:#5a3a00;box-shadow:0 3px 0 #9a6a1a}
+.shead small{color:var(--gold-l)}
+.seq{color:#cfc8f0}
+.tcard{background:var(--glass);border:1.5px solid rgba(243,211,126,.45);box-shadow:none}
+.schip{background:rgba(255,255,255,.1)}
+.schip b{color:#ffd0e0}
+.rareget{background:linear-gradient(rgba(120,90,20,.55),rgba(90,40,110,.55));border:2px solid var(--gold);color:#fff3d0}
+.rareget small{color:var(--gold-l)}
+
+/* ---- タイトル ---- */
+#title{background:url(img/bg_title.png) center/cover no-repeat}
+.tlogo{position:relative;display:flex;flex-direction:column;align-items:center;margin-top:2px}
+#hero{width:200px;height:96px;max-width:none;margin:0 0 -40px;position:relative;z-index:0}
+.cloudlogo{position:relative;z-index:1;padding:20px 30px 22px;margin-top:0;background:var(--cloud) center/100% 100% no-repeat;
+  --cloud:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 120' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23574bb0'/%3E%3Cstop offset='1' stop-color='%23241f63'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M24 108C6 106 1 86 12 76C2 64 8 44 26 44C26 26 46 16 62 24C70 8 92 4 104 16C116 4 140 6 146 22C162 14 184 24 182 42C198 46 202 68 190 78C200 92 190 110 172 108C150 116 50 116 24 108Z' fill='url(%23g)' stroke='%23f3d37e' stroke-width='3' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  filter:drop-shadow(0 8px 10px rgba(8,6,30,.55)) drop-shadow(0 0 14px rgba(243,211,126,.35))}
+.cloudlogo .l0{margin-left:0}
+.cloudlogo .lgw{white-space:nowrap}
+.cloudlogo .l2.dai{font-size:clamp(32px,10.2vw,46px)}
+.lst.s1{left:4px;top:42%;font-size:26px}.lst.s2{right:6px;top:22%;font-size:20px}.lst.s3{right:14px;bottom:10px;font-size:22px;color:#ffd966}.lst.s4{left:22px;top:14px;font-size:15px;color:#fff;animation-delay:.6s}
+.menu{gap:13px;max-width:320px;margin-top:8px}
+.bb{height:58px;border-radius:29px;border:3px solid #f6dc8e;color:#33255e;font-size:21px;letter-spacing:.06em;text-shadow:0 1px 0 rgba(255,255,255,.7);
+  box-shadow:0 0 0 2px #7a5a22,0 6px 0 2px #3c2f6e,0 9px 16px rgba(8,6,30,.5),inset 0 -7px 12px rgba(80,50,140,.18)}
+.bb:active{transform:translateY(4px)}
+.bb::after{content:"★";left:auto;right:-13px;top:50%;height:auto;width:auto;background:none;border-radius:0;transform:translateY(-52%);
+  font-size:24px;color:#ffd75e;text-shadow:1px 1px 0 #a8741a,-1px 1px 0 #a8741a,1px -1px 0 #a8741a,-1px -1px 0 #a8741a,0 0 8px rgba(255,230,140,.9)}
+.bb::before{content:"★";position:absolute;left:-13px;top:50%;transform:translateY(-52%);font-size:24px;color:#ffd75e;pointer-events:none;
+  text-shadow:1px 1px 0 #a8741a,-1px 1px 0 #a8741a,1px -1px 0 #a8741a,-1px -1px 0 #a8741a,0 0 8px rgba(255,230,140,.9)}
+.bb.pink{background:linear-gradient(rgba(255,255,255,.6),rgba(255,255,255,0) 48%),linear-gradient(#ffd6e4,#ff9fbf 60%,#ff86ad);color:#5a1f45;
+  box-shadow:0 0 0 2px #7a5a22,0 6px 0 2px #8f2c5a,0 9px 16px rgba(8,6,30,.5),0 0 18px rgba(255,160,200,.55)}
+.bb.pink:active{box-shadow:0 0 0 2px #7a5a22,0 2px 0 2px #8f2c5a}
+.bb.lav{background:linear-gradient(rgba(255,255,255,.6),rgba(255,255,255,0) 48%),linear-gradient(#f1eaff,#cdbcf7 60%,#b6a1f0)}
+.bb.lav:active{box-shadow:0 0 0 2px #7a5a22,0 2px 0 2px #3c2f6e}
+.bb i{left:16px;width:auto;height:auto;background:none;font-size:25px;filter:drop-shadow(0 2px 1px rgba(40,20,80,.35))}
+.bb .nb{right:20px;background:rgba(51,37,94,.85);color:#fff3d0;border:1px solid var(--gold)}
+.mrow{display:flex;gap:14px}
+.mrow .bb{flex:1;min-width:0;height:50px;font-size:17px;padding-left:30px;letter-spacing:.02em}
+.mrow .bb i{left:12px;font-size:20px}
+.mrow .bb .nb{right:14px;font-size:10.5px;padding:1px 6px}
+.mrow .bb::before,.mrow .bb::after{font-size:18px}
+.mrow .bb::before{left:-10px}.mrow .bb::after{right:-10px}
+.hint{margin-top:8px}
+.tprog{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:14px;max-width:340px}
+.tprog span{display:inline-flex;align-items:center;gap:4px;padding:3px 11px;border-radius:99px;font-size:12px;color:#fff3d0;background:rgba(27,26,74,.82);border:1.5px solid rgba(243,211,126,.7)}
+.tprog b{color:var(--gold-l)}.tprog img{width:18px;height:18px}
+
+/* ---- ステージえらび ---- */
+.maphead{left:0;right:0;text-align:center}
+.maphead small{font-size:10px;color:var(--gold-l)}
+.maphead b{padding:12px 40px 10px;font-size:19px;color:var(--cream-t)}
+#btnBack{top:calc(54px + env(safe-area-inset-top))}
+.legend{top:calc(98px + env(safe-area-inset-top));padding:5px 11px 5px 8px;border-radius:12px;border:2px solid var(--gold);
+  background:linear-gradient(rgba(36,32,96,.95),rgba(20,18,62,.95));box-shadow:0 0 0 2px rgba(13,12,46,.8),0 0 10px rgba(243,211,126,.3)}
+.legend div{font-size:11.5px;gap:7px;padding:2.5px 0}
+.legend img{width:21px;height:21px}
+.mapwrap{box-shadow:0 0 0 2px var(--gold-d),0 0 0 5px rgba(13,12,46,.9),0 0 40px rgba(0,0,0,.6)}
+.mapwrap::after{inset:6px;border:2px solid rgba(243,211,126,.8);border-radius:14px;box-shadow:inset 0 0 0 3px rgba(13,12,46,.35),inset 0 0 0 4.5px rgba(243,211,126,.35)}
+.mc{position:absolute;z-index:3;font-style:normal;font-size:17px;line-height:1;color:var(--gold);text-shadow:0 0 6px rgba(255,236,160,.9);pointer-events:none}
+.mc.tl{left:1px;top:1px}.mc.tr{right:1px;top:1px}.mc.bl{left:1px;bottom:1px}.mc.br{right:1px;bottom:1px}
+.node .nl{border:1px solid rgba(122,77,12,.4)}
+
+/* ---- つよさ工房 ---- */
+#forge{background:url(img/bg_workshop.png) center/cover no-repeat,
+  radial-gradient(circle at 84% 9%,rgba(255,244,200,.95) 0,rgba(255,236,170,.9) 22px,rgba(255,226,150,.25) 26px,rgba(255,226,150,0) 70px),
+  radial-gradient(ellipse 110px 130px at 84% 10%,rgba(150,160,255,.28),rgba(150,160,255,0) 100%),
+  radial-gradient(circle at 92% 88%,rgba(255,196,110,.38),rgba(255,196,110,0) 120px),
+  radial-gradient(circle at 10% 70%,rgba(190,150,255,.22),rgba(190,150,255,0) 140px),
+  radial-gradient(1.2px 1.2px at 20% 30%,#fff 50%,transparent 51%) 0 0/90px 70px,
+  radial-gradient(1px 1px at 60% 70%,#fff6c8 50%,transparent 51%) 0 0/120px 90px,
+  linear-gradient(#211d5c,#2f2774 45%,#3a2c7a 75%,#2a2058)}
+.fghead{height:100px}
+.fgplate{padding:14px 26px 12px;font-size:21px;background:var(--cloud) center/100% 100% no-repeat}
+.fgplate::before,.fgplate::after{top:50%;bottom:auto;transform:translateY(-45%);font-size:17px;color:#ffd75e}
+.fgplate::before{left:12px}.fgplate::after{right:12px}
+.fgbub{border:2px solid var(--gold);border-radius:18px;padding:6px 12px}
+.fgbub::after{border-left-color:var(--gold)}
+.fgmatbox{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 6px;border-radius:24px}
+.fgmatbox .fgtab{position:static;flex:none;width:66px;height:66px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;
+  font-size:11px;line-height:1.35;padding:0;white-space:normal;border:2px solid var(--gold);background:radial-gradient(circle at 40% 30%,#4c43a8,#1b1a4a);
+  color:var(--cream-t);box-shadow:0 0 10px rgba(243,211,126,.45)}
+.fgmatbox .fgmats{flex:1;min-width:0;padding-top:0}
+.fgmatbox .fm small{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:8px}
+.fgbub{right:70px;top:-4px}
+.fglist{border-width:2.5px;box-shadow:0 0 0 3px rgba(13,12,46,.9),0 0 14px rgba(243,211,126,.3)}
+.fr2{background:linear-gradient(rgba(255,255,255,.12),rgba(255,255,255,0) 45%),linear-gradient(#3a3990,#1f1e55);box-shadow:0 2px 0 rgba(13,12,46,.6)}
+#forgeRare{border-radius:22px}
+
+/* ---- 結果 ---- */
+#end{justify-content:flex-start;overflow-y:auto;touch-action:pan-y;padding:calc(8px + env(safe-area-inset-top)) 12px calc(14px + env(safe-area-inset-bottom));
+  background:url(img/bg_result.png) center/cover no-repeat,
+  radial-gradient(circle at 86% 7%,rgba(255,244,200,.95) 0,rgba(255,236,170,.9) 18px,rgba(255,226,150,0) 22px),
+  radial-gradient(circle at 86% 7%,rgba(255,236,170,.25),rgba(255,236,170,0) 90px),
+  radial-gradient(1.3px 1.3px at 30% 40%,#fff 50%,transparent 51%) 0 0/80px 64px,
+  radial-gradient(1px 1px at 70% 20%,#fff6c8 50%,transparent 51%) 0 0/110px 86px,
+  radial-gradient(ellipse 80% 22% at 50% 102%,#2f6a52,rgba(47,106,82,0) 100%),
+  linear-gradient(rgba(23,19,70,.94),rgba(40,34,110,.92) 55%,rgba(30,66,70,.94))}
+.rhead{position:relative;display:flex;flex-direction:column;align-items:center;flex:none}
+#endNorun{width:120px;height:70px;margin-bottom:-30px;position:relative;z-index:0}
+#endTitle{margin:0;z-index:1}
+.rpanel{margin-top:6px;padding:14px 12px 12px;flex:none}
+.estate{display:inline-block;padding:3px 16px 4px;border-radius:99px;font-size:15px;font-weight:800;border:2px solid var(--gold);
+  background:linear-gradient(#ffb3cb,#ff7aa3);color:#fff;text-shadow:0 1px 0 #a8406e}
+.estate.gold{background:linear-gradient(#ffe78f,#ffb53a);color:#5a3a00;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.estate.lav{background:linear-gradient(#d6c8fc,#9c83ea);text-shadow:0 1px 0 #4a3a90}
+#endMsg{margin:6px 0 4px}
+.rrow{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:6px 0;border-radius:18px;text-align:left;
+  background:linear-gradient(rgba(255,255,255,.08),rgba(255,255,255,0) 50%),linear-gradient(rgba(22,20,64,.78),rgba(36,32,92,.78));
+  border:1.5px solid rgba(243,211,126,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+.ri{flex:none;width:30px;font-size:21px;text-align:center;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+.rl{flex:1;min-width:0;font-size:14px;color:#e8e0ff;white-space:nowrap}
+.rrow b{flex:none;font-size:24px;color:var(--gold-l);font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(13,12,46,.8)}
+.rrow.mats{flex-wrap:wrap}
+.rrow.mats .matgrid{flex-basis:100%;margin-top:4px}
+.rrow.best b{font-size:12.5px;white-space:normal;text-align:right;max-width:58%;line-height:1.35}
+.ebtns{width:100%;max-width:480px;margin-top:10px;flex:none}
+#btnBook{min-width:240px}
+#btnNext{min-width:240px;margin:0 0 4px}
+.ebrow{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px}
+.ebrow .big{margin:0;padding:12px 20px;min-width:0}
+.ebrow .ghost{margin:0;padding:9px 11px;font-size:13px;white-space:nowrap}
+.ebrow .big{white-space:nowrap}
+@media (max-width:380px){ .ebrow{gap:5px} .ebrow .big{padding:10px 12px;font-size:15px} .ebrow .ghost{padding:8px 8px;font-size:12px} }
+
+/* ---- レベルアップ・ひとやすみ・きろく・せってい ---- */
+#levelup .ribbon{margin-bottom:2px}
+.lvsub{color:#fff3d0;font-size:14px;font-weight:800;text-shadow:0 2px 3px rgba(13,12,46,.9);margin:0 0 10px}
+.card{background:linear-gradient(rgba(255,255,255,.12),rgba(255,255,255,0) 40%),linear-gradient(#4f45a6,#262062);border:2.5px solid var(--gold);
+  box-shadow:0 0 0 2.5px rgba(13,12,46,.9),0 6px 0 2.5px rgba(13,12,46,.9),0 0 14px rgba(243,211,126,.3)}
+.card.newsk{background:linear-gradient(rgba(255,255,255,.16),rgba(255,255,255,0) 40%),linear-gradient(#6a4fb0,#3a2a80);
+  box-shadow:0 0 0 2.5px #b98a2e,0 6px 0 2.5px #6e5016,0 0 18px rgba(255,214,102,.7)}
+.card .ic{filter:drop-shadow(0 3px 2px rgba(0,0,0,.4))}
+#pauseInfo{font-size:13px;color:#e3dcff;margin:0 0 4px}
+#records .panel{max-height:calc(100% - 8px)}
+#recList{display:flex;flex-direction:column;gap:6px;text-align:left}
+.rec{display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:14px;background:var(--glass);border:1.5px solid rgba(243,211,126,.35)}
+.rec .no{flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;
+  background:linear-gradient(#ffe48a,#ffb83d);color:#5a3a00;border:1.5px solid #fff3c0}
+.rec.lock .no{background:#5a5680;color:#cfc8f0;border-color:#8f8bb0}
+.rec div{flex:1;min-width:0}
+.rec b{display:block;font-size:14px;color:#fff3d0}
+.rec small{display:block;font-size:11px;color:#cfc8f0;line-height:1.45}
+.rec.lock b{color:#9d97ba}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:16px;background:var(--glass);border:1.5px solid rgba(243,211,126,.4);
+  font-size:14.5px;color:#fff3d0;text-align:left}
+.tog{flex:none;min-width:76px;padding:7px 14px;border-radius:99px;border:2.5px solid #ffe6a0;font-size:15px;font-weight:800;
+  background:linear-gradient(#ffa8c3,#ff6f9c);color:#fff;text-shadow:0 1px 0 #a8406e;box-shadow:0 3px 0 #6e2349}
+.tog.off{background:linear-gradient(#8f8bb0,#5a5680);color:#e3def2;text-shadow:none;box-shadow:0 3px 0 #33305a;border-color:#b9b5d6}
+.sethelp{margin-top:10px;padding:9px 12px;border-radius:16px;background:var(--glass);font-size:12px;line-height:1.7;color:#d9d2f5;text-align:left}
+.sethelp b{color:var(--gold-l)}
+
+/* ---- 絵本・本棚 ---- */
+.bkbox{background:linear-gradient(rgba(74,64,156,.97),rgba(32,28,88,.98));border:2.5px solid var(--gold);border-radius:28px;
+  box-shadow:0 0 0 3px rgba(13,12,46,.9),0 0 24px rgba(243,211,126,.35),0 14px 30px rgba(0,0,0,.5)}
+.bkbox::before,.bkbox::after{position:absolute;top:6px;font-size:16px;line-height:1;color:var(--gold);text-shadow:0 0 6px #fff3a8;pointer-events:none;z-index:2}
+.bkbox::before{content:"✦";left:10px}.bkbox::after{content:"★";right:10px}
+.bkimg{border:2.5px solid var(--gold);box-shadow:0 0 0 2px rgba(13,12,46,.8),inset 0 0 0 2px rgba(255,255,255,.25);background:#2a2468}
+.bktxt{background:linear-gradient(#fcf3dc,#efdcb2);border-radius:16px;padding:10px 13px;border:2px solid #e2c27a;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
+.bktxt b{color:#3a2a55}
+.bktxt b::before{color:#e0a020}
+#bkPg{color:var(--gold-l)}
+.shb{background:var(--glass);border:2px solid rgba(243,211,126,.5);color:#fff3d0}
+.shb .th{border:1.5px solid rgba(243,211,126,.6)}
+.shb.lock{background:rgba(40,38,80,.6);border-color:rgba(160,155,200,.35);color:#8f8bb0}
+.shb.lock .th{background:#3a3768;color:#8f8bb0;border-color:transparent}
+.shsub{color:#d9d2f5}
+
+/* ---- ゲーム中（HUD）：紺のプレート＋金のふち ---- */
+.hwrap{gap:8px}
+.hplate{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:6px 9px 7px 6px;border-radius:24px;
+  background:linear-gradient(rgba(255,255,255,.1),rgba(255,255,255,0) 40%),linear-gradient(rgba(52,46,124,.93),rgba(26,24,72,.93));
+  border:2px solid var(--gold);box-shadow:0 0 0 2px rgba(13,12,46,.85),0 4px 10px rgba(8,6,30,.45)}
+.hface{position:relative;flex:none;width:52px;height:60px}
+#faceCv{display:block;width:50px;height:50px;border-radius:50%;border:2.5px solid var(--gold);background:radial-gradient(circle at 40% 30%,#6a5ab8,#2b2a6a);
+  box-shadow:0 0 8px rgba(243,211,126,.5)}
+.hface #lv{position:absolute;left:50%;bottom:-1px;transform:translateX(-50%);padding:0 7px;border-radius:99px;font-size:11px;font-weight:800;line-height:16px;white-space:nowrap;
+  background:linear-gradient(#ffe48a,#ffb83d);color:#5a3a00;border:1.5px solid #fff3c0;box-shadow:0 2px 0 #8a5a10}
+.hbars{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.hbars .hrow+.hrow{margin-top:0}
+.hbars #hpbar{flex:none}
+#hpbar{height:20px;background:rgba(13,12,46,.75);border:1.5px solid rgba(255,214,230,.75);box-shadow:none}
+#hpfill{background:linear-gradient(#ff9dbb,#ff5f93)}
+#hptxt{color:#fff;text-shadow:0 1px 2px #6e2349,0 0 2px #6e2349;font-size:12px;line-height:17px}
+.hico{line-height:17px;color:#fff;text-shadow:0 0 3px #e9628e,0 0 2px #e9628e}
+.xlab{flex:none;width:16px;text-align:center;font-size:13px;color:#ffd75e;text-shadow:0 0 4px rgba(255,214,102,.8)}
+#xpbar{height:11px;background:rgba(13,12,46,.75);border:1.5px solid rgba(255,233,166,.7);box-shadow:none}
+#xpfill::after{display:none}
+.ulab{font-size:10.5px;padding:1px 7px}
+#ultbar{height:14px;background:rgba(13,12,46,.75);border:1.5px solid rgba(214,200,255,.75)}
+#ulttxt{color:#fff;text-shadow:0 0 3px #33255e,0 0 2px #33255e;font-size:10px;line-height:11px}
+#ultbar.ready #ulttxt{color:#fff}
+.hplate .pill{background:var(--glass);border:1.5px solid rgba(243,211,126,.6);color:#fff3d0;box-shadow:none}
+.hright{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+.htime{display:flex;align-items:center;gap:3px;height:36px;padding:0 12px 0 8px;border-radius:18px;border:2px solid var(--gold);
+  background:linear-gradient(rgba(255,255,255,.1),rgba(255,255,255,0) 45%),linear-gradient(#34337c,#1b1a4a);box-shadow:0 0 0 2px rgba(13,12,46,.85),0 4px 10px rgba(8,6,30,.45)}
+.htime i{font-style:normal;font-size:16px}
+#time,.hpanel #time{min-width:52px;height:auto;line-height:1;padding:0;border:0;background:none;box-shadow:none;color:var(--cream-t);font-size:21px;text-align:left}
+#time.hot{background:none;color:#ff9dbb;box-shadow:none;text-shadow:0 0 8px rgba(255,120,170,.9)}
+.hbtns{flex-direction:row;gap:7px;padding:0}
+.hbtn{width:38px;height:38px;border:2px solid var(--gold);background:linear-gradient(rgba(255,255,255,.14),rgba(255,255,255,0) 45%),linear-gradient(#3a3990,#1b1a4a);
+  color:var(--cream-t);box-shadow:0 0 0 2px rgba(13,12,46,.85),0 3px 8px rgba(8,6,30,.45)}
+#btnPause i{background:var(--cream-t)}
+.hsub{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
+.hsub #kills{flex:none;background:linear-gradient(#34337c,#1b1a4a);border:1.5px solid var(--gold);color:#fff3d0;box-shadow:0 0 0 1.5px rgba(13,12,46,.8)}
+#skills{margin-top:0;gap:3px}
+.chip{background:linear-gradient(#34337c,#1b1a4a);border:1.5px solid rgba(243,211,126,.75);color:#fff;border-radius:12px;padding:3px 3px 3px 5px}
+.chip b{background:linear-gradient(#ff9dbb,#ff5f93)}
+/* 大技：紺の まるい ボタン＋金の輪（輪が ゲージ） */
+#btnUlt{width:96px;height:96px;background:conic-gradient(#ffd75e 0,#ffb65c calc(var(--g)*1%),rgba(13,12,46,.85) 0);
+  box-shadow:0 0 0 3px #f6dc8e,0 0 0 5.5px rgba(13,12,46,.9),0 6px 14px rgba(8,6,30,.55)}
+#btnUlt .in{inset:8px;background:radial-gradient(circle at 38% 28%,#5a4fb8 0,#2b2a6a 60%,#1b1a4a 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 0 0 2px #f3d37e}
+#btnUlt .st{background:linear-gradient(to top,#ffd75e calc(var(--g)*1%),#6f6aa8 0);-webkit-background-clip:text;background-clip:text}
+#btnUlt .tx{color:var(--cream-t);text-shadow:0 2px 0 #0d0c2e}
+#btnUlt.ready{background:conic-gradient(#ffd75e,#ff9dbb,#b9a4f0,#8fe0ff,#ffd75e);box-shadow:0 0 0 3px #fff3c0,0 0 0 5.5px #b98a2e,0 0 24px 9px rgba(255,214,102,.9)}
+#btnUlt.ready .in{background:radial-gradient(circle at 38% 28%,#8a74e0 0,#4a3a9a 60%,#2b2a6a 100%)}
+#btnUlt.ready .st{color:#ffe27a;-webkit-text-fill-color:#ffe27a;text-shadow:0 2px 0 #8a5a10,0 0 12px #fff3a8}
+#btnUlt.ready .tx{color:#fff3d0}
+/* のるんの ことば（ステージ名・ボスなどの おしらせ）：まるい ふきだし */
+#banner{top:20%;font-size:17px;text-shadow:none;color:#33255e}
+#banner .bub{position:relative;display:inline-flex;align-items:center;gap:8px;max-width:calc(100% - 28px);padding:8px 18px 8px 8px;border-radius:24px;
+  background:linear-gradient(#fffdf6,#f3e6ff);border:2.5px solid var(--gold);box-shadow:0 0 0 2px rgba(13,12,46,.75),0 6px 14px rgba(8,6,30,.45);line-height:1.35;text-align:left}
+#banner .bub::after{content:"";position:absolute;left:30px;bottom:-11px;border:8px solid transparent;border-top-color:var(--gold);border-bottom:0}
+#banner .bf{flex:none;width:38px;height:38px;border-radius:50%;border:2px solid var(--gold);background:var(--face,radial-gradient(circle,#6a5ab8,#2b2a6a)) center/cover,radial-gradient(circle at 40% 30%,#6a5ab8,#2b2a6a)}
+/* 画面の ふちの 雲と星（かるい 静止画） */
+#edge{position:fixed;left:0;right:0;bottom:0;height:54px;pointer-events:none;display:none;
+  background:radial-gradient(ellipse 70px 30px at 6% 100%,rgba(200,186,255,.55),rgba(200,186,255,0) 100%),
+  radial-gradient(ellipse 90px 34px at 24% 108%,rgba(180,164,250,.5),rgba(180,164,250,0) 100%),
+  radial-gradient(ellipse 80px 26px at 52% 112%,rgba(200,186,255,.4),rgba(200,186,255,0) 100%),
+  radial-gradient(ellipse 100px 36px at 80% 108%,rgba(180,164,250,.5),rgba(180,164,250,0) 100%),
+  radial-gradient(ellipse 70px 30px at 98% 100%,rgba(200,186,255,.55),rgba(200,186,255,0) 100%)}
+#edge.on{display:block}
+#edge .es{position:absolute;font-style:normal;line-height:1;color:#fff6c8;text-shadow:0 0 6px #ffe9a0;animation:twk 1.8s ease-in-out infinite alternate}
+#edge .a{left:9%;bottom:22px;font-size:12px}#edge .b{left:33%;bottom:10px;font-size:10px;animation-delay:.5s}
+#edge .c{left:58%;bottom:24px;font-size:11px;animation-delay:.9s}#edge .d{left:70%;bottom:8px;font-size:9px;animation-delay:1.3s}
+#sndFloat{border:2px solid var(--gold);background:linear-gradient(#3a3990,#1b1a4a);color:var(--cream-t);width:40px;height:40px}
+@media (max-width:370px){ .bb{font-size:19px} .ribbon.xl{font-size:24px;padding:18px 58px 14px;letter-spacing:.04em} .rl{font-size:13px} .rrow b{font-size:21px} }
 </style>
 </head>
 <body>
@@ -526,51 +811,50 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 
 <div id="hud">
   <div class="hwrap">
-    <div class="hpanel">
-      <div class="hrow">
+    <div class="hplate">
+      <div class="hface"><canvas id="faceCv" width="120" height="120"></canvas><span id="lv">Lv 1</span></div>
+      <div class="hbars">
         <div id="hpbar"><i id="hpfill"></i><b class="hico">♥</b><span id="hptxt"></span></div>
-        <div id="time">3:00</div>
-      </div>
-      <div class="hrow">
-        <span id="lv" class="pill">Lv 1</span>
-        <div id="xpbar"><i id="xpfill"></i></div>
-        <span id="kills" class="pill">0 たおした</span>
-      </div>
-      <div class="hrow">
-        <span class="ulab">大技</span>
-        <div id="ultbar"><i id="ultfill"></i><span id="ulttxt"></span></div>
-        <span id="eqChip" class="pill eqc"></span>
+        <div class="hrow"><span class="xlab">★</span><div id="xpbar"><i id="xpfill"></i></div></div>
+        <div class="hrow"><span class="ulab">大技</span><div id="ultbar"><i id="ultfill"></i><span id="ulttxt"></span></div><span id="eqChip" class="pill eqc"></span></div>
       </div>
     </div>
-    <div class="hbtns">
-      <button class="hbtn" id="btnSnd" aria-label="おと">♪</button>
-      <button class="hbtn" id="btnPause" aria-label="ポーズ"><i></i><i></i></button>
+    <div class="hright">
+      <div class="htime"><i>⏳</i><span id="time">3:00</span></div>
+      <div class="hbtns">
+        <button class="hbtn" id="btnSnd" aria-label="おと">♪</button>
+        <button class="hbtn" id="btnPause" aria-label="ひとやすみ"><i></i><i></i></button>
+      </div>
     </div>
   </div>
-  <div id="skills"></div>
+  <div class="hsub"><span id="kills" class="pill">0 たおした</span><div id="skills"></div></div>
 </div>
+<div id="edge" aria-hidden="true"><i class="es a">✦</i><i class="es b">★</i><i class="es c">✧</i><i class="es d">✦</i></div>
 <button id="btnUlt" aria-label="大技"><span class="in"><i class="st">★</i><b class="tx">大技</b></span><i class="sp s1">✦</i><i class="sp s2">✦</i><i class="sp s3">✧</i></button>
 <div id="banner"></div>
 <button class="hbtn" id="sndFloat" aria-label="おと">♪</button>
 
 <div class="ov on" id="title">
   <div class="tbox">
-    <div class="logo">
-      <span class="lgw l0"><span class="bk">のるんの</span><span class="fr">のるんの</span></span>
-      <span class="lgw l2 dai"><span class="bk">だいぼうけん</span><span class="fr">だいぼうけん</span></span>
-      <i class="lst s1">★</i><i class="lst s2">✦</i><i class="lst s3">✧</i>
-    </div>
-    <canvas id="hero"></canvas>
-    <div class="menu">
-      <div class="mrow">
-        <button class="bb pink" id="btnStart"><i>▶</i>つうじょう</button>
-        <button class="bb sky" id="btnStory"><i>📖</i>ストーリー</button>
+    <div class="tlogo">
+      <canvas id="hero"></canvas>
+      <div class="logo cloudlogo">
+        <span class="lgw l0"><span class="bk">のるんの</span><span class="fr">のるんの</span></span>
+        <span class="lgw l2 dai"><span class="bk">だいぼうけん</span><span class="fr">だいぼうけん</span></span>
+        <i class="lst s1">★</i><i class="lst s2">✦</i><i class="lst s3">★</i><i class="lst s4">✧</i>
       </div>
-      <button class="bb lav" id="btnForge"><i>🔨</i>つよさ工房</button>
-      <button class="bb gold" id="btnEquip"><i>💎</i>レアアイテム<span class="nb" id="rareCount"></span></button>
-      <button class="bb mint" id="btnShelf"><i>📚</i>えほん<span class="nb" id="shelfCount"></span></button>
     </div>
-    <div class="tcard" id="titleBag"></div>
+    <div class="menu">
+      <button class="bb pink" id="btnStart"><i>⭐</i>はじめる</button>
+      <button class="bb lav" id="btnShelf"><i>📚</i>えほん<span class="nb" id="shelfCount"></span></button>
+      <button class="bb lav" id="btnForge"><i>🛠️</i>つよさ工房</button>
+      <button class="bb lav" id="btnEquip"><i>💎</i>レアアイテム<span class="nb" id="rareCount"></span></button>
+      <div class="mrow">
+        <button class="bb lav sm" id="btnRecords"><i>📜</i>きろく</button>
+        <button class="bb lav sm" id="btnSettings"><i>⚙️</i>せってい</button>
+      </div>
+    </div>
+    <div class="tprog" id="tProg"></div>
     <p class="hint">スマホ：ドラッグで いどう・右下ボタンで 大技<br>キーボード：WASD／やじるし・スペースで 大技</p>
   </div>
 </div>
@@ -578,7 +862,8 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 <div class="ov" id="stage">
   <div class="mapwrap" id="mapWrap">
     <canvas id="mapCv"></canvas>
-    <div class="maphead"><small>のるんのだいぼうけん</small><b>ステージえらび</b></div>
+    <div class="maphead"><small>のるんのだいぼうけん</small><b class="cloudh">ステージえらび</b></div>
+    <i class="mc tl">★</i><i class="mc tr">★</i><i class="mc bl">★</i><i class="mc br">★</i>
     <button class="navbtn" id="btnBack">← もどる</button>
     <div class="legend" id="mapLegend"></div>
     <div id="mapNodes"></div>
@@ -598,17 +883,6 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
     <p class="seq" id="shEq"></p>
     <button class="big" id="shPlay">あそぶ</button>
     <button class="ghost" id="shEndless">∞ エンドレス</button>
-  </div>
-</div>
-
-<!-- ストーリー：つづきから／さいしょから -->
-<div class="ov" id="smenu">
-  <div class="panel">
-    <div class="ribbon lav">ストーリー</div>
-    <p id="smInfo"></p>
-    <button class="big" id="smCont">つづきから</button><br>
-    <button class="big" id="smNew">さいしょから</button><br>
-    <button class="ghost" id="smBack">もどる</button>
   </div>
 </div>
 
@@ -633,7 +907,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 <!-- えほんの本棚 -->
 <div class="ov" id="shelf">
   <div class="panel wide">
-    <div class="ribbon gold">えほん</div>
+    <div class="ribbon">えほん</div>
     <p class="shsub">よんだ ページを もう一度 よめるよ</p>
     <div id="shelfGrid"></div>
     <button class="ghost" id="shelfBack">もどる</button>
@@ -643,11 +917,11 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 <div class="ov" id="forge">
   <div class="fg">
     <div class="fghead">
-      <div class="fgplate">つよさ工房</div>
+      <div class="fgplate cloudh">🛠️ つよさ工房</div>
       <div class="fgbub">そざいで<br>つよく なれる…！</div>
       <canvas id="forgeNorun"></canvas>
     </div>
-    <div class="fgbox"><span class="fgtab">もっている そざい</span><div class="fgmats" id="forgeBag"></div></div>
+    <div class="fgbox fgmatbox"><span class="fgtab">もっている<br>そざい</span><div class="fgmats" id="forgeBag"></div></div>
     <div class="fglist" id="forgeList"></div>
     <div class="fgbox" id="forgeRare">
       <span class="fgtab">★ レアアイテム（そうび）</span>
@@ -660,42 +934,70 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 </div>
 
 <div class="ov" id="levelup">
-  <h2>レベルアップ！ スキルを えらぼう</h2>
+  <div class="ribbon light">レベルアップ！</div>
+  <p class="lvsub">スキルを ひとつ えらぼう</p>
   <div id="cards"></div>
 </div>
 
 <div class="ov" id="pause">
   <div class="panel">
-    <div class="ribbon lav">ひとやすみ</div><br>
-    <button class="big" id="btnResume">つづける</button>
-    <button class="ghost" id="btnQuit">ちずへ</button>
-    <button class="ghost" id="btnReread" style="display:none">えほんを みる</button>
+    <div class="ribbon">ひとやすみ</div>
+    <p id="pauseInfo"></p>
+    <button class="big" id="btnResume">▶ つづける</button><br>
+    <button class="ghost" id="btnQuit">🗺 ちずへ</button>
   </div>
 </div>
 
 <div class="ov" id="end">
-  <div class="panel wide">
-    <div class="ribbon" id="endTitle"></div>
+  <div class="rhead"><canvas id="endNorun"></canvas><div class="ribbon light xl" id="endTitle">けっか</div></div>
+  <div class="panel wide rpanel">
+    <div class="estate" id="endState"></div>
     <p id="endMsg"></p>
-    <div class="tiles">
-      <div class="tile"><small>いきのこった時間</small><b id="eTime"></b></div>
-      <div class="tile"><small>たおした数</small><b id="eKills"></b></div>
-      <div class="tile"><small>レベル</small><b id="eLv"></b></div>
-    </div>
-    <div class="sec">ひろった そざい</div>
-    <div class="matgrid" id="eMats"></div>
+    <div class="rrow"><span class="ri">⏳</span><span class="rl">いきのこった時間</span><b id="eTime"></b></div>
+    <div class="rrow"><span class="ri">⚔️</span><span class="rl">たおした数</span><b id="eKills"></b></div>
+    <div class="rrow"><span class="ri">⭐</span><span class="rl">レベル</span><b id="eLv"></b></div>
+    <div class="rrow mats"><span class="ri">👛</span><span class="rl">ひろった そざい</span><div class="matgrid" id="eMats"></div></div>
+    <div class="rrow best"><span class="ri">👑</span><span class="rl">ベスト記録</span><b id="bestEnd"></b></div>
     <div id="eRare"></div>
     <p id="unlockMsg"></p>
-    <p class="best" id="bestEnd"></p>
-    <button class="big" id="btnNext" style="display:none">つぎのステージ</button><br>
-    <button class="big" id="btnRetry">もう一度</button>
-    <button class="ghost" id="btnToTitle">ちずへ</button>
+  </div>
+  <div class="ebtns">
+    <button class="big" id="btnBook" style="display:none">📖 おはなしの つづき</button>
+    <div id="endBtns">
+      <button class="big" id="btnNext" style="display:none">つぎのステージ ▶</button>
+      <div class="ebrow">
+        <button class="ghost" id="btnToTitle">🗺 ちずへ</button>
+        <button class="big" id="btnRetry">↻ もう一度</button>
+        <button class="ghost" id="btnRecEnd">📜 きろく</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- きろく（タイトルの もちもの・つよさ・そざい と、ステージごとの ベスト） -->
+<div class="ov" id="records">
+  <div class="panel wide">
+    <div class="ribbon">きろく</div>
+    <div class="tcard" id="titleBag"></div>
+    <div class="sec">ステージの ベスト</div>
+    <div id="recList"></div>
+    <button class="ghost" id="recBack">もどる</button>
+  </div>
+</div>
+
+<!-- せってい（いま ある項目：おとの オン／オフ） -->
+<div class="ov" id="settings">
+  <div class="panel">
+    <div class="ribbon">せってい</div>
+    <div class="setrow"><span>🔊 おと（こうかおん・BGM）</span><button class="tog" id="setSnd">オン</button></div>
+    <div class="sethelp"><b>あそびかた</b><br>スマホ：ドラッグで いどう・右下の ★ボタンで 大技<br>キーボード：WASD／やじるし・スペースで 大技</div>
+    <button class="ghost" id="setBack">もどる</button>
   </div>
 </div>
 
 <script>
 /* ============================================================
-   のるんのだいぼうけん v8（もと：のるんの ほしぞらサバイバル v7.2）
+   のるんのだいぼうけん v8.2 見た目寄せ（もと：のるんの ほしぞらサバイバル v7.2）
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -973,7 +1275,14 @@ function loadSave(){
   s.best=s.best||{}; s.clears=s.clears||{}; s.totalKills=s.totalKills||0; s.stageClear=s.stageClear||{}; s.endless=s.endless||{};
   s.mats=s.mats||{}; s.forge=s.forge||{}; s.rares=s.rares||{}; s.firstKill=s.firstKill||{};
   s.unlocked=s.unlocked||{};
-  const st=s.story&&typeof s.story==='object'?s.story:{}; s.story={step:st.step|0, started:!!st.started, done:!!st.done, seen:st.seen||{}};
+  const st=s.story&&typeof s.story==='object'?s.story:{}; s.story={done:!!st.done, seen:st.seen||{}};   // v8の step・started（ストーリーモードの進み）は つかわない
+  /* v8.1：クリアずみの ステージの ページは 本棚で よめる（あらためて はさまない）。ステージ10クリアずみ＝エンディングずみ（エンドレスも あそべる） */
+  for(const S of [1,2,3,4,5,6,7,8,9,10]) if(s.stageClear[S]) for(const p of (S<10?[S+3]:[13,14,15])) s.story.seen[p]=true;
+  if(s.stageClear[10]) s.story.done=true;
+  if(!s.v81){   // もう あそんだことの ある セーブは プロローグを はさまない（本棚で よめる）
+    if(s.totalKills>0||s.anyClear||Object.keys(s.stageClear).length||s.story.seen[0]) for(const p of [0,1,2,3]) s.story.seen[p]=true;
+    s.v81=true; s._migrated=true;
+  }
   /* v8の移行（1回だけ）：v7の解放チェーンは 1→2→5→9→10。そのとき あそべた面より前の 新しい面（3・4・6・7・8）は
      「解放ずみ・未クリア」にして、あそべた面も そのまま あそべるように残す（解放を まきもどさない） */
   if(!s.v8){
@@ -1063,7 +1372,7 @@ function resize(){
   VW=w/SC; VH=h/SC;
   cv.width=Math.round(w*DPR); cv.height=Math.round(h*DPR);
 }
-window.addEventListener('resize',()=>{ resize(); if(state==='stage') buildMap(); });
+window.addEventListener('resize',()=>{ resize(); NIGHT.cv=null; if(state==='stage') buildMap(); });
 
 /* ---------- 入力 ---------- */
 const keys={};
@@ -1082,8 +1391,8 @@ window.addEventListener('keydown',e=>{
   else if(state==='book' && k==='arrowleft') bookPrev();
   else if(k==='escape' && state==='book') bookSkip();
   else if(k==='enter' && state==='title') toStages();
-  else if(k==='escape' && (state==='stage'||state==='forge'||state==='smenu'||state==='shelf')) toTitle();
-  else if(k==='enter' && state==='end') { if(G&&G.story&&$('btnNext').style.display!=='none') $('btnNext').onclick(); else if($('btnRetry').style.display!=='none') start(); }
+  else if(k==='escape' && (state==='stage'||state==='forge'||state==='shelf'||state==='records'||state==='settings')) toTitle();
+  else if(k==='enter' && state==='end') { if(G&&G.pendingBook) readPending(); else start(); }
 });
 window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
 window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
@@ -1787,13 +2096,14 @@ function buildTitle(){
     '<h4>そざい</h4><div class="matgrid">'+Object.keys(MATS).map(k=>matChip(k,save.mats[k]||0,(save.mats[k]||0)?'':'zero')).join('')+'</div>'+
     '<h4>きろく</h4><div class="eqline" style="min-height:0">クリアした ステージ '+nClear+' / '+STAGE_MAP.length+'　・　たおした合計 '+save.totalKills+'</div>';
   $('shelfCount').textContent=STORY.filter((p,i)=>pageOpen(i)).length+' / '+STORY.length;
+  $('tProg').innerHTML='<span>🌟 ステージ <b>'+nClear+' / '+STAGE_MAP.length+'</b></span><span>⚔️ たおした <b>'+save.totalKills+'</b></span>'+(eq?'<span>'+icoImg(eq)+' <b>'+RARES[eq].name+'</b></span>':'');
 }
 /* ---------- ステージのシート（地図でマスをタップ）：へんしん・じかんを えらんで あそぶ ---------- */
 let sheetId=1;
 function buildSheet(){
   const S=stageDef(sheetId), cleared=!!save.stageClear[sheetId];
   $('shStar').src=nodeURL(cleared?'done':'now');
-  $('shName').textContent=(storyMode?'おはなし ':'')+sheetId+'　'+S.name;
+  $('shName').textContent=sheetId+'　'+S.name;
   $('shBest').textContent=[bestText(sheetId,save.limit),endlessText(sheetId)].filter(Boolean).join('　');
   const box=$('forms'); box.innerHTML='';
   for(const f of Object.keys(FORMS)){
@@ -1816,7 +2126,7 @@ function buildSheet(){
   const eq=save.equip;
   $('shEq').innerHTML=(S.final?'<b>さいごの ステージ！</b> 手は かたい。つよさ工房で つよくしてから いどもう<br>':'')+'そうび：'+(eq?icoImg(eq)+' <b>'+RARES[eq].name+'</b>':'なし')+'（つよさ工房で かえられる）';
   $('shPlay').onclick=()=>{ closeSheet(); start(sheetId,false); };
-  const eb=$('shEndless'); eb.style.display=(!storyMode&&(cleared||UNLOCK_ALL))?'inline-block':'none';
+  const eb=$('shEndless'); eb.style.display=((cleared&&endlessOpen())||save.endless[sheetId]||UNLOCK_ALL)?'inline-block':'none';   // エンドレスは エンディングの後（クリアした ステージ）。前に エンドレスで あそんだ ステージは そのまま
   eb.onclick=()=>{ closeSheet(); start(sheetId,true); };
 }
 function openSheet(id){ sheetId=id; buildSheet(); $('stageSheet').classList.add('on'); }
@@ -1925,7 +2235,8 @@ function buildMap(){
   const W=Math.min(window.innerWidth,440), H=Math.max(640,Math.min(window.innerHeight,Math.round(W*2.1)));
   const wrap=$('mapWrap'); wrap.style.width=W+'px'; wrap.style.height=H+'px';
   const cvs=$('mapCv'); cvs.width=Math.round(W*DPR); cvs.height=Math.round(H*DPR);
-  const g=cvs.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0); drawMapBg(g,W,H);
+  const g=cvs.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0);
+  if(imgOk(BGIMG.map)) drawCover(g,BGIMG.map,W,H); else drawMapBg(g,W,H);
   $('mapLegend').innerHTML='<div><img src="'+nodeURL('done')+'" alt="">クリアずみ</div><div><img src="'+nodeURL('now')+'" alt="">いま あそべる</div><div><img src="'+nodeURL('lock')+'" alt="">まだ いけない</div>';
   const box=$('mapNodes'); box.innerHTML='';
   for(let i=0;i<16;i++){ const t=document.createElement('i'); t.className='tw'; t.textContent=i%3?'✦':'✧';
@@ -2063,14 +2374,13 @@ function drawMapBg(g,W,H){
   for(const [x,y] of [[16,H-16],[W-16,H-16],[W/2,H-13]]){ g.fillStyle='#f3d37e'; g.beginPath(); star5(g,x,y,6*u,2.8*u); g.fill(); }
 }
 function toStages(){
-  bankKills(); storyMode=false; newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); closeSheet(); buildMap(); showOnly('stage'); $('stage').scrollTop=1e6;
+  bankKills(); newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); closeSheet(); buildMap(); showOnly('stage'); $('stage').scrollTop=1e6;
 }
 
 
-/* ---------- ストーリーモード（絵本） ----------
-   STORY＝絵本の16まい（0＝表紙、1〜14＝本文、15＝裏表紙）。STORY_SEQ＝すすむ順（絵本 と ステージを こうごに）
-   進行は save.story（step＝STORY_SEQ の何番目か／started／done＝さいごまで よんだ／seen＝とうたつした ページ）
-   ストーリーの ステージは 通常モードの 解放に しばられない（進行が そのまま 解放）。クリアは 通常モードにも のこる */
+/* ---------- 絵本（ふつうの あそびの 中に はさむ） ----------
+   STORY＝絵本の16まい（0＝表紙、1〜14＝本文、15＝裏表紙）
+   save.story：seen＝とうたつした ページ（本棚で よめる）／done＝エンディングまで いった（裏表紙・エンドレス） */
 const STORY = [
   {img:'00_cover.png', cover:true},
   {img:'01_page.png', t:'ぼくは なに？', x:'ある よるの こと。ほしのもりで、のるんは めを さましました。「ぼく………なに………？」のるんは、じぶんが なにか、しりません。'},
@@ -2089,43 +2399,24 @@ const STORY = [
   {img:'14_page.png', t:'おうち', x:'てのひらの うえは、あたたかくて、ふかふか。へんしんしなくても、そのままの のるんで いい。「て………やさ………しい………」「ここ………うち………」のるんは、ぼうしを かぶったまま、すやすや ねむりました。なかまさがしの たびは、おわり。――きょうから、ここが おうちです。'},
   {img:'15_backcover.png', back:true},
 ];
-const STORY_SEQ = [{book:[0,1,2,3]}];
-for(let n=1;n<=10;n++){ STORY_SEQ.push({stage:n}); STORY_SEQ.push({book:n<10?[n+3]:[13,14,15]}); }   // St1→絵本4→St2→…→St10→絵本13・14・裏表紙
-let storyMode=false;
-const storyStep = () => STORY_SEQ[clamp(save.story.step|0,0,STORY_SEQ.length-1)];
+/* 絵本を はさむのは「はじめての時」だけ：はじめて あそぶ前＝プロローグ（表紙〜3ページ）／ステージを はじめてクリアした時＝そのページ
+   ステージ10の はじめてのクリア＝13・14ページ＋裏表紙（エンディング）。エンディングの後は エンドレスで あそべる */
+const PROLOGUE = [0,1,2,3];
+const stagePages = n => n<10 ? [n+3] : [13,14,15];   // ステージ1→4ページ … 9→12ページ、10→13・14・裏表紙
 const pageOpen = i => UNLOCK_ALL || (STORY[i].back ? !!save.story.done : !!save.story.seen[i]);
-function lastBookStep(){ for(let i=Math.min(save.story.step|0,STORY_SEQ.length-1);i>=0;i--) if(STORY_SEQ[i].book) return STORY_SEQ[i]; return null; }
-function stepLabel(st){ if(st.stage){ const S=stageDef(st.stage); return 'ステージ'+st.stage+'「'+S.name+'」'; } return st.book[0]===0?'えほん（はじまり）':'えほん '+st.book.map(p=>STORY[p].back?'うらびょうし':STORY[p].t?p+'ページ':'').filter(Boolean).join('・'); }
-function openStoryMenu(){
-  bankKills(); state='smenu'; setPlayUi(false); closeSheet();
-  const S=save.story, b=$('smNew'); b.classList.remove('warn');
-  $('smInfo').innerHTML=S.started?'つぎは：<b>'+stepLabel(storyStep())+'</b>':(S.done?'おはなしは さいごまで よんだよ！<br>もういちど たのしめるよ':'えほんと ステージを こうごに すすむ おはなしだよ');
-  $('smCont').style.display=S.started?'inline-block':'none';
-  b.textContent=S.started?'さいしょから':'はじめる';
-  showOnly('smenu');
-}
-function storyBegin(fromStart){
-  if(fromStart||!save.story.started) save.story.step=0;
-  save.story.started=true; persist(); storyMode=true; storyGo();
-}
-function storyGo(){   // いまの step を はじめる（絵本 か ステージ）
-  storyMode=true; const st=storyStep();
-  if(st.book) openBook(st.book,'story');
-  else { bankKills(); state='sstage'; setPlayUi(false); showOnly(null); openSheet(st.stage); }
-}
-/* 絵本の画面。mode：story＝おはなしの とちゅう／shelf＝本棚から よむ／reread＝ひとやすみ中に みなおす */
-const bk={pages:[],i:0,mode:'story',back:null};
+const endlessOpen = () => UNLOCK_ALL || !!save.story.done;   // エンドレス：エンディング（ステージ10の はじめてのクリア）の後
+/* 絵本の画面。mode：inter＝はじめての時に はさむ（よんだ ページは 本棚に のこる）／shelf＝本棚から よむ */
+const bk={pages:[],i:0,mode:'inter',after:null};
 const bookImg = p => CFG.STORY_DIR+STORY[p].img;
 const bookText = x => (x||'').replace(/。(?!」)/g,'。\n').replace(/「/g,'\n「').replace(/」/g,'」\n').replace(/\n{2,}/g,'\n').trim();
-function openBook(pages,mode,at){
-  bk.pages=pages.slice(); bk.i=at||0; bk.mode=mode; bk.back=state;
-  if(mode==='story'){ state='book'; setPlayUi(false); closeSheet(); }
-  else if(mode==='shelf') state='book';
+function openBook(pages,mode,at,after){
+  bk.pages=pages.slice(); bk.i=at||0; bk.mode=mode; bk.after=after||null;
+  state='book'; setPlayUi(false); closeSheet(); stickEnd();
   showOnly('book'); showPage();
 }
 function showPage(){
   const p=bk.pages[bk.i], P=STORY[p], img=$('bkImg'), fall=$('bkFall'), box=$('bkImgBox');
-  if(bk.mode==='story'){ save.story.seen[p]=true; persist(); }
+  if(bk.mode==='inter'){ save.story.seen[p]=true; persist(); }
   fall.style.display='none'; img.style.display='block'; box.style.aspectRatio='';
   img.onload=()=>{ if(img.naturalWidth) box.style.aspectRatio=img.naturalWidth+' / '+img.naturalHeight; };
   img.onerror=()=>{ img.style.display='none'; fall.style.display='flex'; };   // 絵が まだ無い時：ページ番号の かわりの絵
@@ -2137,27 +2428,23 @@ function showPage(){
   if($('bkTxt').scrollTo) $('bkTxt').scrollTop=0;
   const last=bk.i>=bk.pages.length-1;
   $('bkPg').textContent=P.cover?'ひょうし':P.back?'うらびょうし':p+' ページ';
-  $('bkNext').textContent=bk.mode==='story'?(last?(P.back?'おわり':'すすむ ▶'):'つぎへ'):(last?'とじる':'つぎへ');
-  $('bkSkip').style.display=(bk.mode==='story'&&!last)?'inline-block':'none';
+  $('bkNext').textContent=bk.mode==='inter'?(last?(P.back?'おわり':'すすむ ▶'):'つぎへ'):(last?'とじる':'つぎへ');
+  $('bkSkip').style.display=(bk.mode==='inter'&&!last)?'inline-block':'none';
   $('bkPrev').style.display=(bk.i>0)?'inline-block':'none';
 }
-function bookNext(){ if(state!=='book'&&bk.mode!=='reread') return; if(bk.i<bk.pages.length-1){ bk.i++; showPage(); } else bookDone(); }
+function bookNext(){ if(state!=='book') return; if(bk.i<bk.pages.length-1){ bk.i++; showPage(); } else bookDone(); }
 function bookPrev(){ if(bk.i>0){ bk.i--; showPage(); } }
 function bookSkip(){   // この回の絵本を まるごと とばす（とばした ページも「とうたつ」として 本棚に のこす）
-  if(bk.mode!=='story'){ bookDone(); return; }
+  if(bk.mode!=='inter'){ bookDone(); return; }
   for(const p of bk.pages) save.story.seen[p]=true;
   bookDone();
 }
 function bookDone(){
   if(bk.mode==='shelf'){ openShelf(); return; }
-  if(bk.mode==='reread'){ showOnly('pause'); return; }
-  const st=storyStep();
   for(const p of bk.pages) save.story.seen[p]=true;
-  if((save.story.step|0)>=STORY_SEQ.length-1){   // エンディング（裏表紙）まで よんだ → タイトルへ
-    save.story.done=true; save.story.started=false; save.story.step=0; persist(); toTitle(); return;
-  }
-  if(st&&st.book) save.story.step++;
-  persist(); storyGo();
+  if(bk.pages.includes(15)) save.story.done=true;
+  persist();
+  const f=bk.after; bk.after=null; if(f) f();
 }
 function openShelf(){
   bankKills(); state='shelf'; setPlayUi(false); closeSheet();
@@ -2174,14 +2461,20 @@ function openShelf(){
 }
 
 /* ---------- 画面遷移 ---------- */
-function showOnly(id){ for(const k of ['title','stage','forge','levelup','pause','end','smenu','book','shelf']) $(k).classList.toggle('on',k===id); $('sndFloat').classList.toggle('on',['title','stage','forge','smenu','book','shelf'].includes(id)); }
-function setPlayUi(on){ $('hud').classList.toggle('on',on); $('btnUlt').classList.toggle('on',on); }
+function showOnly(id){ for(const k of ['title','stage','forge','levelup','pause','end','book','shelf','records','settings']) $(k).classList.toggle('on',k===id); $('sndFloat').classList.toggle('on',['title','stage','forge','book','shelf','records'].includes(id)); }
+function setPlayUi(on){ $('hud').classList.toggle('on',on); $('btnUlt').classList.toggle('on',on); $('edge').classList.toggle('on',on); if(on) drawHudFace(); }
+let faceForm='';
+function drawHudFace(){   // HUDの 顔アイコン（いまの すがたの スプライト）。ふきだしにも つかう
+  const f=(G&&G.form)||'normal'; if(f===faceForm) return; faceForm=f;
+  const c=$('faceCv'), g=c.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,120,120);
+  g.save(); g.translate(60,76); g.scale(1.95,1.95); drawNorun(g,f,0,false,'front'); g.restore();
+  try{ document.documentElement.style.setProperty('--face','url('+c.toDataURL()+')'); }catch(e){}
+}
 function start(stageId,endless,formOverride){   // 引数なし＝同じステージ・同じモードでもう一度
   initAudio();
   if(typeof stageId==='number'&&CFG.STAGES.some(S=>S.id===stageId)) cur={stage:stageId,endless:!!endless};
   const f=(typeof formOverride==='string'&&FORMS[formOverride])?formOverride:save.form;
-  newGame(f,save.limit,cur.stage,cur.endless); G.story=storyMode&&!cur.endless; state='play'; showOnly(null); setPlayUi(true);
-  $('btnQuit').textContent=G.story?'タイトルへ':'ちずへ'; $('btnReread').style.display=G.story?'inline-block':'none';
+  newGame(f,save.limit,cur.stage,cur.endless); state='play'; showOnly(null); setPlayUi(true);
   banner('ステージ'+G.stage.id+'「'+G.stage.name+'」'+(G.endless?' ∞':G.stage.final?' さいごの ステージ！':''));
 }
 function bankKills(){   // 1回のプレイの成果を もちかえる（たおした数・そざい）。やられても 途中でやめても もちかえる
@@ -2191,10 +2484,19 @@ function bankKills(){   // 1回のプレイの成果を もちかえる（たお
   persist();
 }
 function toTitle(){
-  bankKills(); storyMode=false; closeSheet(); if(!isOpen(save.form)) save.form='normal';
+  bankKills(); closeSheet(); if(!isOpen(save.form)) save.form='normal';
   newGame(save.form,save.limit); state='title'; setPlayUi(false); buildTitle(); showOnly('title');
 }
-function pause(){ if(state!=='play') return; state='pause'; stickEnd(); showOnly('pause'); }
+function pause(){ if(state!=='play') return; state='pause'; stickEnd(); showOnly('pause');
+  $('pauseInfo').innerHTML='ステージ'+G.stage.id+'「'+G.stage.name+'」<br>'+(G.endless?fmtTime(G.t):'のこり '+fmtTime(Math.ceil(G.limit-G.t)))+'・'+G.kills+'体 たおした'; }
+const rec={from:'title'};
+function openRecords(){   // きろく：タイトルの もちもの・つよさ・そざい と、ステージごとの ベスト
+  rec.from=state; if(state!=='end'){ bankKills(); state='records'; setPlayUi(false); } buildTitle();
+  $('recList').innerHTML=STAGE_MAP.map(M=>{ const open=!!stageDef(M.id)&&stageOpen(M.id), t=[bestText(M.id,180),bestText(M.id,300),endlessText(M.id)].filter(Boolean);
+    return '<div class="rec'+(open?'':' lock')+'"><span class="no">'+(save.stageClear[M.id]?'✓':M.id)+'</span><div><b>'+M.id+'　'+(open?M.name:'？？？')+'</b><small>'+(open?(t.join('<br>')||'まだ きろく なし'):'まだ いけない')+'</small></div></div>'; }).join('');
+  showOnly('records'); $('records').scrollTop=0;
+}
+function openSettings(){ state='settings'; setPlayUi(false); sndLabel(); showOnly('settings'); }
 function resume(){ if(state!=='pause') return; state='play'; showOnly(null); }
 function endGame(clear){
   state='end'; stickEnd(); $('btnUlt').classList.remove('on');
@@ -2207,13 +2509,17 @@ function endGame(clear){
   if(newT) b.time=time; if(newK) b.kills=G.kills;
   if(clear){ b.clear=true; save.anyClear=true; save.clears[G.form]=(save.clears[G.form]||0)+1; save.stageClear[S.id]=true; }
   if(firstClear&&S.final&&!save.rares.life){ save.rares.life=true; G.gotRares.push('life'); }   // 最終面の はじめてのクリア：いのちのほし
-  if(clear&&G.story){ const st=storyStep(); if(st.stage===S.id) save.story.step++; }   // ストーリー：クリアで つぎの絵本へ（通常モードの クリア記録にも 上で のこる）
+  const wasEnd=!!save.story.done;
+  G.pendingBook = firstClear ? stagePages(S.id) : null;   // はじめてのクリア：そのステージの 絵本を はさむ
+  if(firstClear&&S.final) save.story.done=true;          // エンディング到達 → エンドレス
   bankKills(); persist();
   const opened=Object.keys(FORMS).filter(f=>isOpen(f)&&!wasOpen.includes(f)), msg=[];
-  if(clear&&nx&&!nextWasOpen) msg.push('✨ '+(G.story?'つうじょうモードで ':'')+'ステージ'+nx.id+'「'+nx.name+'」が あそべるようになった！');
-  if(clear&&!G.endless&&firstClear&&!G.story) msg.push('∞ このステージの エンドレスが あそべるよ');
+  if(clear&&nx&&!nextWasOpen) msg.push('✨ ステージ'+nx.id+'「'+nx.name+'」が あそべるようになった！');
+  if(firstClear&&!wasEnd&&save.story.done) msg.push('∞ エンドレスが あそべるようになった！（クリアした ステージで あそべるよ）');
+  else if(firstClear&&endlessOpen()) msg.push('∞ このステージの エンドレスが あそべるよ');
+  if(G.pendingBook) msg.push('📖 えほんの あたらしい ページが ひらいたよ');
   if(opened.length) msg.push('✨ あたらしい へんしん：'+opened.map(f=>FORMS[f].name).join('・'));
-  const et=$('endTitle'); et.className='ribbon'+(G.endless?' lav':clear?' gold':'');
+  const et=$('endState'); et.className='estate'+(G.endless?' lav':clear?' gold':'');
   et.textContent=G.endless?'∞ エンドレス おしまい':clear?'ステージ'+S.id+' クリア！':'やられちゃった…';
   $('endMsg').textContent=G.endless?'「'+S.name+'」で ここまで いきのこった！':clear?(S.final?'おうちの中からも にげきった！':'つかまらずに にげきった！'):'もういちど ちょうせんしてみよう';
   $('eTime').innerHTML=fmtTime(time)+(newT?'<span class="new">NEW</span>':'');
@@ -2224,45 +2530,55 @@ function endGame(clear){
   $('eRare').innerHTML=G.gotRares.map(k=>'<div class="rareget">'+icoImg(k)+'<div><small>レアアイテム げっと！</small><b>'+RARES[k].name+'</b></div></div>').join('');
   $('unlockMsg').innerHTML=msg.join('<br>');
   $('bestEnd').textContent=G.endless?endlessText(S.id):bestText(S.id,G.limit);
-  $('btnNext').style.display=(G.story?clear:(clear&&nx&&!G.endless))?'inline-block':'none';
-  $('btnNext').textContent=G.story?'おはなしの つづきへ ▶':'つぎのステージ';
-  $('btnRetry').style.display=(G.story&&clear)?'none':'inline-block';
-  $('btnToTitle').textContent=G.story?'タイトルへ':'ちずへ';
+  $('btnNext').style.display=(clear&&nx&&!G.endless)?'inline-block':'none';
+  endButtons();
   showOnly('end');
   if(clear) SFX.clear(); else SFX.over();
+  endPeek();
 }
-function banner(txt){ const b=$('banner'); b.textContent=txt; b.classList.remove('go'); void b.offsetWidth; b.classList.add('go'); }
+function endPeek(){ requestAnimationFrame(()=>drawPeek($('endNorun'),1.45,0.85)); }
+function endButtons(){   // 絵本が まっている間は「おはなしの つづき」だけ。よみおわったら いつものボタン
+  const pend=!!(G&&G.pendingBook);
+  $('btnBook').style.display=pend?'inline-block':'none'; $('endBtns').style.display=pend?'none':'block';
+  $('btnBook').textContent=pend&&G.pendingBook.includes(15)?'📖 おはなしの さいご':'📖 おはなしの つづき';
+}
+function readPending(){
+  if(!G||!G.pendingBook) return; const pages=G.pendingBook; G.pendingBook=null;
+  openBook(pages,'inter',0,()=>{ state='end'; endButtons(); showOnly('end'); endPeek(); });
+}
+function banner(txt){ const b=$('banner'); b.innerHTML='<span class="bub"><i class="bf"></i><span></span></span>'; b.querySelector('span span').textContent=txt; b.classList.remove('go'); void b.offsetWidth; b.classList.add('go'); }
 
-$('btnStart').onclick=()=>{ initAudio(); toStages(); };
-$('btnStory').onclick=()=>{ initAudio(); openStoryMenu(); };
+$('btnStart').onclick=()=>{ initAudio();   // はじめて あそぶ前だけ プロローグ（表紙〜3ページ）
+  if(!save.story.seen[0]&&!UNLOCK_ALL) openBook(PROLOGUE,'inter',0,toStages); else toStages(); };
+$('btnBook').onclick=readPending;
+$('btnRecords').onclick=()=>{ initAudio(); openRecords(); };
+$('btnRecEnd').onclick=openRecords;
+$('recBack').onclick=()=>{ if(rec.from==='end'){ showOnly('end'); endPeek(); } else toTitle(); };
+$('btnSettings').onclick=()=>{ initAudio(); openSettings(); };
+$('setSnd').onclick=()=>{ initAudio(); toggleSnd(); };
+$('setBack').onclick=toTitle;
 $('btnShelf').onclick=()=>{ initAudio(); openShelf(); };
-$('smBack').onclick=toTitle;
-$('smCont').onclick=()=>storyBegin(false);
-$('smNew').onclick=()=>{ const b=$('smNew');
-  if(save.story.started&&!b.classList.contains('warn')){ b.classList.add('warn'); b.textContent='もう一度 おすと さいしょから'; return; }
-  storyBegin(true); };
 $('shelfBack').onclick=toTitle;
 $('bkNext').onclick=e=>{ e.stopPropagation(); bookNext(); };
 $('bkPrev').onclick=e=>{ e.stopPropagation(); bookPrev(); };
 $('bkSkip').onclick=e=>{ e.stopPropagation(); bookSkip(); };
 $('book').onclick=e=>{ if(e.target.closest('button')) return; bookNext(); };   // 絵本は どこを タップしても すすむ
-$('btnReread').onclick=()=>{ const st=lastBookStep(); if(st) openBook(st.book,'reread'); };
 $('btnForge').onclick=()=>{ initAudio(); openForge(); };
 $('btnEquip').onclick=()=>{ initAudio(); openForge(true); };   // レアアイテムは つよさ工房の中（そうびの所まで スクロール）
 $('btnForgeBack').onclick=toTitle;
 $('rarePrev').onclick=()=>stepRare(-1);
 $('rareNext').onclick=()=>stepRare(1);
-$('sheetClose').onclick=()=>{ if(storyMode) toTitle(); else closeSheet(); };
-$('stageSheet').onclick=e=>{ if(e.target===$('stageSheet')){ if(storyMode) toTitle(); else closeSheet(); } };
+$('sheetClose').onclick=closeSheet;
+$('stageSheet').onclick=e=>{ if(e.target===$('stageSheet')) closeSheet(); };
 $('btnBack').onclick=toTitle;
 $('btnRetry').onclick=()=>start();
-$('btnNext').onclick=()=>{ if(G&&G.story){ bankKills(); storyGo(); return; } const nx=nextStage(cur.stage); if(nx) start(nx.id,false); };
-$('btnToTitle').onclick=()=>{ if(G&&G.story) toTitle(); else toStages(); };
-$('btnQuit').onclick=()=>{ if(G&&G.story) toTitle(); else toStages(); };
+$('btnNext').onclick=()=>{ const nx=nextStage(cur.stage); if(nx) start(nx.id,false); };
+$('btnToTitle').onclick=toStages;
+$('btnQuit').onclick=toStages;
 $('btnResume').onclick=resume;
 $('btnPause').onclick=pause;
 $('btnUlt').onclick=useUlt;
-function sndLabel(){ $('btnSnd').textContent=muted?'×':'♪'; $('sndFloat').textContent=muted?'×':'♪'; }
+function sndLabel(){ $('btnSnd').textContent=muted?'×':'♪'; $('sndFloat').textContent=muted?'×':'♪'; const t=$('setSnd'); t.textContent=muted?'オフ':'オン'; t.classList.toggle('off',muted); }
 function toggleSnd(){ muted=!muted; save.mute=muted; persist(); sndLabel(); bgmSync(true); }
 $('btnSnd').onclick=toggleSnd;
 $('sndFloat').onclick=e=>{ e.stopPropagation(); initAudio(); toggleSnd(); };
@@ -2878,6 +3194,10 @@ function drawWorldBg(c,cx,cy){
   }
 }
 /* スキルエフェクトの絵 */
+/* 背景イラストの置き場：img/bg_title.png（タイトル）／img/bg_map.png（地図）／img/bg_workshop.png（工房）／img/bg_result.png（結果）
+   タイトル・地図は Canvas、工房・結果は CSS で 読む。無い間は コードの 仮背景になる */
+const BGIMG={};
+for(const k of ['title','map']){ const im=new Image(); im.onload=()=>{ if(k==='map'&&state==='stage') buildMap(); }; im.src='img/bg_'+k+'.png'; BGIMG[k]=im; }
 const fxImg={};
 for(const k in CFG.FX_SPR){ const im=new Image(); im.src=CFG.FX_SPR[k].src; fxImg[k]=im; }
 const fxOk = k => imgOk(fxImg[k]);
@@ -2885,6 +3205,71 @@ const fxOk = k => imgOk(fxImg[k]);
 const CANVAS_FONT='"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif';
 /* タイトルまわりの背景：ゆっくり またたく星と、ときどき 流れ星 */
 const SKY={st:null,sh:[],nt:1.2};
+function drawCover(g,im,w,h){ const s=Math.max(w/im.naturalWidth,h/im.naturalHeight), iw=im.naturalWidth*s, ih=im.naturalHeight*s; g.drawImage(im,(w-iw)/2,(h-ih)/2,iw,ih); }
+/* タイトルなどの 背景：夜の森（月・木の枝から つるした星・森の かげ・草花・ほたる）。うごかない部分は 1回だけ 描いて とっておく */
+const NIGHT={cv:null,w:0,h:0,ff:null,glow:null};
+function nightLayer(w,h){
+  if(NIGHT.cv&&NIGHT.w===w&&NIGHT.h===h) return NIGHT.cv;
+  const cvs=document.createElement('canvas'); cvs.width=Math.round(w*DPR); cvs.height=Math.round(h*DPR);
+  const g=cvs.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0); const R=rng(77);
+  let gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#151142'); gr.addColorStop(0.38,'#2c2676'); gr.addColorStop(0.56,'#3c3a8a'); gr.addColorStop(0.64,'#22495a'); gr.addColorStop(1,'#0f2a2c');
+  g.fillStyle=gr; g.fillRect(0,0,w,h);
+  for(let i=0;i<120;i++){ g.globalAlpha=0.3+R()*0.6; g.fillStyle=R()<0.2?'#fff6c8':'#fff'; g.beginPath(); g.arc(R()*w,R()*h*0.58,0.5+R()*1.3,0,TAU); g.fill(); }
+  g.globalAlpha=1;
+  const mx=w*0.8, my=Math.min(h*0.1,80);   // 月
+  glow(g,mx,my,90,'255,236,170',0.45); g.fillStyle='#fff1b8'; g.beginPath(); g.arc(mx,my,30,0,TAU); g.fill();
+  g.fillStyle='rgba(230,200,120,.35)'; for(const [dx,dy,r] of [[-9,-6,6],[8,7,4.5],[4,-11,3]]){ g.beginPath(); g.arc(mx+dx,my+dy,r,0,TAU); g.fill(); }
+  for(const [x,y,s] of [[0.62,0.13,1],[0.9,0.2,0.8],[0.12,0.3,0.9]]){ g.fillStyle='rgba(190,175,245,.32)';   // 雲
+    for(const [dx,dy,r] of [[-30,0,20],[-8,-10,26],[18,-4,22],[38,4,16]]){ g.beginPath(); g.arc(x*w+dx*s,y*h+dy*s,r*s,0,TAU); g.fill(); } }
+  const hy=h*0.62;   // 森の かげ（とんがった 木）
+  g.fillStyle='#1c2c56'; for(let x=-10;x<w+20;x+=16+R()*12){ const th=26+R()*36; g.beginPath(); g.moveTo(x-12,hy+4); g.lineTo(x,hy-th); g.lineTo(x+12,hy+4); g.fill(); }
+  g.fillStyle='#16263f'; for(let x=-6;x<w+20;x+=22+R()*14){ const th=18+R()*22; g.beginPath(); g.moveTo(x-14,hy+10); g.lineTo(x,hy-th+10); g.lineTo(x+14,hy+10); g.fill(); }
+  gr=g.createLinearGradient(0,hy,0,h); gr.addColorStop(0,'#24564c'); gr.addColorStop(0.5,'#1a4440'); gr.addColorStop(1,'#10302e');   // 草原
+  g.fillStyle=gr; g.beginPath(); g.moveTo(0,hy+8); for(let x=0;x<=w;x+=24) g.lineTo(x,hy+6+Math.sin(x*0.02)*5); g.lineTo(w,h); g.lineTo(0,h); g.closePath(); g.fill();
+  g.strokeStyle='rgba(120,200,150,.35)'; g.lineWidth=1.4; g.lineCap='round';
+  for(let i=0;i<160;i++){ const x=R()*w, y=hy+14+R()*(h-hy), l=5+R()*9; g.beginPath(); g.moveTo(x,y); g.quadraticCurveTo(x+2,y-l*0.6,x+(R()-0.5)*6,y-l); g.stroke(); }
+  const fc=['#ffd0e6','#e2cfff','#ffffff','#fff0a8','#bfe3ff'];
+  for(let i=0;i<60;i++){ const x=R()*w, y=hy+20+R()*(h-hy-20), r=1.6+R()*2.2*(y/h); g.fillStyle=fc[i%fc.length]; g.globalAlpha=0.85;
+    for(let k=0;k<5;k++){ const a=k/5*TAU; g.beginPath(); g.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,r*0.7,0,TAU); g.fill(); } g.fillStyle='#ffe27a'; g.beginPath(); g.arc(x,y,r*0.5,0,TAU); g.fill(); }
+  g.globalAlpha=1;
+  for(const side of [0,1]){   // 上の かどの 木の枝と 葉っぱ
+    const sx=side?w:0, d=side?-1:1;
+    g.strokeStyle='#1a2a3e'; g.lineWidth=7; g.beginPath(); g.moveTo(sx,4); g.quadraticCurveTo(sx+d*60,30,sx+d*110,22); g.stroke();
+    for(let i=0;i<16;i++){ const t=R(), x=sx+d*(t*120), y=6+R()*40; g.fillStyle=['#1f4a48','#2a5a52','#174039'][i%3]; g.beginPath(); g.ellipse(x,y,16+R()*12,10+R()*7,R(),0,TAU); g.fill(); }
+    g.fillStyle='rgba(160,230,200,.18)'; for(let i=0;i<8;i++){ g.beginPath(); g.ellipse(sx+d*R()*110,4+R()*34,7,4,R(),0,TAU); g.fill(); }
+  }
+  NIGHT.cv=cvs; NIGHT.w=w; NIGHT.h=h;
+  return cvs;
+}
+function renderNight(dt){
+  const c=ctx, w=window.innerWidth, h=window.innerHeight;
+  c.setTransform(1,0,0,1,0,0);
+  if(imgOk(BGIMG.title)){ c.setTransform(DPR,0,0,DPR,0,0); drawCover(c,BGIMG.title,w,h); }
+  else c.drawImage(nightLayer(w,h),0,0);
+  c.setTransform(DPR,0,0,DPR,0,0);
+  if(!imgOk(BGIMG.title)) for(const [bx,len,ph] of [[48,58,0],[w-62,72,1.7]]){   // つるした 星（ゆらゆら）
+    const a=Math.sin(animT*1.3+ph)*0.12, ex=bx+Math.sin(a)*len, ey=18+Math.cos(a)*len;
+    c.strokeStyle='rgba(255,236,170,.7)'; c.lineWidth=1.2; c.beginPath(); c.moveTo(bx,18); c.lineTo(ex,ey); c.stroke();
+    glow(c,ex,ey+12,26,'255,230,140',0.5); c.fillStyle='#ffe27a'; starPath(c,ex,ey+12,12,a); c.fill();
+    c.strokeStyle='#c9902a'; c.lineWidth=1.5; c.stroke();
+  }
+  if(!NIGHT.ff){ NIGHT.ff=[]; for(let i=0;i<26;i++) NIGHT.ff.push({x:Math.random(),y:0.45+Math.random()*0.55,p:Math.random()*TAU,s:0.4+Math.random()*0.8}); }
+  for(const f of NIGHT.ff){   // ほたる
+    const x=(f.x+Math.sin(animT*0.3*f.s+f.p)*0.04)*w, y=(f.y+Math.cos(animT*0.4*f.s+f.p*1.3)*0.03)*h, a=0.35+0.65*(0.5+0.5*Math.sin(animT*2*f.s+f.p));
+    c.globalAlpha=a*0.35; c.fillStyle='#fff3a8'; c.beginPath(); c.arc(x,y,6,0,TAU); c.fill();
+    c.globalAlpha=a; c.beginPath(); c.arc(x,y,1.8,0,TAU); c.fill();
+  }
+  c.globalAlpha=1;
+  SKY.nt-=dt;
+  if(SKY.nt<=0){ SKY.nt=rand(2.5,5); SKY.sh.push({x:rand(0.35,1.15)*w,y:rand(-0.05,0.25)*h,vx:-rand(430,620),vy:rand(150,250),t:0,life:rand(0.7,1.1)}); }
+  for(const sh of SKY.sh){
+    sh.t+=dt; sh.x+=sh.vx*dt; sh.y+=sh.vy*dt;
+    const a=Math.sin(Math.PI*clamp(sh.t/sh.life,0,1)), tx=sh.x-sh.vx*0.2, ty=sh.y-sh.vy*0.2, g2=c.createLinearGradient(sh.x,sh.y,tx,ty);
+    g2.addColorStop(0,'rgba(255,255,255,'+a.toFixed(2)+')'); g2.addColorStop(1,'rgba(255,190,225,0)');
+    c.strokeStyle=g2; c.lineWidth=3; c.lineCap='round'; c.beginPath(); c.moveTo(sh.x,sh.y); c.lineTo(tx,ty); c.stroke();
+  }
+  compact(SKY.sh,sh=>sh.t<sh.life);
+}
 function renderSky(dt){
   const c=ctx, w=window.innerWidth, h=window.innerHeight;
   c.setTransform(DPR,0,0,DPR,0,0);
@@ -2915,28 +3300,24 @@ function renderSky(dt){
     c.lineTo(w,h); c.closePath(); c.fill();
   }
 }
-/* タイトルのメインビジュアル：まんなかに のるん、両がわに へんしんした すがた */
-const HERO=[['kurage',-0.82,0.92,1.3],['pan',-0.43,1.02,0.4],['obake',0.43,1.02,2.2],['penguin',0.82,0.92,3.1],['normal',0,1.5,0]];
-function drawHero(){
-  const cvh=$('hero'), w=cvh.clientWidth, h=cvh.clientHeight; if(!w||!h) return;
+/* タイトルの のるん：雲の ロゴの うしろから 顔を出す（絵は 今の スプライト） */
+function drawPeek(cvh,scale,lift){
+  const w=cvh.clientWidth, h=cvh.clientHeight; if(!w||!h) return;
   const W=Math.round(w*DPR), H=Math.round(h*DPR); if(cvh.width!==W||cvh.height!==H){ cvh.width=W; cvh.height=H; }
   const g=cvh.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0); g.clearRect(0,0,w,h);
-  const k=h/150;
-  glow(g,w/2,h*0.6,h*0.62,'255,214,240',0.55);
-  for(const [f,off,sc,ph] of HERO){
-    const x=w/2+off*Math.min(w*0.5,175*k), bob=Math.sin(animT*2.2+ph)*4*k, y=h*(f==='normal'?0.6:0.66);
-    g.fillStyle='rgba(20,10,50,.3)'; g.beginPath(); g.ellipse(x,y+27*sc*k,17*sc*k,4.5*sc*k,0,0,TAU); g.fill();
-    g.save(); g.translate(x,y+bob); g.scale(sc*k,sc*k); g.rotate(Math.sin(animT*1.6+ph)*0.05);
-    drawNorun(g,f,animT+ph,false,'front'); g.restore();
-  }
-  for(let i=0;i<6;i++){ const a=animT*0.6+i*1.05, x=w/2+Math.cos(a)*w*0.36, y=h*0.5+Math.sin(a*1.3)*h*0.32;
-    g.globalAlpha=0.5+0.5*Math.sin(animT*3+i); g.fillStyle=i&1?'#fff6c8':'#ffd0e0'; starPath(g,x,y,5+2*(i%3),animT+i); g.fill(); }
+  const k=h/96, bob=Math.sin(animT*2.2)*2.5*k;
+  glow(g,w/2,h*0.75,h*0.75,'255,214,240',0.35);
+  g.save(); g.translate(w/2,h*lift+bob); g.scale(scale*k,scale*k); g.rotate(Math.sin(animT*1.4)*0.04); drawNorun(g,'normal',animT,false,'front'); g.restore();
+  for(let i=0;i<4;i++){ const a=animT*0.7+i*1.6, x=w/2+Math.cos(a)*w*0.42, y=h*0.45+Math.sin(a*1.2)*h*0.3;
+    g.globalAlpha=0.5+0.5*Math.sin(animT*3+i); g.fillStyle=i&1?'#fff6c8':'#ffd0e0'; starPath(g,x,y,4+2*(i%2),animT+i); g.fill(); }
   g.globalAlpha=1;
 }
+function drawHero(){ drawPeek($('hero'),2.05,0.7); }
 let lastDt=0;
 const drawL=[];
 function render(){
-  if(state==='title'||state==='stage'||state==='forge'||state==='equip'||state==='smenu'||state==='book'||state==='shelf'||state==='sstage'){ renderSky(lastDt); if(state==='title') drawHero(); return; }
+  if(state==='title'||state==='book'||state==='shelf'||state==='records'||state==='settings'){ renderNight(lastDt); if(state==='title') drawHero(); return; }
+  if(state==='stage'||state==='forge'||state==='equip'){ renderSky(lastDt); return; }
   const c=ctx, p=G.p;
   c.setTransform(DPR*SC,0,0,DPR*SC,0,0);
   let cx=p.x-VW/2, cy=p.y-VH/2;
@@ -3203,9 +3584,17 @@ function render(){
   if(G.flash){ c.fillStyle='rgba('+G.flash.c+','+(G.flash.a*clamp(G.flash.t/G.flash.max,0,1)).toFixed(2)+')'; c.fillRect(0,0,VW,VH); }
 
   if(stick.on&&state==='play'){
-    const ox=stick.ox/SC, oy=stick.oy/SC, R=46/SC;
-    c.strokeStyle='rgba(255,255,255,.35)'; c.lineWidth=2; c.beginPath(); c.arc(ox,oy,R,0,TAU); c.stroke();
-    c.fillStyle='rgba(255,255,255,.45)'; c.beginPath(); c.arc(ox+stick.x*R,oy+stick.y*R,R*0.42,0,TAU); c.fill();
+    const ox=stick.ox/SC, oy=stick.oy/SC, R=50/SC;
+    c.fillStyle='rgba(200,190,255,.16)'; c.beginPath(); c.arc(ox,oy,R,0,TAU); c.fill();
+    c.strokeStyle='rgba(255,255,255,.55)'; c.lineWidth=2.5/SC; c.stroke();
+    c.strokeStyle='rgba(243,211,126,.55)'; c.lineWidth=1.2/SC; c.beginPath(); c.arc(ox,oy,R-5/SC,0,TAU); c.stroke();
+    c.fillStyle='rgba(255,255,255,.6)';
+    for(let i=0;i<4;i++){ const a=i*Math.PI/2, ax=ox+Math.cos(a)*R*0.78, ay=oy+Math.sin(a)*R*0.78, t=6/SC;
+      c.beginPath(); c.moveTo(ax+Math.cos(a)*t,ay+Math.sin(a)*t); c.lineTo(ax+Math.cos(a+2.2)*t,ay+Math.sin(a+2.2)*t); c.lineTo(ax+Math.cos(a-2.2)*t,ay+Math.sin(a-2.2)*t); c.fill(); }
+    const kx=ox+stick.x*R*0.7, ky=oy+stick.y*R*0.7, kr=R*0.4;
+    c.fillStyle='rgba(255,255,255,.82)'; c.beginPath(); c.arc(kx,ky,kr,0,TAU); c.fill();
+    c.strokeStyle='rgba(185,164,240,.9)'; c.lineWidth=2/SC; c.stroke();
+    c.fillStyle='#ffd75e'; starPath(c,kx,ky,kr*0.62,0); c.fill(); c.strokeStyle='#c9902a'; c.lineWidth=1.2/SC; c.stroke();
   }
 }
 function drawFog(c,cx,cy){
@@ -3267,7 +3656,7 @@ function frame(now){
 /* ---------- 起動 ---------- */
 sndLabel(); resize(); newGame(save.form,save.limit); buildTitle(); showOnly('title');
 window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet,
-  endGame, storyBegin, bookNext, bookSkip, openShelf, openStoryMenu, STORY, STORY_SEQ, get bgm(){return bgm;} };   // デバッグ用
+  endGame, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, STORY, get bgm(){return bgm;} };   // デバッグ用
 if(typeof navigator!=='undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){   // PWA：オフラインでも 起動できるように
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
