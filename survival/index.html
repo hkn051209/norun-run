@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#cdbdf5">
-<title>のるんサバイバル（仮）</title>
+<title>のるんの ほしぞらサバイバル</title>
 <!-- 丸ゴシック：M PLUS Rounded 1c（のるん まなび と そろえる） -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -318,6 +318,144 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 .eqc img{width:20px;height:20px}
 .eqc.off{opacity:.55}
 #skills{margin-top:7px}
+
+/* ===================== v7：タイトルロゴ／ロードマップ／つよさ工房（紺＋金＋星空） ===================== */
+:root{--navy:#1b1a4a;--navy2:#2b2a6a;--gold:#f3d37e;--gold-d:#b98a2e;--parch:#f6e9c9}
+.l0{font-size:25px;align-self:flex-start;margin:0 0 2px 6px;transform:rotate(-5deg)}
+.l0 .bk{-webkit-text-stroke:8px var(--ink2);text-shadow:0 5px 0 var(--ink2)}
+.l0 .fr{background:linear-gradient(#fff 0,#fff 45%,#d9ccff 100%);-webkit-background-clip:text;background-clip:text}
+.l1{font-size:54px}
+.l1 .fr{background:linear-gradient(#fff 0,#fff 36%,#c6e8ff 60%,#7fb4ff 100%);-webkit-background-clip:text;background-clip:text}
+.l2{font-size:50px;margin-top:6px}
+.l2 .bk{-webkit-text-stroke:12px var(--ink2);text-shadow:0 8px 0 var(--ink2),0 14px 16px rgba(20,10,50,.5)}
+.l2 .fr{background:linear-gradient(#fffbe0 0,#fff3a8 40%,#ffd257 68%,#ffab33 100%);-webkit-background-clip:text;background-clip:text}
+.lst.s1{left:-22px;top:34px}.lst.s2{right:-18px;top:18px}.lst.s3{left:-10px;bottom:0}
+.navbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px 8px 12px;border-radius:99px;border:2px solid var(--gold);
+  background:linear-gradient(#34337c,#1b1a4a);color:#fff3d0;font-size:15px;font-weight:800;box-shadow:0 3px 0 #0d0c2e,0 4px 10px rgba(0,0,0,.4)}
+.navbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #0d0c2e}
+
+/* ---- ステージえらび（ロードマップ） ---- */
+#stage{padding:0;background:rgba(10,8,40,.4);overflow-y:auto;touch-action:pan-y;justify-content:flex-start}
+.mapwrap{position:relative;flex:none;margin:auto;overflow:hidden;box-shadow:0 0 0 2px var(--gold-d),0 0 40px rgba(0,0,0,.6)}
+#mapCv{position:absolute;left:0;top:0;width:100%;height:100%}
+.mapwrap::after{content:"";position:absolute;inset:5px;border:1.5px solid rgba(243,211,126,.7);border-radius:10px;pointer-events:none}
+.maphead{position:absolute;right:14px;top:calc(9px + env(safe-area-inset-top));text-align:center;pointer-events:none}
+.maphead small{display:block;font-size:9.5px;color:var(--gold);letter-spacing:.1em;text-shadow:0 1px 3px #000}
+.maphead b{display:inline-block;margin-top:2px;padding:3px 20px 4px;border-radius:99px;background:linear-gradient(#34337c,#1b1a4a);border:2px solid var(--gold);
+  color:#fff3d0;font-size:17px;letter-spacing:.08em;text-shadow:0 2px 0 #0d0c2e;box-shadow:0 3px 8px rgba(0,0,0,.5)}
+#btnBack{position:absolute;left:13px;top:calc(14px + env(safe-area-inset-top));z-index:3}
+.legend{position:absolute;left:13px;top:calc(60px + env(safe-area-inset-top));padding:3px 10px 3px 7px;border-radius:10px;background:rgba(22,20,66,.9);
+  border:1.5px solid var(--gold);font-size:11px;color:#fff3d0;z-index:2}
+.legend div{display:flex;align-items:center;gap:6px;padding:1.5px 0;font-size:10.5px}
+.legend div+div{border-top:1px solid rgba(243,211,126,.28)}
+.legend img{width:18px;height:18px}
+.node{--s:56px;position:absolute;display:flex;align-items:center;padding:0;border:0;background:none;transform:translate(calc(var(--s) / -2),-50%);
+  filter:drop-shadow(0 3px 3px rgba(8,6,30,.55));z-index:1}
+.node.final{--s:66px}
+.node .st{position:relative;z-index:1;width:var(--s);height:var(--s);flex:none}
+.node .st img{width:100%;height:100%;display:block}
+.node .st b{position:absolute;left:0;right:0;top:52%;transform:translateY(-50%);text-align:center;font-size:21px;line-height:1;color:#fff;
+  text-shadow:1.5px 0 0 var(--tc),-1.5px 0 0 var(--tc),0 1.5px 0 var(--tc),0 -1.5px 0 var(--tc),1px 1px 0 var(--tc),-1px 1px 0 var(--tc),1px -1px 0 var(--tc),-1px -1px 0 var(--tc)}
+.node.done{--tc:#7a4d0c}.node.now{--tc:#123e9c}.node.lock{--tc:#2a2745}
+.node.lock .st b{top:39%;font-size:16px;color:#e3def2}
+.node.final .st b{font-size:22px}
+.node.final.lock .st b{font-size:17px}
+.node .ck{position:absolute;right:-1px;bottom:1px;width:21px;height:21px;border-radius:50%;background:#fff6d8;border:2px solid #7a4d0c;color:#7a4d0c;
+  font-size:13px;font-weight:800;line-height:17px;text-align:center;font-style:normal}
+.node .nl{margin-left:-12px;padding:4px 17px 5px 18px;background:linear-gradient(#fcf3da,#ead6a8);color:#3a2a55;font-size:13.5px;font-weight:800;white-space:nowrap;
+  border-radius:4px;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 50%,100% 100%,0 100%)}
+.node.lock .nl{background:linear-gradient(#d6d0e4,#b3acc8);color:#4a4466}
+.node.now .st{animation:nowp .9s ease-in-out infinite alternate}
+.node.now .nl{background:linear-gradient(#ffffff,#d9efff);color:#123e9c}
+@keyframes nowp{from{filter:drop-shadow(0 0 3px #8fe0ff);transform:scale(1)}to{filter:drop-shadow(0 0 12px #8fe0ff) drop-shadow(0 0 5px #fff);transform:scale(1.1)}}
+.tw{position:absolute;font-style:normal;color:#fff6c8;line-height:1;pointer-events:none;animation:twk 1.6s ease-in-out infinite alternate;text-shadow:0 0 6px #ffe9a0}
+#mapNorun{position:absolute;left:8px;bottom:26px;width:76px;height:76px;pointer-events:none;z-index:2}
+.sign{position:absolute;left:66px;bottom:9px;padding:2px 10px 3px;border-radius:5px;background:linear-gradient(#b98552,#8a5a30);border:2px solid #5a3718;
+  color:#fff3d0;font-size:12.5px;font-weight:800;transform:rotate(-6deg);z-index:2;text-shadow:0 1px 0 #5a3718;pointer-events:none}
+#mapToast{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);padding:8px 18px;border-radius:99px;background:rgba(22,20,66,.95);border:2px solid var(--gold);
+  color:#fff3d0;font-size:14px;font-weight:800;white-space:nowrap;opacity:0;pointer-events:none;z-index:4}
+#mapToast.go{animation:toast 1.8s ease-out}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,8px)}12%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0}}
+#stageSheet{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(10,8,40,.6);z-index:6}
+#stageSheet.on{display:flex}
+#stageSheet .panel{padding-top:16px}
+.shead{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px}
+.shead img{width:50px;height:50px}
+.shead b{display:block;font-size:20px;color:var(--ink);text-align:left}
+.shead small{display:block;font-size:11.5px;color:var(--orange);text-align:left;min-height:15px}
+.sx{position:absolute;right:10px;top:10px;width:34px;height:34px;border-radius:50%;border:2.5px solid var(--lav);background:#fff;color:var(--ink);font-size:17px;font-weight:800;padding:0;z-index:2}
+.seq{font-size:12px;color:var(--sub);margin:8px 0 0}
+.seq b{color:var(--ink)}
+.seq img{width:22px;height:22px;vertical-align:middle}
+
+/* ---- つよさ工房 ---- */
+#forge{padding:0;justify-content:flex-start;overflow-y:auto;touch-action:pan-y;
+  background:linear-gradient(rgba(20,18,66,.86),rgba(43,36,110,.8) 60%,rgba(58,44,120,.86))}
+.fg{width:100%;max-width:460px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 11px calc(18px + env(safe-area-inset-bottom));color:#fff3d0;text-align:left}
+.fghead{position:relative;display:flex;align-items:flex-end;gap:8px;height:92px;margin-bottom:8px}
+.fgplate{position:relative;flex:none;align-self:center;padding:9px 20px 11px;border-radius:26px;background:linear-gradient(#3a3990,#1b1a4a);border:2.5px solid var(--gold);
+  box-shadow:0 0 14px rgba(243,211,126,.45),0 4px 0 #0d0c2e;font-size:27px;font-weight:800;letter-spacing:.06em;color:#fff3d0;text-shadow:0 3px 0 #0d0c2e;white-space:nowrap}
+.fgplate::before,.fgplate::after{content:"★";position:absolute;top:-11px;font-size:18px;color:var(--gold);text-shadow:0 0 6px #fff3a8}
+.fgplate::before{left:8px}.fgplate::after{right:8px;top:auto;bottom:-10px}
+.fgbub{position:absolute;right:78px;top:2px;padding:5px 11px;border-radius:14px;background:#fff8ea;color:#3a2a55;font-size:11.5px;font-weight:800;line-height:1.4;white-space:nowrap}
+.fgbub::after{content:"";position:absolute;right:-7px;bottom:7px;border:6px solid transparent;border-left-color:#fff8ea;border-right:0}
+#forgeNorun{margin-left:auto;width:78px;height:78px;flex:none}
+.fgbox{position:relative;border-radius:18px;border:2px solid var(--gold);background:linear-gradient(rgba(40,38,104,.96),rgba(26,24,74,.96));
+  box-shadow:0 0 0 2px rgba(13,12,46,.9),0 0 12px rgba(243,211,126,.25);padding:10px 8px 8px;margin-bottom:11px}
+.fgtab{position:absolute;left:12px;top:-11px;padding:1px 12px 2px;border-radius:99px;background:var(--navy);border:1.5px solid var(--gold);font-size:11.5px;font-weight:800;color:var(--gold)}
+.fgmats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px 2px;padding-top:4px}
+.fm{display:flex;flex-direction:column;align-items:center;min-width:0}
+.fm img{width:28px;height:28px}
+.fm small{font-size:8.5px;color:#d9d2f5;white-space:nowrap;letter-spacing:-.03em;line-height:1.3}
+.fm b{font-size:15px;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums}
+.fm.zero{opacity:.42}
+.fglist{background:linear-gradient(#f6e9c9,#ead9b0);border-radius:16px;padding:7px 6px;border:2px solid var(--gold);box-shadow:0 0 0 2px rgba(13,12,46,.9);margin-bottom:16px}
+.fr2{border-radius:14px;border:1.5px solid var(--gold);background:linear-gradient(#34337c,#1f1e55);padding:7px 8px 7px;margin:0 0 6px}
+.fr2:last-child{margin-bottom:0}
+.fr2.pop{animation:fpop .45s ease-out}
+.fra{display:flex;align-items:center;gap:7px}
+.fic{flex:none;width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:21px}
+.fnm{flex:1;min-width:0}
+.fnm b{display:block;font-size:16px;color:#fff;line-height:1.15}
+.fnm small{display:block;font-size:9.5px;color:#cfc8f0;white-space:nowrap}
+.flv{flex:none;text-align:center;padding:2px 9px 3px;border-radius:10px;background:rgba(13,12,46,.55)}
+.flv b{font-size:16px;color:#fff}.flv i{font-style:normal;font-size:11px;color:#cfc8f0}
+.fst{font-size:9px;letter-spacing:-.5px;line-height:1;color:#57548a}
+.fst em{font-style:normal;color:#ffd257}
+.frb{display:flex;gap:6px;margin-top:6px}
+.fcell{border-radius:10px;background:rgba(13,12,46,.55);padding:3px 8px 4px;min-width:0}
+.fcell small{display:block;font-size:9.5px;color:#cfc8f0}
+.fnx{flex:none;min-width:104px;text-align:center}
+.fnx b{font-size:14px;color:#fff;white-space:nowrap}.fnx b em{font-style:normal;color:#ffe27a}
+.fco{flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:1px 9px}
+.fco small{flex-basis:100%}
+.need{display:inline-flex;align-items:center;gap:2px;font-size:13px;font-weight:800;color:#fff;white-space:nowrap}
+.need img{width:20px;height:20px}
+.need i{font-style:normal;font-size:10.5px;color:#cfc8f0;font-weight:700}
+.need.short{color:#ff9db8}.need.short i{color:#ff9db8}
+#forge .fbuy{flex:none;padding:8px 15px;font-size:16px;border-color:#ffe9b0;box-shadow:0 0 0 2px #b73f6a,0 4px 0 2px #8f2c50}
+#forge .fbuy:active{box-shadow:0 0 0 2px #b73f6a,0 1px 0 2px #8f2c50}
+#forge .fbuy:disabled{background:#6f6c96;color:#b9b5d6;border-color:#8f8cb4;box-shadow:0 0 0 2px #45426e,0 4px 0 2px #33305a}
+#forge .fbuy.max{box-shadow:0 0 0 2px #d9922a,0 4px 0 2px #b8761a;border-color:#fff}
+.fgrh{display:flex;align-items:center;gap:8px;margin:2px 2px 8px}
+.fgrh span{flex:1;text-align:right;font-size:10px;color:#d9d2f5;line-height:1.35}
+.fgcar{display:flex;align-items:center;gap:4px}
+.fgcar>button{flex:none;width:26px;height:44px;border:0;background:none;color:var(--gold);font-size:22px;padding:0;text-shadow:0 2px 0 #0d0c2e}
+#rareRow{flex:1;display:flex;gap:5px;justify-content:safe center;overflow-x:auto;scroll-snap-type:x mandatory;padding:5px 2px;scrollbar-width:none;touch-action:pan-x}
+#rareRow::-webkit-scrollbar{display:none}
+.rt{position:relative;flex:none;width:52px;height:52px;border-radius:14px;border:2px solid #6f6aa8;background:linear-gradient(#3d3b8c,#24225e);padding:0;scroll-snap-align:center}
+.rt img{width:40px;height:40px;display:block;margin:auto}
+.rt.lock img{filter:brightness(0) invert(.55) opacity(.5)}
+.rt.lock::after{content:"🔒";position:absolute;right:2px;bottom:1px;font-size:12px}
+.rt.foc{border-color:#fff3d0}
+.rt.eq{border-color:var(--gold);background:linear-gradient(#6a5aa8,#3a3480);box-shadow:0 0 10px 2px rgba(243,211,126,.85)}
+.rt.eq::before{content:"✓";position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:50%;background:#fff;color:#e9628e;font-size:14px;font-weight:800;line-height:20px;z-index:1}
+#rareInfo{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 10px;border-radius:14px;background:rgba(13,12,46,.6);border:1.5px solid rgba(243,211,126,.6);min-height:50px}
+#rareInfo img{width:30px;height:30px;flex:none}
+#rareInfo div{flex:1;min-width:0}
+#rareInfo b{display:block;font-size:14.5px;color:#fff}
+#rareInfo span{display:block;font-size:11px;color:#e3dcff;line-height:1.4}
+#rareInfo button{flex:none;padding:5px 11px;border-radius:99px;border:1.5px solid var(--gold);background:var(--navy);color:#fff3d0;font-size:12px;font-weight:800}
 </style>
 </head>
 <body>
@@ -354,9 +492,10 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 <div class="ov on" id="title">
   <div class="tbox">
     <div class="logo">
-      <span class="lgw l1"><span class="bk">のるん</span><span class="fr">のるん</span></span>
+      <span class="lgw l0"><span class="bk">のるんの</span><span class="fr">のるんの</span></span>
+      <span class="lgw l1"><span class="bk">ほしぞら</span><span class="fr">ほしぞら</span></span>
       <span class="lgw l2"><span class="bk">サバイバル</span><span class="fr">サバイバル</span></span>
-      <i class="kari">（仮）</i><i class="lst s1">★</i><i class="lst s2">✦</i><i class="lst s3">✧</i>
+      <i class="lst s1">★</i><i class="lst s2">✦</i><i class="lst s3">✧</i>
     </div>
     <canvas id="hero"></canvas>
     <div class="menu">
@@ -370,36 +509,46 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 </div>
 
 <div class="ov" id="stage">
-  <div class="panel wide">
-    <div class="ribbon">じゅんび</div>
-    <div class="sec">へんしん</div>
-    <div id="forms"></div>
-    <div id="formInfo"></div>
-    <div id="limits">じかん <button class="lbtn" data-l="180">3分</button><button class="lbtn" data-l="300">5分</button></div>
-    <div class="sec">そうび</div>
-    <div class="eqline" id="prepEq" style="justify-content:center"></div>
-    <div class="sec">ステージ</div>
-    <div id="stageList"></div>
-    <button class="ghost" id="btnBack">もどる</button>
+  <div class="mapwrap" id="mapWrap">
+    <canvas id="mapCv"></canvas>
+    <div class="maphead"><small>のるんの ほしぞらサバイバル</small><b>ステージえらび</b></div>
+    <button class="navbtn" id="btnBack">← もどる</button>
+    <div class="legend" id="mapLegend"></div>
+    <div id="mapNodes"></div>
+    <canvas id="mapNorun"></canvas><div class="sign">スタート！</div>
+    <div id="mapToast"></div>
+  </div>
+  <div id="stageSheet">
+    <div class="panel wide">
+      <button class="sx" id="sheetClose" aria-label="とじる">×</button>
+      <div class="shead"><img id="shStar" alt=""><div><b id="shName"></b><small id="shBest"></small></div></div>
+      <div class="sec">へんしん</div>
+      <div id="forms"></div>
+      <div id="formInfo"></div>
+      <div id="limits">じかん <button class="lbtn" data-l="180">3分</button><button class="lbtn" data-l="300">5分</button></div>
+      <p class="seq" id="shEq"></p>
+      <button class="big" id="shPlay">あそぶ</button>
+      <button class="ghost" id="shEndless">∞ エンドレス</button>
+    </div>
   </div>
 </div>
 
 <div class="ov" id="forge">
-  <div class="panel wide">
-    <div class="ribbon lav">つよさ工房</div>
-    <p class="sub">そざいを つかって、のるんの きほんの つよさを あげよう。<br>あげた つよさは ずっと つづくよ。</p>
-    <div class="matgrid" id="forgeBag"></div>
-    <div id="forgeList"></div>
-    <button class="ghost" id="btnForgeBack">もどる</button>
-  </div>
-</div>
-
-<div class="ov" id="equip">
-  <div class="panel wide">
-    <div class="ribbon gold">レアアイテム</div>
-    <p class="sub">1つだけ もっていけるよ。タップで そうび。</p>
-    <div class="eqgrid" id="equipList"></div>
-    <button class="ghost" id="btnEquipBack">もどる</button>
+  <div class="fg">
+    <div class="fghead">
+      <div class="fgplate">つよさ工房</div>
+      <div class="fgbub">そざいで<br>つよく なれる…！</div>
+      <canvas id="forgeNorun"></canvas>
+    </div>
+    <div class="fgbox"><span class="fgtab">もっている そざい</span><div class="fgmats" id="forgeBag"></div></div>
+    <div class="fglist" id="forgeList"></div>
+    <div class="fgbox" id="forgeRare">
+      <span class="fgtab">★ レアアイテム（そうび）</span>
+      <div class="fgrh"><span>ゲームに もっていく レアアイテムを 1つ えらべるよ</span></div>
+      <div class="fgcar"><button id="rarePrev" aria-label="まえ">◀</button><div id="rareRow"></div><button id="rareNext" aria-label="つぎ">▶</button></div>
+      <div id="rareInfo"></div>
+    </div>
+    <button class="navbtn" id="btnForgeBack">↩ もどる</button>
   </div>
 </div>
 
@@ -412,7 +561,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
   <div class="panel">
     <div class="ribbon lav">ひとやすみ</div><br>
     <button class="big" id="btnResume">つづける</button>
-    <button class="ghost" id="btnQuit">じゅんびへ</button>
+    <button class="ghost" id="btnQuit">ちずへ</button>
   </div>
 </div>
 
@@ -432,13 +581,13 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
     <p class="best" id="bestEnd"></p>
     <button class="big" id="btnNext" style="display:none">つぎのステージ</button><br>
     <button class="big" id="btnRetry">もう一度</button>
-    <button class="ghost" id="btnToTitle">じゅんびへ</button>
+    <button class="ghost" id="btnToTitle">ちずへ</button>
   </div>
 </div>
 
 <script>
 /* ============================================================
-   のるんサバイバル（仮） v6
+   のるんの ほしぞらサバイバル v7
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -455,7 +604,10 @@ const CFG = {
   WORLD: 3200,
   /* 手（最終面のボス）：画面のはしの上空にうかび、every 秒ごとに「つかみ」。
      warn=影の予告(秒) / R=つかむ範囲の半径 / knock=ノックバックの強さ / ground=地面にいる時間 */
-  HAND: {every:[2.4,3.6], warn:1.0, R:92, knock:430, ground:0.6},
+  HAND: {every:[2.4,3.6], warn:1.0, R:92, knock:430, ground:0.6,
+         /* いかり：手は 出てから時間がたつほど はげしくなる（after 秒後から始まり、full 秒後に さいだい。3分モードの秒数で、5分モードでは 5/3 倍）。
+            さいだいの時は よけられないので、それまでに 手を たおす ひつようがある */
+         rage:{after:25, full:75, every:[1.0,1.5], warn:0.5, R:140, dmg:2.0}},   // dmg＝さいだいの時の ダメージ倍率
   /* ルンバ：speed=走る速さ / suck=かけらを吸いこむ範囲 / suckSpd=吸い寄せる速さ */
   ROOMBA: {speed:170, suck:110, suckSpd:150},
   CROW_DIVE: 520,           // カラスの急降下の速さ
@@ -484,30 +636,40 @@ const CFG = {
      ant=[行列が来る間隔 開始時, 終了時, 同時上限]   crowMax=カラスの同時上限
      roomba=[出始める進行度, 何秒ごとに来るか, 同時上限]（書かなければ出ない）
      bosses=[{at:進行度(0〜1), type, hpMul, escort:[おともの種類,数]}]（type:'hand' の手は、倒すまで ずっと残る）
-     ステージは この並び順に かいほうされる（1つ前をクリアで つぎ）。id は表示用の番号 */
+     ここに書いたステージだけ あそべる。この並び順に かいほうされる（1つ前をクリアで つぎ）。id は地図のマスの番号。
+     地図の10マスの名前と位置は STAGE_MAP（ここに無い番号のマスは「まだ いけない」と出るだけ） */
   STAGES: [
-    {id:1, name:'星空の草原', bg:'meadow', bgImg:'img/bg_stage1.png', bgSat:0.6, bgDim:0.36, bgSoft:0.45,
+    // 1 ほしのもり：いちばん やさしい（カラス・いぬ なし、ボスネコも よわい）
+    {id:1, name:'ほしのもり', bg:'forest', bgImg:'img/bg_stage1.png', bgSat:0.7, bgDim:0.3, bgSoft:0.4,
+     spawnInterval:[2.2,1.05], spawnExtra:0.8, hpMul:0.5, hpGrowth:0.7, enemyCap:60,
+     dmgMul:0.5, dmgGrowth:0.15, spdGrowth:0.03, finaleSpawn:0.8, finaleHp:1.05, finaleCap:80,
+     mix:{bee:[0.35,0.08,0.04], crow:[9,0,0], dog:[9,0,0]}, ant:[9,7,6], crowMax:0,
+     bosses:[{at:0.65,type:'bosscat',hpMul:0.25}], handAt:null},
+    // 2 星空の草原（v6までの ステージ1。数値は そのまま）
+    {id:2, name:'星空の草原', bg:'meadow', bgImg:'img/bg_stage2.png', bgSat:0.6, bgDim:0.36, bgSoft:0.45,
      spawnInterval:[1.9,0.85], spawnExtra:1.0, hpMul:0.6, hpGrowth:0.9, enemyCap:80,
      dmgMul:0.6, dmgGrowth:0.2, spdGrowth:0.05, finaleSpawn:0.75, finaleHp:1.1, finaleCap:110,
      mix:{bee:[0.25,0.10,0.05], crow:[9,0,0], dog:[0.55,0.04,0.03]}, ant:[8,6,8], crowMax:0,
      bosses:[{at:0.6,type:'bosscat',hpMul:0.35}], handAt:null},
-    {id:2, name:'お庭', bg:'garden', bgImg:'img/bg_stage2.png', bgSat:0.55, bgDim:0.4, bgSoft:0.5,
-     spawnInterval:[1.35,0.5], spawnExtra:2.0, hpMul:0.8, hpGrowth:1.6, enemyCap:170,
-     dmgMul:0.8, dmgGrowth:0.35, spdGrowth:0.12, finaleSpawn:0.6, finaleHp:1.2, finaleCap:220,
-     mix:{bee:[0.05,0.32,0.15], crow:[0.5,0.03,0.02], dog:[0.3,0.06,0.05]}, ant:[5,3,15], crowMax:3,
-     bosses:[{at:0.55,type:'bosscat',hpMul:0.7}], handAt:null},
-    {id:3, name:'町', bg:'town', bgImg:'img/bg_stage3.png',
+    // 5 ほしのまち（v6までの ステージ3「町」。数値は そのまま）
+    {id:5, name:'ほしのまち', bg:'town', bgImg:'img/bg_stage5.png',
      spawnInterval:[1.15,0.4], spawnExtra:2.4, hpMul:0.95, hpGrowth:2.1, enemyCap:220,
      dmgMul:0.95, dmgGrowth:0.45, spdGrowth:0.18, finaleSpawn:0.55, finaleHp:1.3, finaleCap:280,
      mix:{bee:[0.1,0.12,0.08], crow:[0.1,0.14,0.08], dog:[0.2,0.10,0.08]}, ant:[8,5,8], crowMax:14,
      bosses:[{at:0.35,type:'bosscat',hpMul:0.9},{at:0.7,type:'bosscrow',hpMul:1.1,escort:['crow',4]}], handAt:null},
-    // ※ ステージ4〜9 は ここに入る予定（いまは空き番号）
+    // 9 お庭（v6までの ステージ2。数値は そのまま）
+    {id:9, name:'お庭', bg:'garden', bgImg:'img/bg_stage9.png', bgSat:0.55, bgDim:0.4, bgSoft:0.5,
+     spawnInterval:[1.35,0.5], spawnExtra:2.0, hpMul:0.8, hpGrowth:1.6, enemyCap:170,
+     dmgMul:0.8, dmgGrowth:0.35, spdGrowth:0.12, finaleSpawn:0.6, finaleHp:1.2, finaleCap:220,
+     mix:{bee:[0.05,0.32,0.15], crow:[0.5,0.03,0.02], dog:[0.3,0.06,0.05]}, ant:[5,3,15], crowMax:3,
+     bosses:[{at:0.55,type:'bosscat',hpMul:0.7}], handAt:null},
+    // 10 家の中（最終面）：つよさ工房で つよくしてから いどむ むずかしさ
     {id:10, name:'家の中', bg:'house', bgImg:'img/bg_stage10.png', final:true,
-     spawnInterval:[1.15,0.42], spawnExtra:2.3, hpMul:0.95, hpGrowth:2.0, enemyCap:210,
-     dmgMul:0.95, dmgGrowth:0.45, spdGrowth:0.18, finaleSpawn:0.6, finaleHp:1.25, finaleCap:260,
+     spawnInterval:[1.0,0.34], spawnExtra:2.8, hpMul:1.15, hpGrowth:2.6, enemyCap:210,
+     dmgMul:1.15, dmgGrowth:0.6, spdGrowth:0.24, finaleSpawn:0.5, finaleHp:1.4, finaleCap:280,
      mix:{bee:[0.05,0.14,0.06], crow:[0.15,0.07,0.05], dog:[0.15,0.09,0.07]}, ant:[7,4,10], crowMax:6,
      roomba:[0.06,18,2],   // ルンバは ボス級（レアアイテムが おちる）なので、たくさん出しすぎない
-     bosses:[{at:0.22,type:'bosscat',hpMul:0.9},{at:0.42,type:'hand',hpMul:0.5},{at:0.7,type:'bosscrow',hpMul:1.0,escort:['crow',3]}], handAt:null},
+     bosses:[{at:0.15,type:'bosscat',hpMul:1.0},{at:0.28,type:'hand',hpMul:0.65},{at:0.6,type:'bosscrow',hpMul:1.2,escort:['crow',4]}], handAt:null},   // 手は「いかり」（CFG.HAND.rage）の前に たおす
   ],
   /* エンドレス：ref 秒で通常の終盤の強さになり、その先も強くなり続ける。
      hpOver=ref を超えた分の敵HPの伸び（2乗で効く） / spdOver=敵の速さの伸び / capOver=同時出現数の伸び / capMax=同時出現数の天井
@@ -525,7 +687,7 @@ const CFG = {
   ULT_NEED: 60,             // 大技に必要な討伐数（ボスは10体ぶん）
   ULT_STEP: 15,             // 大技を使うたびに必要数がこれだけ増える
   SKILL_MAX: 5,
-  SAVE_KEY: 'norun-survival-v2',
+  SAVE_KEY: 'norun-hoshizora-v1',   // v7でステージの番号が変わったので新しいキー（v6までのセーブは引き継がない）
   /* ---- そざい・つよさ工房・レアアイテム ---- */
   DROP: {common:0.10, own:0.20},   // ほしのもと（全部の敵）／その敵の そざい（ボス・ルンバは かならず1こ）
   /* 工房のコスト（これから上げるレベル 1〜10 ごと）。mat=その項目の敵そざい / boss=ボスそざい / fin=最終面そざい */
@@ -602,7 +764,7 @@ const ETYPES = {
   dog:      {ai:'dog',  r:24, hp:80,   spd:36,  dmg:14, xp:4},                              // 直進突進、体力高め
   bosscat:  {ai:'cat',  r:50, hp:900,  spd:52,  dmg:22, xp:0, boss:true, name:'ボスネコ'},   // ボスのHPは制限時間に比例（5分基準）
   bosscrow: {ai:'crow', r:46, hp:1500, spd:150, dmg:24, xp:0, boss:true, name:'ボスカラス'},
-  hand:     {ai:'hand', r:62, hp:5000, spd:170, dmg:30, xp:0, boss:true, name:'手'},       // 最終面：上空から つかみかかる
+  hand:     {ai:'hand', r:62, hp:5000, spd:170, dmg:30, xp:0, boss:true, name:'手', armor:10},   // 最終面：上空から つかみかかる。armor＝かたさ（1回のダメージから これだけ へる。こうげきを あげるほど よく きく）
   roomba:   {ai:'roomba', r:20, hp:70, spd:170, dmg:10, xp:3, elite:true, name:'ルンバ'},  // 最終面：床を直進、かけらを吸いこむ
 };
 
@@ -629,6 +791,8 @@ const FORGE = {
   xp:  {name:'けいけんちの りょう', short:'けいけんち',icon:'🌟', mat:'mitsu', boss:'suzu',   fin:'buhin',    per:0.04,  fx:l=>'けいけんち +'+4*l+'%'},
 };
 const FORGE_MAX = 10;
+const FSUB = {hp:'さいだいHP', atk:'ダメージ', spd:'いどうそくど', mag:'ひきよせはんい', xp:'けいけんちのりょう'};
+const fval = (k,l) => k==='hp' ? String(CFG.PLAYER_HP+FORGE.hp.per*l) : '+'+(Math.round(FORGE[k].per*l*1000)/10)+'%';   // 表示用（計算は newGame と同じ式）
 function forgeCost(k,lv){   // lv＝これから上がるレベル（1〜10）
   const C=CFG.FORGE_COST, F=FORGE[k], i=lv-1, out={};
   if(C.hoshi[i]) out.hoshi=C.hoshi[i];
@@ -661,10 +825,7 @@ function compact(arr,keep){ let j=0; for(let i=0;i<arr.length;i++){ if(keep(arr[
 function loadSave(){
   let s=null;
   try{ s=JSON.parse(localStorage.getItem(CFG.SAVE_KEY)); }catch(e){}
-  if(!s||typeof s!=='object'){
-    s={};
-    try{ const o=JSON.parse(localStorage.getItem('norun-survival-v1')); if(o){ if(o.clear) s.anyClear=true; s.mute=!!o.mute; } }catch(e){}  // v1の記録を引き継ぎ
-  }
+  if(!s||typeof s!=='object') s={};
   s.best=s.best||{}; s.clears=s.clears||{}; s.totalKills=s.totalKills||0; s.stageClear=s.stageClear||{}; s.endless=s.endless||{};
   s.mats=s.mats||{}; s.forge=s.forge||{}; s.rares=s.rares||{}; s.firstKill=s.firstKill||{};
   if(!FORMS[s.form]) s.form='normal';
@@ -726,7 +887,7 @@ function resize(){
   VW=w/SC; VH=h/SC;
   cv.width=Math.round(w*DPR); cv.height=Math.round(h*DPR);
 }
-window.addEventListener('resize',resize);
+window.addEventListener('resize',()=>{ resize(); if(state==='stage') buildMap(); });
 
 /* ---------- 入力 ---------- */
 const keys={};
@@ -743,7 +904,6 @@ window.addEventListener('keydown',e=>{
   else if((k==='p'||k==='escape') && state==='pause') resume();
   else if(k==='enter' && state==='title') toStages();
   else if(k==='escape' && (state==='stage'||state==='forge')) toTitle();
-  else if(k==='escape' && state==='equip') closeEquip();
   else if(k==='enter' && state==='end') start();
 });
 window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
@@ -824,7 +984,7 @@ function addEnemy(type,at,bossMul){
   const e={type,ai:T.ai,boss:!!T.boss,x,y,r:T.r,hp,maxHp:hp,
     spd:T.spd*(1+S.spdGrowth*Math.min(pr,2)+CFG.ENDLESS.spdOver*over),dmg:T.dmg*S.dmgMul*(T.boss?1+0.2*over:1+S.dmgGrowth*Math.min(pr,6)),xp:T.xp,
     st:0,tmr:T.ai==='hand'?1.5:rand(1.5,4),dx:0,dy:0,tx:x,ty:y,alt:T.ai==='crow'?120:T.ai==='hand'?170:0,face:1,lead:null,side:Math.random()<0.5?-1:1,stash:0,elite:!!T.elite,
-    dir:'front',sflip:1,slow:0,stun:0,burn:0,burnD:0,poison:0,poisonD:0,flash:0,slamCd:0,orbCd:0,kx:0,ky:0,wob:rand(0,TAU),dead:false};
+    armor:T.armor||0,dir:'front',sflip:1,slow:0,stun:0,burn:0,burnD:0,poison:0,poisonD:0,flash:0,slamCd:0,orbCd:0,kx:0,ky:0,wob:rand(0,TAU),dead:false};
   G.enemies.push(e); return e;
 }
 function addAntLine(){   // アリは3〜5匹の行列で来る（先頭を後ろが追いかける）
@@ -874,6 +1034,7 @@ function spawn(dt){
 }
 function hurtEnemy(e,d,quiet){
   if(e.dead) return;
+  if(e.armor) d=quiet?d*0.5:Math.max(d*0.15,d-e.armor);   // かたい敵（手）：じわじわダメージは半分、ふつうの こうげきは armor ぶん へる
   e.hp-=d; if(!quiet) e.flash=0.08;
   if(e.hp<=0){ e.dead=true; onKill(e); }
 }
@@ -1184,15 +1345,17 @@ function enemyAI(e,dt,p,dx,dy,d){
       }else{ e.alt=0; if(e.tmr<=0){ e.st=0; e.tmr=e.boss?rand(1.5,2.5):rand(2.5,4.5); } }
       break; }
     case 'hand':{  // 0:画面のはしの上空 → 1:のるんの位置に影（予告） → 2:おりてくる → 3:地面（つかみ） → 4:上へもどる
-      const H=CFG.HAND; e.tmr-=dt;
+      const H=CFG.HAND, RG=H.rage, ts=G.ref/180; e.tmr-=dt; e.age=(e.age||0)+dt;
+      const rk=clamp((e.age-RG.after*ts)/((RG.full-RG.after)*ts),0,1);   // いかりの度合い 0〜1
+      if(rk>0&&!e.raged){ e.raged=true; banner('手が おこった！ はやく たおそう！'); SFX.boss(); }
       if(e.st===0||e.st===4){
         const hx=p.x+e.side*(VW/2-70), hy=p.y-VH/2+Math.max(190,VH*0.24)+170, k=Math.min(1,(e.st===4?2.6:2.2)*dt);
         e.x+=(hx-e.x)*k; e.y+=(hy-e.y)*k; e.alt+=(170-e.alt)*Math.min(1,4*dt);
         if(e.st===4&&e.alt>150) e.st=0;
-        if(e.st===0&&e.tmr<=0){ e.st=1; e.tmr=H.warn; e.tx=p.x; e.ty=p.y; e.side=-e.side; }
+        if(e.st===0&&e.tmr<=0){ e.st=1; e.warn=lerp(H.warn,RG.warn,rk); e.R=lerp(H.R,RG.R,rk); e.dm=lerp(1,RG.dmg,rk); e.tmr=e.warn; e.tx=p.x; e.ty=p.y; e.side=-e.side; }
       }else if(e.st===1){ const k=Math.min(1,7*dt); e.x+=(e.tx-e.x)*k; e.y+=(e.ty-e.y)*k; e.alt+=(170-e.alt)*k; if(e.tmr<=0){ e.st=2; e.x=e.tx; e.y=e.ty; } }
       else if(e.st===2){ e.alt-=1400*dt; if(e.alt<=0){ e.alt=0; e.st=3; e.tmr=H.ground; handSlam(e); } }
-      else if(e.tmr<=0){ e.st=4; e.tmr=rand(H.every[0],H.every[1]); }
+      else if(e.tmr<=0){ e.st=4; e.tmr=rand(lerp(H.every[0],RG.every[0],rk),lerp(H.every[1],RG.every[1],rk)); }
       break; }
     case 'roomba':{  // まっすぐ走って、画面のはし・かべで 向きを変える（のるんは追いかけない）
       if(!e.dx&&!e.dy){ const a=Math.atan2(dy,dx)+rand(-0.6,0.6); e.dx=Math.cos(a); e.dy=Math.sin(a); }
@@ -1206,10 +1369,10 @@ function enemyAI(e,dt,p,dx,dy,d){
   }
 }
 function handSlam(e){   // 手が地面に おりた瞬間：まわりに範囲ダメージ＋ノックバック
-  const H=CFG.HAND, p=G.p, dx=p.x-e.x, dy=p.y-e.y, d=Math.hypot(dx,dy)||1;
+  const H=CFG.HAND, R=e.R||H.R, p=G.p, dx=p.x-e.x, dy=p.y-e.y, d=Math.hypot(dx,dy)||1;
   G.slams++;
-  shake(0.35,7); burst(e.x,e.y,16,'dot','#f6cfae',260); burst(e.x,e.y,8,'star','#fff3b0',220); ring(e.x,e.y,20,H.R*4,0.35,'255,200,170',8); SFX.wave();
-  if(d<H.R+p.r*0.6){ if(hurtPlayer(e.dmg,dx/d*H.knock,dy/d*H.knock)) G.slamHits++; }
+  shake(0.35,7); burst(e.x,e.y,16,'dot','#f6cfae',260); burst(e.x,e.y,8,'star','#fff3b0',220); ring(e.x,e.y,20,R*4,0.35,'255,200,170',8); SFX.wave();
+  if(d<R+p.r*0.6){ if(hurtPlayer(e.dmg*(e.dm||1),dx/d*H.knock,dy/d*H.knock)) G.slamHits++; }
 }
 /* のるんが ダメージを うける時は ぜんぶ ここを通る（むてき・すりぬけ・ほしのまもり・いのちのほし） */
 function hurtPlayer(dmg,kx,ky){
@@ -1440,13 +1603,18 @@ function buildTitle(){
   const f=save.forge, eq=save.equip, nClear=CFG.STAGES.filter(S=>save.stageClear[S.id]).length, nRare=Object.keys(RARES).filter(k=>save.rares[k]).length;
   $('rareCount').textContent=nRare+' / '+Object.keys(RARES).length;
   $('titleBag').innerHTML=
-    '<h4>そうび</h4><div class="eqline">'+(eq?icoImg(eq)+'<b>'+RARES[eq].name+'</b>':'<span class="none">なし（レアアイテムから えらべる）</span>')+'</div>'+
+    '<h4>そうび</h4><div class="eqline">'+(eq?icoImg(eq)+'<b>'+RARES[eq].name+'</b>':'<span class="none">なし（つよさ工房で えらべる）</span>')+'</div>'+
     '<h4>つよさ（素体レベル）</h4><div class="chips">'+Object.keys(FORGE).map(k=>'<span class="schip">'+FORGE[k].icon+FORGE[k].short+' <b>Lv'+(f[k]||0)+'</b></span>').join('')+'</div>'+
     '<h4>そざい</h4><div class="matgrid">'+Object.keys(MATS).map(k=>matChip(k,save.mats[k]||0,(save.mats[k]||0)?'':'zero')).join('')+'</div>'+
-    '<h4>きろく</h4><div class="eqline" style="min-height:0">クリアした ステージ '+nClear+' / '+CFG.STAGES.length+'　・　たおした合計 '+save.totalKills+'</div>';
+    '<h4>きろく</h4><div class="eqline" style="min-height:0">クリアした ステージ '+nClear+' / '+STAGE_MAP.length+'　・　たおした合計 '+save.totalKills+'</div>';
 }
-/* ---------- じゅんび：へんしん・じかん ---------- */
-function buildPrep(){
+/* ---------- ステージのシート（地図でマスをタップ）：へんしん・じかんを えらんで あそぶ ---------- */
+let sheetId=1;
+function buildSheet(){
+  const S=stageDef(sheetId), cleared=!!save.stageClear[sheetId];
+  $('shStar').src=nodeURL(cleared?'done':'now');
+  $('shName').textContent=sheetId+'　'+S.name;
+  $('shBest').textContent=[bestText(sheetId,save.limit),endlessText(sheetId)].filter(Boolean).join('　');
   const box=$('forms'); box.innerHTML='';
   for(const f of Object.keys(FORMS)){
     const open=isOpen(f);
@@ -1455,7 +1623,7 @@ function buildPrep(){
     const g=c.getContext('2d'); g.save(); g.scale(1.5,1.5); g.translate(32,40); drawNorun(g,f,0,false); g.restore();
     const n=document.createElement('div'); n.textContent=FORMS[f].name;
     b.append(c,n);
-    b.onclick=()=>{ if(open){ save.form=f; persist(); newGame(f,save.limit); buildStages(); } else showFormInfo(f); };
+    b.onclick=()=>{ if(open){ save.form=f; persist(); buildSheet(); } else showFormInfo(f); };
     box.appendChild(b);
   }
   showFormInfo(save.form);
@@ -1463,47 +1631,66 @@ function buildPrep(){
   for(let i=0;i<lb.length;i++){
     const el=lb[i], l=+el.getAttribute('data-l');
     el.classList.toggle('sel',l===save.limit);
-    el.onclick=()=>{ save.limit=l; persist(); newGame(save.form,l); buildStages(); };
+    el.onclick=()=>{ save.limit=l; persist(); buildSheet(); };
   }
   const eq=save.equip;
-  $('prepEq').innerHTML=(eq?icoImg(eq)+'<b>'+RARES[eq].name+'</b>':'<span class="none">なし</span>')+' <button class="lbtn" id="prepEqBtn">かえる</button>';
-  $('prepEqBtn').onclick=()=>openEquip('stage');
+  $('shEq').innerHTML=(S.final?'<b>さいごの ステージ！</b> 手は かたい。つよさ工房で つよくしてから いどもう<br>':'')+'そうび：'+(eq?icoImg(eq)+' <b>'+RARES[eq].name+'</b>':'なし')+'（つよさ工房で かえられる）';
+  $('shPlay').onclick=()=>{ closeSheet(); start(sheetId,false); };
+  const eb=$('shEndless'); eb.style.display=(cleared||UNLOCK_ALL)?'inline-block':'none';
+  eb.onclick=()=>{ closeSheet(); start(sheetId,true); };
 }
+function openSheet(id){ sheetId=id; buildSheet(); $('stageSheet').classList.add('on'); }
+function closeSheet(){ $('stageSheet').classList.remove('on'); }
 /* ---------- つよさ工房 ---------- */
 function canPay(cost){ for(const k in cost) if((save.mats[k]||0)<cost[k]) return false; return true; }
 function buildForge(flash){
-  $('forgeBag').innerHTML=Object.keys(MATS).map(k=>matChip(k,save.mats[k]||0,(save.mats[k]||0)?'':'zero')).join('');
+  $('forgeBag').innerHTML=Object.keys(MATS).map(k=>{ const n=save.mats[k]||0; return '<div class="fm'+(n?'':' zero')+'">'+icoImg(k)+'<small>'+MATS[k].name+'</small><b>'+n+'</b></div>'; }).join('');
   const box=$('forgeList'); box.innerHTML='';
   for(const k of Object.keys(FORGE)){
     const F=FORGE[k], lv=save.forge[k]||0, max=lv>=FORGE_MAX, cost=max?{}:forgeCost(k,lv+1), ok=!max&&canPay(cost);
-    const row=document.createElement('div'); row.className='frow'+(flash===k?' pop':'');
-    row.innerHTML='<div class="fi">'+F.icon+'</div>'+
-      '<div class="fn">'+F.name+' <small>Lv '+lv+'</small></div>'+
-      '<div class="pips">'+Array.from({length:FORGE_MAX},(_,i)=>'<i'+(i<lv?' class="on"':'')+'></i>').join('')+'</div>'+
-      '<div class="fx">'+(max?'<b>'+F.fx(lv)+'</b>（さいだい）':'いま '+(lv?F.fx(lv):'なし')+' → <b>'+F.fx(lv+1)+'</b>')+'</div>'+
-      '<div class="foot"><div class="cost">'+(max?'':Object.keys(cost).map(m=>matChip(m,(save.mats[m]||0)+'/'+cost[m],(save.mats[m]||0)<cost[m]?'short':'')).join(''))+'</div></div>';
-    const b=document.createElement('button'); b.className='fbuy'+(max?' max':''); b.textContent=max?'MAX':'つよくする'; b.disabled=!ok;
+    const row=document.createElement('div'); row.className='fr2'+(flash===k?' pop':'');
+    row.innerHTML='<div class="fra"><span class="fic">'+F.icon+'</span>'+
+        '<div class="fnm"><b>'+F.short+'</b><small>（'+FSUB[k]+'）</small></div>'+
+        '<div class="flv"><b>Lv '+lv+'</b><i> /'+FORGE_MAX+'</i><div class="fst"><em>'+'★'.repeat(lv)+'</em>'+'★'.repeat(FORGE_MAX-lv)+'</div></div></div>'+
+      '<div class="frb"><div class="fcell fnx"><small>'+(max?'いまの つよさ':'つぎのLvで')+'</small><b>'+(max?'<em>'+fval(k,lv)+'</em>':fval(k,lv)+' → <em>'+fval(k,lv+1)+'</em>')+'</b></div>'+
+        '<div class="fcell fco"><small>'+(max?'さいだいまで つよくなった！':'ひつような そざい')+'</small>'+
+          Object.keys(cost).map(m=>{ const have=save.mats[m]||0; return '<span class="need'+(have<cost[m]?' short':'')+'" title="'+MATS[m].name+'">'+icoImg(m)+'×'+cost[m]+'<i>('+have+')</i></span>'; }).join('')+'</div></div>';
+    const b=document.createElement('button'); b.className='fbuy'+(max?' max':''); b.textContent=max?'MAX':'強化'; b.disabled=!ok;
     b.onclick=()=>{ if(!canPay(cost)) return; for(const m in cost) save.mats[m]-=cost[m]; save.forge[k]=lv+1; persist(); initAudio(); SFX.level(); buildForge(k); };
-    row.querySelector('.foot').appendChild(b); box.appendChild(row);
+    row.querySelector('.fra').appendChild(b); box.appendChild(row);
   }
+  buildRare();
 }
-function openForge(){ state='forge'; setPlayUi(false); buildForge(); showOnly('forge'); }
-/* ---------- レアアイテム（そうび1つ） ---------- */
-let equipBack='title';
-function buildEquip(){
-  const box=$('equipList'); box.innerHTML='';
-  const none=document.createElement('button'); none.className='eqc2 none'+(save.equip?'':' sel'); none.innerHTML='<b>そうび なし</b>';
-  none.onclick=()=>{ save.equip=null; persist(); buildEquip(); }; box.appendChild(none);
-  for(const k of Object.keys(RARES)){
-    const R=RARES[k], own=hasRare(k);
-    const b=document.createElement('button'); b.className='eqc2'+(own?'':' lock')+(save.equip===k?' sel':'');
-    b.innerHTML=icoImg(k)+'<b>'+(own?R.name:'？？？')+'</b><span>'+(own?R.desc:(R.how||RARE_HOW))+'</span>';
-    b.onclick=()=>{ if(!own) return; save.equip=k; persist(); initAudio(); SFX.ready(); buildEquip(); };
-    box.appendChild(b);
+/* レアアイテム（そうび1つ）：タイルか ◀▶ で えらぶ。もっているものを えらぶと そうびする */
+let rareFocus=null;
+function buildRare(){
+  const keys=Object.keys(RARES);
+  if(!RARES[rareFocus]) rareFocus=save.equip||keys.find(hasRare)||keys[0];
+  const row=$('rareRow'); row.innerHTML='';
+  for(const k of keys){
+    const own=hasRare(k), b=document.createElement('button');
+    b.className='rt'+(own?'':' lock')+(save.equip===k?' eq':'')+(rareFocus===k?' foc':'');
+    b.innerHTML=icoImg(k); b.onclick=()=>pickRare(k); row.appendChild(b);
   }
+  const k=rareFocus, R=RARES[k], own=hasRare(k), info=$('rareInfo');
+  info.innerHTML=icoImg(k)+'<div><b>'+(own?R.name:'？？？')+(save.equip===k?'　<small style="color:#ffe27a">そうびちゅう</small>':'')+'</b><span>'+(own?R.desc:(R.how||RARE_HOW))+'</span></div>';
+  if(save.equip===k){ const u=document.createElement('button'); u.textContent='はずす'; u.onclick=()=>{ save.equip=null; persist(); buildRare(); }; info.appendChild(u); }
+  if(!own) info.firstChild.style.filter='brightness(0) invert(.55) opacity(.5)';
 }
-function openEquip(from){ equipBack=from==='stage'?'stage':'title'; state='equip'; setPlayUi(false); buildEquip(); showOnly('equip'); }
-function closeEquip(){ if(equipBack==='stage') toStages(); else toTitle(); }
+function pickRare(k){
+  rareFocus=k;
+  if(hasRare(k)&&save.equip!==k){ save.equip=k; persist(); initAudio(); SFX.ready(); }
+  buildRare();
+  const row=$('rareRow'), el=row.children[Object.keys(RARES).indexOf(k)];
+  if(el&&el.scrollIntoView) el.scrollIntoView({block:'nearest',inline:'center'});
+}
+function stepRare(d){ const keys=Object.keys(RARES), i=keys.indexOf(rareFocus); pickRare(keys[(i+d+keys.length)%keys.length]); }
+function openForge(toRare){
+  state='forge'; setPlayUi(false); rareFocus=null; buildForge(); showOnly('forge');
+  const cvn=$('forgeNorun'); cvn.width=cvn.height=156; const g=cvn.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,156,156);
+  g.save(); g.translate(78,92); g.scale(2.3,2.3); drawNorun(g,'normal',0,false,'front'); g.restore();
+  const ov=$('forge'); if(toRare&&$('forgeRare').scrollIntoView) $('forgeRare').scrollIntoView({block:'center'}); else ov.scrollTop=0;
+}
 function showFormInfo(f){
   const F=FORMS[f];
   $('formInfo').innerHTML = isOpen(f)
@@ -1524,34 +1711,183 @@ const stIdx = id => CFG.STAGES.findIndex(S=>S.id===id);
 const nextStage = id => CFG.STAGES[stIdx(id)+1]||null;
 const prevStage = id => CFG.STAGES[stIdx(id)-1]||null;
 const stageOpen = n => { const pv=prevStage(n); return !pv || !!save.stageClear[pv.id] || UNLOCK_ALL; };
-function buildStages(){
-  buildPrep();
-  const box=$('stageList'); box.innerHTML='';
-  CFG.STAGES.forEach((S,i)=>{
-    const pv=CFG.STAGES[i-1];
-    if(pv&&S.id-pv.id>1){ const gap=document.createElement('div'); gap.className='stg gap'; gap.textContent='ステージ'+(pv.id+1)+'〜'+(S.id-1)+' は じゅんびちゅう'; box.appendChild(gap); }
-    const open=stageOpen(S.id), cleared=!!save.stageClear[S.id];
-    const row=document.createElement('div'); row.className='stg'+(open?'':' lock')+(S.final?' final':'');
-    const no=document.createElement('div'); no.className='no'; no.textContent=open?S.id:'🔒';
-    const nm=document.createElement('div'); nm.className='nm';
-    const b=document.createElement('b'); b.textContent='「'+S.name+'」'+(S.final?' さいご':'')+(cleared?' ⭐':'');
-    const sm=document.createElement('small');
-    sm.textContent=open ? ([bestText(S.id,save.limit),endlessText(S.id)].filter(Boolean).join('　')||(cleared?'':'クリアすると エンドレスが あそべる'))
-                        : 'ステージ'+pv.id+' を クリアで かいほう';
-    nm.append(b,sm); row.append(no,nm);
-    if(open){
-      const pb=document.createElement('button'); pb.className='sbtn'; pb.textContent='あそぶ'; pb.onclick=()=>start(S.id,false); row.appendChild(pb);
-      if(cleared||UNLOCK_ALL){ const eb=document.createElement('button'); eb.className='sbtn inf'; eb.textContent='∞'; eb.title='エンドレス'; eb.onclick=()=>start(S.id,true); row.appendChild(eb); }
+/* 地図の10マス。x,y は地図の中の位置（0〜1）。CFG.STAGES に同じ id があるマスだけ あそべる */
+const STAGE_MAP = [
+  {id:1, name:'ほしのもり',     x:.40, y:.930}, {id:2, name:'星空の草原',   x:.62, y:.849},
+  {id:3, name:'はなのそうげん', x:.24, y:.769}, {id:4, name:'まちはずれ',   x:.62, y:.688},
+  {id:5, name:'ほしのまち',     x:.26, y:.607}, {id:6, name:'ゆうやけの丘', x:.62, y:.527},
+  {id:7, name:'並木の小道',     x:.26, y:.446}, {id:8, name:'おうちの坂道', x:.60, y:.366},
+  {id:9, name:'お庭',           x:.30, y:.287}, {id:10,name:'家の中',       x:.45, y:.208},
+];
+const stageDef = id => CFG.STAGES.find(S=>S.id===id)||null;
+/* マスの状態は3つのどれか1つ：done=クリアずみ（金の星＋チェック）／now=いま あそべる（光る青い星）／lock=まだ いけない（グレーの星＋鍵） */
+function nodeState(id){ if(!stageDef(id)||!stageOpen(id)) return 'lock'; return save.stageClear[id]?'done':'now'; }
+const NODE_URL={};
+function nodeURL(st){   // 星のマスの絵（状態ごとに1回だけ作る）
+  if(NODE_URL[st]!=null) return NODE_URL[st];
+  const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d');
+  const col={done:['#fff3b0','#f0a92a','#7a4d0c'], now:['#bfeeff','#2c7ff0','#ffffff'], lock:['#8f8ba6','#575370','#2a2745']}[st];
+  const P=()=>{ g.beginPath(); star5(g,64,68,47,25); };
+  g.lineJoin='round';
+  P(); g.lineWidth=30; g.strokeStyle=col[2]; g.stroke();
+  const gr=g.createLinearGradient(0,12,0,122); gr.addColorStop(0,col[0]); gr.addColorStop(1,col[1]);
+  P(); g.lineWidth=19; g.strokeStyle=gr; g.stroke(); g.fillStyle=gr; g.fill();
+  g.fillStyle='rgba(255,255,255,'+(st==='lock'?0.16:0.42)+')'; g.beginPath(); g.ellipse(48,36,15,7,-0.5,0,TAU); g.fill();
+  if(st==='lock'){   // 鍵マーク
+    g.strokeStyle='#e3def2'; g.lineWidth=5.5; g.lineCap='round'; g.beginPath(); g.arc(64,80,8.5,Math.PI,0); g.stroke();
+    g.fillStyle='#e3def2'; rr(g,51,80,26,19,5); g.fill(); g.fillStyle='#575370'; g.beginPath(); g.arc(64,89,3.2,0,TAU); g.fill();
+  }
+  try{ NODE_URL[st]=c.toDataURL(); }catch(e){ NODE_URL[st]=''; }
+  return NODE_URL[st];
+}
+function mapToast(txt){ const t=$('mapToast'); t.textContent=txt; t.classList.remove('go'); void t.offsetWidth; t.classList.add('go'); }
+function buildMap(){
+  const W=Math.min(window.innerWidth,440), H=Math.max(640,Math.min(window.innerHeight,Math.round(W*2.1)));
+  const wrap=$('mapWrap'); wrap.style.width=W+'px'; wrap.style.height=H+'px';
+  const cvs=$('mapCv'); cvs.width=Math.round(W*DPR); cvs.height=Math.round(H*DPR);
+  const g=cvs.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0); drawMapBg(g,W,H);
+  $('mapLegend').innerHTML='<div><img src="'+nodeURL('done')+'" alt="">クリアずみ</div><div><img src="'+nodeURL('now')+'" alt="">いま あそべる</div><div><img src="'+nodeURL('lock')+'" alt="">まだ いけない</div>';
+  const box=$('mapNodes'); box.innerHTML='';
+  for(let i=0;i<16;i++){ const t=document.createElement('i'); t.className='tw'; t.textContent=i%3?'✦':'✧';
+    t.style.left=(4+hash(i*7,3)*92)+'%'; t.style.top=(3+hash(5,i*11)*94)+'%'; t.style.fontSize=(7+hash(i,i)*8)+'px'; t.style.animationDelay=(hash(i,9)*1.6).toFixed(2)+'s'; box.appendChild(t); }
+  for(const M of STAGE_MAP){
+    const st=nodeState(M.id), S=stageDef(M.id);
+    const b=document.createElement('button'); b.className='node '+st+(M.id===10?' final':'');
+    b.style.left=(M.x*100)+'%'; b.style.top=(M.y*100)+'%';
+    b.setAttribute('aria-label','ステージ'+M.id+' '+M.name+'（'+(st==='done'?'クリアずみ':st==='now'?'いま あそべる':'まだ いけない')+'）');
+    b.innerHTML='<span class="st"><img src="'+nodeURL(st)+'" alt=""><b>'+M.id+'</b>'+(st==='done'?'<i class="ck">✓</i>':'')+'</span><span class="nl">'+M.name+'</span>';
+    b.onclick=()=>{
+      initAudio();
+      if(st!=='lock'){ openSheet(M.id); return; }
+      const pv=S?prevStage(M.id):null;
+      mapToast(pv?'ステージ'+pv.id+' を クリアすると いけるよ':'ここは まだ いけないよ'); tone(220,0.12,'triangle',0.04,-60);
+    };
+    box.appendChild(b);
+  }
+  const nc=$('mapNorun'); nc.width=nc.height=152; const q=nc.getContext('2d'); q.setTransform(1,0,0,1,0,0); q.clearRect(0,0,152,152);
+  q.fillStyle='rgba(8,6,30,.4)'; q.beginPath(); q.ellipse(76,128,34,8,0,0,TAU); q.fill();
+  q.save(); q.translate(76,88); q.scale(2,2); drawNorun(q,'normal',0,false,'front'); q.restore();
+}
+/* 地図の絵（コードで描く）：下から 森→草原→花畑→まちはずれ→町→夕やけの丘→並木道→坂道→庭→家 */
+function drawMapBg(g,W,H){
+  const u=W/390, N=STAGE_MAP, PX=k=>N[k].x*W, PY=k=>N[k].y*H; let sd=1; const R=()=>hash(sd++*13+5,sd*7+1);
+  const dot=(x,y,r,col)=>{ g.fillStyle=col; g.beginPath(); g.arc(x,y,r,0,TAU); g.fill(); };
+  const tree=(x,y,s,c1,c2)=>{ g.fillStyle='#2a2046'; g.fillRect(x-3*s,y-16*s,6*s,18*s);
+    dot(x-9*s,y-22*s,11*s,c2); dot(x+9*s,y-22*s,11*s,c2); dot(x,y-30*s,13*s,c1); dot(x-4*s,y-34*s,5*s,'rgba(255,255,255,.14)'); };
+  const house=(x,y,w,h,roof,wall)=>{ g.fillStyle=wall; g.fillRect(x-w/2,y-h,w,h);
+    g.fillStyle=roof; g.beginPath(); g.moveTo(x-w/2-3*u,y-h); g.lineTo(x,y-h-w*0.55); g.lineTo(x+w/2+3*u,y-h); g.closePath(); g.fill();
+    g.fillStyle='#ffd76a'; g.fillRect(x-w*0.28,y-h*0.72,w*0.2,h*0.3); g.fillRect(x+w*0.08,y-h*0.72,w*0.2,h*0.3); };
+  const lamp=(x,y,h)=>{ g.strokeStyle='#1c1a3e'; g.lineWidth=2.5*u; g.beginPath(); g.moveTo(x,y); g.lineTo(x,y-h); g.stroke();
+    dot(x,y-h,9*u,'rgba(255,220,130,.28)'); dot(x,y-h,3.6*u,'#ffe9a0'); };
+  const flowers=(x0,x1,y0,y1,n,cols)=>{ for(let i=0;i<n;i++){ const x=x0+R()*(x1-x0), y=y0+R()*(y1-y0); dot(x,y,(1.6+R()*1.6)*u,cols[(R()*cols.length)|0]); } };
+  const fence=(x0,x1,y)=>{ g.strokeStyle='#6a5a7c'; g.lineWidth=2*u; g.beginPath(); g.moveTo(x0,y-6*u); g.lineTo(x1,y-6*u); g.moveTo(x0,y-11*u); g.lineTo(x1,y-11*u);
+    for(let x=x0;x<=x1;x+=11*u){ g.moveTo(x,y); g.lineTo(x,y-14*u); } g.stroke(); };
+  // 夜空
+  let gr=g.createLinearGradient(0,0,0,H*0.3); gr.addColorStop(0,'#131140'); gr.addColorStop(1,'#3a348a'); g.fillStyle=gr; g.fillRect(0,0,W,H);
+  for(let i=0;i<80;i++){ g.globalAlpha=0.35+R()*0.65; dot(R()*W,R()*H*0.24,(0.5+R()*1.2)*u,i%8?'#fff':'#ffe9a0'); } g.globalAlpha=1;
+  g.strokeStyle='rgba(243,211,126,.5)'; g.lineWidth=1; g.beginPath(); g.moveTo(W-52*u,H*0.075); g.lineTo(W-30*u,H*0.06); g.lineTo(W-18*u,H*0.09); g.stroke();
+  for(const [x,y] of [[W-52*u,H*0.075],[W-30*u,H*0.06],[W-18*u,H*0.09]]) dot(x,y,2*u,'#ffe9a0');
+  const Z={10:['#44508f','#2b3468'],9:['#458569','#285241'],8:['#51538f','#34356b'],7:['#544c9c','#352f72'],6:['#7a5296','#3f3074'],
+           5:['#3b4686','#242a5e'],4:['#437f78','#285250'],3:['#44759a','#294b68'],2:['#357678','#204c54'],1:['#214560','#0f2238']};
+  const DECOR={
+    10(top){   // 家（いちばん上に大きく）
+      const x=W*0.69, base=top+12*u, hh=Math.max(30*u,Math.min(62*u,(base-62)/1.4)), w=hh*2.45;
+      g.strokeStyle='rgba(255,226,140,.3)'; g.lineWidth=2*u; g.beginPath();
+      for(let i=0;i<11;i++){ const a=Math.PI+i/10*Math.PI; g.moveTo(x+Math.cos(a)*hh*1.25,base-hh*0.9+Math.sin(a)*hh*0.95); g.lineTo(x+Math.cos(a)*hh*1.85,base-hh*0.9+Math.sin(a)*hh*1.45); } g.stroke();
+      g.fillStyle='#f1e2c4'; g.fillRect(x-w/2,base-hh*0.62,w,hh*0.62);
+      g.fillStyle='#4a3f8c'; g.beginPath(); g.moveTo(x-w/2-7*u,base-hh*0.6); g.lineTo(x-w*0.26,base-hh*1.12); g.lineTo(x+w*0.3,base-hh*1.12); g.lineTo(x+w/2+7*u,base-hh*0.6); g.closePath(); g.fill();
+      g.fillRect(x+w*0.2,base-hh*1.38,w*0.09,hh*0.34);
+      g.fillStyle='#5a4a9c'; g.beginPath(); g.moveTo(x-w*0.16,base-hh*0.6); g.lineTo(x,base-hh*1.02); g.lineTo(x+w*0.16,base-hh*0.6); g.closePath(); g.fill();
+      dot(x,base-hh*0.2,hh*0.45,'rgba(255,215,106,.28)');
+      g.fillStyle='#ffd76a'; g.beginPath(); g.moveTo(x-hh*0.15,base); g.lineTo(x-hh*0.15,base-hh*0.3); g.arc(x,base-hh*0.3,hh*0.15,Math.PI,0); g.lineTo(x+hh*0.15,base); g.closePath(); g.fill();
+      for(const dx of [-0.36,-0.2,0.2,0.36]) g.fillRect(x+w*dx-hh*0.09,base-hh*0.46,hh*0.18,hh*0.24);
+      g.fillStyle='#ffe27a'; g.beginPath(); star5(g,x,base-hh*0.76,hh*0.15,hh*0.07); g.fill();
+      for(let i=0;i<9;i++) dot(x-w/2-8*u+i*(w+16*u)/8,base+2*u,(6+R()*4)*u,i%2?'#3f7a62':'#2f6652');
+      flowers(x-w/2-10*u,x+w/2+10*u,base-4*u,base+8*u,22,['#ff9fd0','#d7a6ff','#fff','#ffe27a']);
+    },
+    9(top,ny){   // お庭：花のアーチ
+      const x=W*0.83, y=ny+10*u;
+      g.strokeStyle='#2f6e54'; g.lineWidth=5*u; g.beginPath(); g.arc(x,y-14*u,15*u,Math.PI,0); g.moveTo(x-15*u,y-14*u); g.lineTo(x-15*u,y); g.moveTo(x+15*u,y-14*u); g.lineTo(x+15*u,y); g.stroke();
+      for(let i=0;i<=10;i++){ const a=Math.PI+i/10*Math.PI; dot(x+Math.cos(a)*15*u,y-14*u+Math.sin(a)*15*u,2.6*u,i%2?'#ff9fd0':'#fff'); }
+      flowers(W*0.56,W*0.98,top+10*u,top+56*u,46,['#ff9fd0','#d7a6ff','#fff','#ffe27a']); flowers(0,W*0.14,top+14*u,top+50*u,10,['#ff9fd0','#fff']);
+    },
+    8(top,ny){   // おうちの坂道：石がき・街灯・小さな家
+      house(W*0.1,ny-4*u,26*u,17*u,'#3a3478','#55508f'); house(W*0.27,ny-6*u,30*u,19*u,'#3a3478','#5a5596');
+      g.fillStyle='#6f6d96'; rr(g,W*0.02,ny-4*u,W*0.42,22*u,5*u); g.fill();
+      g.strokeStyle='#4b496f'; g.lineWidth=1.5*u; g.beginPath();
+      for(let r=0;r<3;r++){ const y=ny-4*u+r*7.3*u; g.moveTo(W*0.02,y); g.lineTo(W*0.44,y); for(let x=W*0.04+(r%2)*9*u;x<W*0.44;x+=18*u){ g.moveTo(x,y); g.lineTo(x,y+7.3*u); } } g.stroke();
+      lamp(W*0.47,ny+16*u,36*u);
+    },
+    7(top,ny){   // 並木の小道：花の木のならび
+      for(let i=0;i<4;i++) tree(W*(0.62+i*0.115),ny+14*u-(i%2)*5*u,1.02*u,i%2?'#f0b0df':'#cfa6ef',i%2?'#d990c8':'#b58be0');
+      flowers(W*0.56,W,ny+12*u,ny+26*u,16,['#ffd0ec','#e9d0ff']); lamp(W*0.06,ny+14*u,34*u); tree(W*0.14,ny+4*u,0.8*u,'#cfa6ef','#b58be0');
+    },
+    6(top,ny){   // ゆうやけの丘：小さな家
+      house(W*0.36,top+15*u,22*u,13*u,'#4a3478','#6a4a8c'); flowers(0,W*0.5,top+18*u,top+50*u,14,['#ffc27a','#ffe9a0']);
+    },
+    5(top,ny){   // ほしのまち：あかりの ついた 町なみ
+      const b=ny+12*u, cols=['#454c96','#3d4288','#525aa6'];
+      for(let i=0;i<6;i++){ const x=W*(0.60+i*0.074), h=(16+R()*13)*u; house(x,b,25*u,h,'#262658',cols[i%3]); }
+      g.fillStyle='#3d4288'; g.fillRect(W*0.775,b-58*u,13*u,58*u); g.fillStyle='#262658'; g.beginPath(); g.moveTo(W*0.775-3*u,b-58*u); g.lineTo(W*0.775+6.5*u,b-76*u); g.lineTo(W*0.775+16*u,b-58*u); g.closePath(); g.fill();
+      dot(W*0.775+6.5*u,b-48*u,4.2*u,'#ffe9a0');
+      house(W*0.07,b-4*u,24*u,17*u,'#262658','#454c96'); lamp(W*0.55,b+4*u,30*u); lamp(W*0.985,b+4*u,30*u);
+      for(let i=0;i<7;i++) dot(W*(0.6+i*0.055),b-33*u+Math.sin(i*1.3)*3*u,2*u,['#ff9fd0','#ffe27a','#9fe8ff'][i%3]);
+    },
+    4(top,ny){   // まちはずれ：風車と はたけ
+      const x=W*0.2, y=ny+10*u;
+      g.fillStyle='rgba(240,200,110,.4)'; g.beginPath(); g.ellipse(W*0.3,ny+22*u,W*0.26,13*u,0,0,TAU); g.fill();
+      g.fillStyle='#7a6a8c'; g.beginPath(); g.moveTo(x-8*u,y); g.lineTo(x-4.5*u,y-30*u); g.lineTo(x+4.5*u,y-30*u); g.lineTo(x+8*u,y); g.closePath(); g.fill();
+      g.strokeStyle='#e9d9c0'; g.lineWidth=4*u; g.lineCap='round'; g.beginPath();
+      for(let i=0;i<4;i++){ const a=0.5+i*Math.PI/2; g.moveTo(x,y-30*u); g.lineTo(x+Math.cos(a)*21*u,y-30*u+Math.sin(a)*21*u); } g.stroke(); dot(x,y-30*u,3*u,'#5a4a6c');
+      fence(W*0.03,W*0.44,ny+34*u); house(W*0.39,ny+2*u,20*u,12*u,'#3a3466','#5a5486');
+    },
+    3(top,ny){   // はなのそうげん
+      const c=['#ff8fc8','#c79bff','#ffe27a','#fff','#ff9f7a','#9fb8ff'];
+      flowers(W*0.56,W,top+8*u,top+62*u,90,c); flowers(0,W*0.13,top+10*u,top+60*u,22,c); flowers(W*0.13,W*0.56,ny+22*u,ny+34*u,26,c);
+      fence(W*0.66,W*0.97,ny-16*u);
+    },
+    2(top,ny){   // 星空の草原：池と 星の花
+      g.fillStyle='rgba(120,190,255,.5)'; g.beginPath(); g.ellipse(W*0.2,ny+10*u,40*u,11*u,0,0,TAU); g.fill();
+      g.fillStyle='rgba(220,240,255,.7)'; g.beginPath(); g.ellipse(W*0.17,ny+8*u,12*u,2.5*u,0,0,TAU); g.fill();
+      g.strokeStyle='#4f9a8a'; g.lineWidth=1.6*u; g.beginPath();
+      for(let i=0;i<26;i++){ const x=R()*W, y=top+12*u+R()*50*u; g.moveTo(x-3*u,y); g.lineTo(x-4*u,y-6*u); g.moveTo(x,y); g.lineTo(x,y-8*u); g.moveTo(x+3*u,y); g.lineTo(x+4*u,y-6*u); } g.stroke();
+      for(let i=0;i<14;i++){ g.fillStyle='rgba(255,236,150,.9)'; starPath(g,R()*W,top+10*u+R()*52*u,(2.5+R()*2)*u,R()*3); g.fill(); }
+    },
+    1(top,ny){   // ほしのもり：木・ひかる きのこ・ほたる
+      tree(W*0.93,ny+34*u,1.75*u,'#2a7a66','#1f5a52'); tree(W*0.80,ny-4*u,1.2*u,'#2f8570','#226458'); tree(W*0.05,ny-14*u,1.4*u,'#2a7a66','#1f5a52');
+      tree(W*0.2,ny-26*u,0.95*u,'#2f8570','#226458'); tree(W*0.62,H+10*u,1.5*u,'#256e5e','#1a4c46');
+      for(const [x,y] of [[W*0.72,ny+38*u],[W*0.3,ny+40*u]]){ g.fillStyle='#e8e2ff'; g.fillRect(x-1.5*u,y,3*u,7*u); dot(x,y,10*u,'rgba(190,160,255,.25)');
+        g.fillStyle='#c4a6ff'; g.beginPath(); g.ellipse(x,y,7*u,4.5*u,0,Math.PI,TAU); g.fill(); }
+      for(let i=0;i<22;i++){ const x=R()*W, y=top+8*u+R()*(H-top-12*u); dot(x,y,5*u,i%2?'rgba(130,225,255,.16)':'rgba(255,236,150,.16)'); dot(x,y,1.6*u,i%2?'#9fe8ff':'#ffe9a0'); }
+    },
+  };
+  for(let k=9;k>=0;k--){   // 上（遠く）の帯から順に描いて、手前の帯が 重なっていく
+    const id=N[k].id, top=k===9?PY(9)-H*0.036:(PY(k)+PY(k+1))/2-H*0.012, ph=id*1.7;
+    if(id===6){   // 夕やけ：丘の むこうの空と おひさま
+      gr=g.createLinearGradient(0,top-H*0.06,0,top+10*u); gr.addColorStop(0,'rgba(255,150,120,0)'); gr.addColorStop(0.6,'rgba(255,150,130,.6)'); gr.addColorStop(1,'rgba(255,200,130,.85)');
+      g.fillStyle=gr; g.fillRect(0,top-H*0.06,W*0.6,H*0.06+10*u);
+      dot(W*0.2,top+2*u,26*u,'rgba(255,200,130,.35)'); dot(W*0.2,top+2*u,15*u,'#ffc98a');
     }
-    box.appendChild(row);
-  });
+    g.beginPath(); g.moveTo(0,H); for(let x=0;x<=W+12;x+=12) g.lineTo(x,top+Math.sin(x/W*Math.PI*1.6+ph)*9*u); g.lineTo(W,H); g.closePath();
+    gr=g.createLinearGradient(0,top-10*u,0,top+H*0.1); gr.addColorStop(0,Z[id][0]); gr.addColorStop(1,Z[id][1]); g.fillStyle=gr; g.fill();
+    DECOR[id](top,PY(k));
+  }
+  // 道（すごろくの道）：スタート → 1 → … → 10 → 家
+  const road=()=>{ g.beginPath(); g.moveTo(PX(0)-74*u,PY(0)+40*u); g.quadraticCurveTo(PX(0)-56*u,PY(0)+2*u,PX(0),PY(0));
+    for(let k=0;k<9;k++){ const sg=PX(k+1)>PX(k)?1:-1, ox=PX(k+1)+sg*46*u; g.bezierCurveTo(ox,PY(k),ox,PY(k+1),PX(k+1),PY(k+1)); }
+    g.quadraticCurveTo(W*0.62,PY(9)-2*u,W*0.69,PY(9)-H*0.036+14*u); };
+  g.lineCap='round'; g.lineJoin='round';
+  road(); g.strokeStyle='rgba(30,22,70,.55)'; g.lineWidth=21*u; g.stroke();
+  road(); g.strokeStyle='#f3e2b8'; g.lineWidth=15*u; g.stroke();
+  road(); g.strokeStyle='rgba(140,190,225,.95)'; g.lineWidth=2.4*u; g.setLineDash([7*u,8*u]); g.stroke(); g.setLineDash([]);
+  for(const [x,y] of [[16,H-16],[W-16,H-16],[W/2,H-13]]){ g.fillStyle='#f3d37e'; g.beginPath(); star5(g,x,y,6*u,2.8*u); g.fill(); }
 }
 function toStages(){
-  bankKills(); newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); buildStages(); showOnly('stage');
+  bankKills(); newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); closeSheet(); buildMap(); showOnly('stage'); $('stage').scrollTop=1e6;
 }
 
 /* ---------- 画面遷移 ---------- */
-function showOnly(id){ for(const k of ['title','stage','forge','equip','levelup','pause','end']) $(k).classList.toggle('on',k===id); }
+function showOnly(id){ for(const k of ['title','stage','forge','levelup','pause','end']) $(k).classList.toggle('on',k===id); }
 function setPlayUi(on){ $('hud').classList.toggle('on',on); $('btnUlt').classList.toggle('on',on); }
 function start(stageId,endless,formOverride){   // 引数なし＝同じステージ・同じモードでもう一度
   initAudio();
@@ -1607,9 +1943,12 @@ function banner(txt){ const b=$('banner'); b.textContent=txt; b.classList.remove
 
 $('btnStart').onclick=()=>{ initAudio(); toStages(); };
 $('btnForge').onclick=()=>{ initAudio(); openForge(); };
-$('btnEquip').onclick=()=>{ initAudio(); openEquip('title'); };
+$('btnEquip').onclick=()=>{ initAudio(); openForge(true); };   // レアアイテムは つよさ工房の中（そうびの所まで スクロール）
 $('btnForgeBack').onclick=toTitle;
-$('btnEquipBack').onclick=closeEquip;
+$('rarePrev').onclick=()=>stepRare(-1);
+$('rareNext').onclick=()=>stepRare(1);
+$('sheetClose').onclick=closeSheet;
+$('stageSheet').onclick=e=>{ if(e.target===$('stageSheet')) closeSheet(); };
 $('btnBack').onclick=toTitle;
 $('btnRetry').onclick=()=>start();
 $('btnNext').onclick=()=>{ const nx=nextStage(cur.stage); if(nx) start(nx.id,false); };
@@ -1925,6 +2264,7 @@ function drawEnemy(c,e){
   // 状態（もえている・どく・しびれ・こおり・おそい）は、絵そのものの色とオーラで見せる
   const st=statusOf(e), S=st?STATUS[st]:null;
   if(S&&S.aura) glow(c,e.x,ey,rs*1.9,S.rgb,S.aura*(0.75+0.25*Math.sin(animT*9+e.wob)));
+  if(e.raged) glow(c,e.x,ey,rs*2.1,'255,70,90',0.5+0.25*Math.sin(animT*10));   // 手の いかり
   c.save(); c.translate(e.x,ey);
   // 絵と向き：side/back の絵が使えればそれ（side は右へ進む時に反転）。無ければ正面絵か仮絵（右向きが正、左で反転）
   const set=enemyImg[e.type]||{}, want=set[e.dir];
@@ -2062,6 +2402,18 @@ const BG = {   // ステージごとの地面。tile() は 160px のマス1つ�
       for(let k=0;k<5;k++){ const a=k/5*TAU; c.beginPath(); c.arc(fx+Math.cos(a)*4,fy+Math.sin(a)*4,3,0,TAU); c.fill(); }
       c.fillStyle='#f5b94a'; c.beginPath(); c.arc(fx,fy,2.4,0,TAU); c.fill(); c.globalAlpha=1;
     }
+  }},
+  forest:{base:'#10263a', tile(c,tx,ty,bx,by,T){   // ほしのもり：木かげ・ひかる きのこ・ほたる
+    for(let i=0;i<2;i++){ const x=bx+hash(tx*3+i,ty)*T, y=by+hash(tx,ty*3+i)*T, r=34+hash(tx+i,ty+i)*26;
+      c.fillStyle='rgba(8,22,30,.45)'; c.beginPath(); c.arc(x,y,r,0,TAU); c.arc(x+r*0.7,y+r*0.3,r*0.7,0,TAU); c.fill(); }
+    c.strokeStyle='#1d4a4a'; c.lineWidth=2;
+    for(let i=0;i<3;i++){ const gx=bx+hash(tx*7+i,ty)*T, gy=by+hash(tx,ty*7+i)*T;
+      c.beginPath(); c.moveTo(gx-4,gy); c.lineTo(gx-6,gy-7); c.moveTo(gx,gy); c.lineTo(gx,gy-9); c.moveTo(gx+4,gy); c.lineTo(gx+6,gy-7); c.stroke(); }
+    for(let i=0;i<3;i++){ const sx=bx+hash(tx*13+i,ty+5)*T, sy=by+hash(tx+9,ty*13+i)*T, tw=0.3+0.4*Math.sin(animT*1.4+hash(tx+i,ty)*40);
+      c.fillStyle=(i?'rgba(130,225,255,':'rgba(255,236,150,')+tw.toFixed(2)+')'; c.beginPath(); c.arc(sx,sy,i?2.2:2.8,0,TAU); c.fill(); }
+    if(hash(tx*5,ty*9)>0.72){ const x=bx+T*(0.15+0.7*hash(tx*11,ty*3)), y=by+T*(0.15+0.7*hash(tx*3,ty*11));
+      c.fillStyle='#e8e2ff'; c.fillRect(x-2,y,4,8); c.fillStyle='rgba(190,160,255,.9)'; c.beginPath(); c.ellipse(x,y,9,5.5,0,Math.PI,TAU); c.fill();
+      c.fillStyle='rgba(190,160,255,.22)'; c.beginPath(); c.arc(x,y,16,0,TAU); c.fill(); }
   }},
   house:{base:'#3d2f42', tile(c,tx,ty,bx,by,T){   // 家の中：フローリング＋ときどき ラグ・おもちゃ
     for(let k=0;k<4;k++){
@@ -2220,7 +2572,7 @@ function render(){
   // 予告（カラス・手の落下地点、いぬの突進方向）
   for(const e of G.enemies){
     if(e.ai==='hand'&&(e.st===1||e.st===2)){   // 手：のるんの位置に 影がだんだん濃く大きく → おりてくる
-      const H=CFG.HAND, k=e.st===2?1:1-clamp(e.tmr/H.warn,0,1);
+      const H={R:e.R||CFG.HAND.R}, k=e.st===2?1:1-clamp(e.tmr/(e.warn||CFG.HAND.warn),0,1);
       c.fillStyle='rgba(30,12,50,'+(0.16+0.36*k).toFixed(2)+')'; c.beginPath(); c.arc(e.tx,e.ty,H.R*(0.45+0.55*k),0,TAU); c.fill();
       c.strokeStyle='rgba(255,90,130,.92)'; c.lineWidth=3.5; c.setLineDash([10,7]); c.lineDashOffset=-animT*40; c.beginPath(); c.arc(e.tx,e.ty,H.R,0,TAU); c.stroke(); c.setLineDash([]); c.lineDashOffset=0;
       c.fillStyle='rgba(255,90,130,.9)'; c.font='800 22px '+CANVAS_FONT; c.textAlign='center'; c.fillText('！',e.tx,e.ty-H.R-8); c.textAlign='left';
@@ -2463,7 +2815,7 @@ function frame(now){
 
 /* ---------- 起動 ---------- */
 sndLabel(); resize(); newGame(save.form,save.limit); buildTitle();
-window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, openEquip, buildForge };   // デバッグ用
+window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet };   // デバッグ用
 requestAnimationFrame(frame);
 })();
 </script>
