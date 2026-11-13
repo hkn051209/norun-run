@@ -222,7 +222,7 @@ textarea{width:100%;min-height:90px;border-radius:12px;border:2px solid var(--li
 /* 応援ののるん（1つのキャンバスを 画面ごとに 場所と大きさを変えて使う） */
 #norunView{position:fixed;z-index:3;pointer-events:none;width:240px;height:260px;left:0;bottom:0;display:block;transition:none}
 body[data-screen="scTitle"] #norunView{width:260px;height:280px;left:8px;bottom:8px}
-body[data-screen="scQuiz"] #norunView,body[data-screen="scPlayRun"] #norunView,body[data-screen="scKokugo"] #norunView,body[data-screen="scPlay"] #norunView{display:none}
+body[data-screen="scQuiz"] #norunView,body[data-screen="scPlayRun"] #norunView,body[data-screen="scKokugo"] #norunView,body[data-screen="scPlay"] #norunView,body[data-screen="scAthle"] #norunView{display:none}
 body[data-screen="scResult"] #norunView{width:280px;height:300px;left:50%;transform:translateX(-50%);bottom:4px}
 body[data-screen="scPass"] #norunView,body[data-screen="scParent"] #norunView,body[data-screen="scPin"] #norunView,body[data-screen="scConfirm"] #norunView,body[data-screen="loading"] #norunView{display:none}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;z-index:9;background:#f6f0ff;white-space:pre-line;text-align:center}
@@ -279,6 +279,11 @@ h3::before{content:"✦ ";color:#ffc94d}
 #resBig{-webkit-text-stroke:8px #fff;paint-order:stroke fill;text-shadow:0 6px 0 #d9c6ff}
 .badge{border-radius:18px}
 #loading{background:linear-gradient(165deg,#f3eaff 0%,#fdf0f8 100%);color:var(--lavd)}
+.courseCard .big:disabled{background:#d9d2e6;box-shadow:0 6px 0 #bdb3cf;color:#fff}
+.courseCard .lock{font-size:13px;color:var(--sub);margin-top:4px}
+.courseCard .rec{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.courseCard .rec span{background:#f7f1ff;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:800;color:var(--ink)}
+.courseCard .rec span.clear{background:#fff3c4;color:#8a5a00}
 /* 横画面（あとに 書いて 上の ふつうの 指定より 優先させる） */
 @media (orientation:landscape) and (max-height:600px){
   #scPlayRun{padding-top:max(6px,env(safe-area-inset-top))}
@@ -439,6 +444,17 @@ h3::before{content:"✦ ";color:#ffc94d}
   </div>
 </div>
 
+<!-- アスレ：コースを えらぶ（第12弾） -->
+<div id="scAthle" class="screen hidden">
+  <button class="back" id="athleBack">← もどる</button>
+  <div class="wrap" style="padding-top:44px">
+    <h2 class="center">🧗 アスレ　どの コース？</h2>
+    <div id="courseList"></div>
+    <div class="card playCard courseCard"><span class="ic">♾️</span><div style="flex:1"><button class="big alt" id="goEndless">エンドレス</button><div class="note" id="endlessBest"></div></div></div>
+    <p class="note center">コースは ゴールまで いくと クリア。クリアすると つぎの コースが ひらくよ</p>
+  </div>
+</div>
+
 <!-- 遊び：プレイ中（ラン・塔 共通） -->
 <div id="scPlayRun" class="screen hidden">
   <div class="pbar">
@@ -491,6 +507,7 @@ h3::before{content:"✦ ";color:#ffc94d}
       <button class="big" id="resAgain">もういちど</button>
       <button class="big alt" id="resMy">マイページ</button>
     </div>
+    <button class="big kokugo hidden" id="resNext" style="width:100%;margin-top:10px">つぎの コース</button>
     <div style="height:300px"></div>
   </div>
 </div>
