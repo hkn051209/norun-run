@@ -854,6 +854,11 @@ body.kvsplash .kvtap{display:block}
 .rr.lock .rt2 b{color:#9d97ba}
 .rr button{flex:none;margin:0;padding:7px 12px;font-size:13px;white-space:nowrap}
 #rareBack{margin-top:12px}
+
+/* v8.4.3：HUDの「🍃 かるく」しるし */
+.ltag{flex:none;font-size:11px;padding:2px 9px;background:linear-gradient(#3f8a6a,#1f4f45)!important;border:1.5px solid #9fe6b8!important;color:#eafff0!important}
+.ltag.go{animation:ltag 1.2s ease-out}
+@keyframes ltag{0%{transform:scale(1.5);box-shadow:0 0 14px 4px rgba(160,240,190,.9)}100%{transform:scale(1);box-shadow:none}}
 </style>
 </head>
 <body>
@@ -877,7 +882,7 @@ body.kvsplash .kvtap{display:block}
       </div>
     </div>
   </div>
-  <div class="hsub"><span id="kills" class="pill">0 たおした</span><div id="skills"></div></div>
+  <div class="hsub"><span id="kills" class="pill">0 たおした</span><span id="lightTag" class="pill ltag" style="display:none"></span><div id="skills"></div></div>
 </div>
 <div id="edge" aria-hidden="true"><i class="es a">✦</i><i class="es b">★</i><i class="es c">✧</i><i class="es d">✦</i></div>
 <button id="btnUlt" aria-label="大技"><span class="in"><i class="st">★</i><b class="tx">大技</b></span><i class="sp s1">✦</i><i class="sp s2">✦</i><i class="sp s3">✧</i></button>
@@ -1052,7 +1057,7 @@ body.kvsplash .kvtap{display:block}
   <div class="panel">
     <div class="ribbon">せってい</div>
     <div class="setrow"><span>🔊 おと（こうかおん・BGM）</span><button class="tog" id="setSnd">オン</button></div>
-    <div class="setrow"><span>🍃 かるくする<small>キラキラや かげを へらして うごきを なめらかに</small></span><button class="tog off" id="setLight">オフ</button></div>
+    <div class="setrow"><span>🍃 かるくする<small id="setLightTxt"></small></span><button class="tog" id="setLight">じどう</button></div>
     <div class="sethelp"><b>あそびかた</b><br>スマホ：ドラッグで いどう・右下の ★ボタンで 大技<br>キーボード：WASD／やじるし・スペースで 大技</div>
     <button class="ghost" id="setBack">もどる</button>
   </div>
@@ -1060,7 +1065,7 @@ body.kvsplash .kvtap{display:block}
 
 <script>
 /* ============================================================
-   のるんのだいぼうけん v8.4.2（v8.4.1：絵の 読みこみを ひつような 時だけに・「かるくする」／v8.4.2：タイトルの のるん・レアアイテムの 画面）（もと：のるんの ほしぞらサバイバル v7.2）
+   のるんのだいぼうけん v8.4.3（描画の 見なおし：背景の 下ごしらえ・実時間どおりの すすみ・「かるくする」の じどう）（もと：のるんの ほしぞらサバイバル v7.2）
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -1435,13 +1440,13 @@ const SFX = {
 const cv=$('cv'), ctx=cv.getContext('2d');
 let VW=800, VH=600, SC=1, DPR=1;
 function resize(){
-  DPR=Math.min(window.devicePixelRatio||1,LIGHT?1.5:2);   // かるくする：解像度を すこし 下げる
+  DPR=Math.min(window.devicePixelRatio||1,dprCap());   // かるくする：解像度を 下げる
   const w=window.innerWidth, h=window.innerHeight;
   SC=clamp(Math.min(w,h)/520,0.7,1.5);
   VW=w/SC; VH=h/SC;
   cv.width=Math.round(w*DPR); cv.height=Math.round(h*DPR);
 }
-window.addEventListener('resize',()=>{ resize(); NIGHT.cv=null; kvFit(); if(state==='stage') buildMap(); });
+window.addEventListener('resize',()=>{ resize(); NIGHT.cv=null; BGC.key=''; kvFit(); if(state==='stage') buildMap(); });
 
 /* ---------- 入力 ---------- */
 const keys={};
@@ -2081,9 +2086,31 @@ let Q=1, frameAvg=1/60, qT=0;   // Q=粒子の量の自動調整（1=全部、�
 /* せってい「かるくする」：粒子（キラキラ）の 量・影・光の 尾を へらし、画面の 解像度を すこし 下げる。ゲームの 数値は かわらない
    保存は ゲームの セーブとは べつの キー（norun-daibouken-settings）に。セーブの 形は かえない */
 const SETKEY='norun-daibouken-settings';
-let LIGHT=false;
-try{ LIGHT=!!(JSON.parse(localStorage.getItem(SETKEY)||'{}').light); }catch(e){}
+/* じどう（はじめの 設定）：fps が 低い 状態が 3秒 つづいたら だんだん かるくする
+     段階1＝解像度 1.5倍まで → 段階2＝解像度 1倍 → 段階3＝ステージ背景を コードの 地面に＋キラキラ・かげを へらす */
+let LIGHTMODE='auto';
+try{ const v=JSON.parse(localStorage.getItem(SETKEY)||'{}').light; LIGHTMODE = v===true?'on' : v===false?'off' : (v==='on'||v==='off'||v==='auto')?v : 'auto'; }catch(e){}
+const AUTO={lv:0,bad:0,win:0,n:0,cool:0};
+let LIGHT=false;   // キラキラ・かげを へらすか（下の lightOn で きまる）
+const lightOn = () => LIGHTMODE==='on' || (LIGHTMODE==='auto'&&AUTO.lv>=3);
+const dprCap  = () => LIGHTMODE==='on' ? 1.5 : LIGHTMODE==='auto' ? [2,1.5,1,1][AUTO.lv] : 2;
+const autoNoImg = () => LIGHTMODE==='auto'&&AUTO.lv>=3;   // ステージ背景の 絵を やめて コードの 地面に
+LIGHT=lightOn();
 const LQ = () => LIGHT ? 0.4 : 1;   // 粒子の 量の 倍率
+function applyLight(){ LIGHT=lightOn(); resize(); BGC.key=''; NIGHT.cv=null; lightTag(); }
+function autoTick(raw){   // プレイ中だけ 1秒ごとに fps を はかる
+  if(LIGHTMODE!=='auto'||AUTO.lv>=3||raw>0.5) return;   // 0.5秒より 長い とまり（タブ きりかえ等）は かぞえない
+  AUTO.win+=raw; AUTO.n++; if(AUTO.win<1) return;
+  const fps=AUTO.n/AUTO.win; AUTO.win=0; AUTO.n=0;
+  if(AUTO.cool>0){ AUTO.cool--; return; }   // かるくした 直後の 2秒は 見おくる
+  AUTO.bad = fps<40 ? AUTO.bad+1 : 0;
+  if(AUTO.bad>=3){ AUTO.bad=0; AUTO.cool=2; AUTO.lv++; applyLight(); lightTag(true); }
+}
+function lightTag(flash){   // HUDの 小さな しるし「🍃 かるく」
+  const t=$('lightTag'); if(!t) return; const on=LIGHTMODE==='on'||(LIGHTMODE==='auto'&&AUTO.lv>0);
+  t.style.display=on?'inline-flex':'none'; t.textContent='🍃 かるく'+(LIGHTMODE==='auto'?' '+AUTO.lv:'');
+  if(flash){ t.classList.remove('go'); void t.offsetWidth; t.classList.add('go'); banner('🍃 うごきを かるく したよ（'+AUTO.lv+'/3）'); }
+}
 function tuneQuality(raw){
   if(!CFG.FX_AUTO||raw>0.25) return;
   frameAvg+=(raw-frameAvg)*0.06; qT+=raw; if(qT<1) return; qT=0;
@@ -2628,7 +2655,7 @@ function openRecords(){   // きろく：タイトルの もちもの・つよ�
     return '<div class="rec'+(open?'':' lock')+'"><span class="no">'+(save.stageClear[M.id]?'✓':M.id)+'</span><div><b>'+M.id+'　'+(open?M.name:'？？？')+'</b><small>'+(open?(t.join('<br>')||'まだ きろく なし'):'まだ いけない')+'</small></div></div>'; }).join('');
   showOnly('records'); $('records').scrollTop=0;
 }
-function openSettings(){ state='settings'; setPlayUi(false); sndLabel(); showOnly('settings'); }
+function openSettings(){ state='settings'; setPlayUi(false); sndLabel(); lightLabel(); showOnly('settings'); }
 function resume(){ if(state!=='pause') return; state='play'; showOnly(null); }
 /* ---------- スマホの「戻る」：タイトル以外の 画面に いる間だけ 履歴を 1つ 積んでおき、戻るが 押されたら ゲームの中で 1つ 戻る ----------
    行き先は 各画面の「もどる」ボタンと 同じ。プレイ中は ポーズ → もう一度で 確認 → もう一度で 地図へ。タイトルでは ふつうに ページを はなれる */
@@ -2723,9 +2750,12 @@ $('recBack').onclick=()=>{ if(rec.from==='end'){ showOnly('end'); endPeek(); } e
 $('btnSettings').onclick=()=>{ initAudio(); openSettings(); };
 $('setSnd').onclick=()=>{ initAudio(); toggleSnd(); };
 $('setBack').onclick=toTitle;
-function lightLabel(){ const t=$('setLight'); t.textContent=LIGHT?'オン':'オフ'; t.classList.toggle('off',!LIGHT); }
-$('setLight').onclick=()=>{ LIGHT=!LIGHT; try{ localStorage.setItem(SETKEY,JSON.stringify({light:LIGHT})); }catch(e){} lightLabel(); resize(); NIGHT.cv=null; tone(LIGHT?660:440,0.08,'sine',0.04,0); };
-lightLabel();
+function lightLabel(){ const t=$('setLight'); t.textContent={auto:'じどう',on:'オン',off:'オフ'}[LIGHTMODE]; t.classList.toggle('off',LIGHTMODE==='off');
+  $('setLightTxt').textContent = LIGHTMODE==='auto' ? 'うごきが おもい時だけ じどうで かるくする'+(AUTO.lv?'（いま：段階'+AUTO.lv+'）':'')
+    : LIGHTMODE==='on' ? 'いつも キラキラや かげを へらして かるくする' : 'かるくしない（いつも きれいな 画面）'; }
+$('setLight').onclick=()=>{ LIGHTMODE={auto:'on',on:'off',off:'auto'}[LIGHTMODE]; if(LIGHTMODE!=='auto') AUTO.lv=0;
+  try{ localStorage.setItem(SETKEY,JSON.stringify({light:LIGHTMODE})); }catch(e){} applyLight(); lightLabel(); tone(LIGHTMODE==='off'?440:660,0.08,'sine',0.04,0); };
+lightLabel(); lightTag();
 $('btnShelf').onclick=()=>{ initAudio(); openShelf(); };
 $('shelfBack').onclick=toTitle;
 $('bkNext').onclick=e=>{ e.stopPropagation(); bookNext(); };
@@ -2790,7 +2820,8 @@ function drawNorun(c,form,t,phasing,face){   // 原点＝体の中心。傾き�
   if(img&&img.complete&&img.naturalWidth){
     const h=CFG.SPRITE_H, w=h*img.naturalWidth/img.naturalHeight;
     c.save(); if(form==='obake') c.globalAlpha*=phasing?0.45:0.92;
-    c.drawImage(img,-w/2,-h/2+CFG.SPRITE_DY,w,h); c.restore(); return;
+    const m=c.getTransform(), k=Math.hypot(m.a,m.b);   // いまの 拡大率に あわせて ちぢめた 絵を つかう
+    c.drawImage(fitSpr(img,w*k,h*k),-w/2,-h/2+CFG.SPRITE_DY,w,h); c.restore(); return;
   }
   c.save();
   if(form==='normal'){
@@ -3041,6 +3072,16 @@ function enemyArt(type){
   }
   return enemyCv[type];
 }
+/* 絵の 下ごしらえ：大きな PNG を 毎フレーム ちぢめて 描くのは 重いので、画面に 出る 大きさに 1回だけ ちぢめた 絵を 作って つかいまわす */
+const FIT=new WeakMap();
+function fitSpr(src,pw,ph){
+  const sw=src.naturalWidth||src.width; if(!sw) return src;
+  pw=Math.max(8,Math.ceil(pw)); ph=Math.max(8,Math.ceil(ph)); if(sw<=pw*1.25) return src;   // もともと 小さい 絵は そのまま
+  let m=FIT.get(src); if(!m){ m=new Map(); FIT.set(src,m); }
+  const key=pw+'x'+ph; let cv=m.get(key);
+  if(!cv){ if(m.size>8) m.clear(); cv=document.createElement('canvas'); cv.width=pw; cv.height=ph; const g=cv.getContext('2d'); g.imageSmoothingEnabled=true; g.imageSmoothingQuality='high'; g.drawImage(src,0,0,pw,ph); m.set(key,cv); }
+  return cv;
+}
 function drawEnemy(c,e){
   const r=e.r, ks=CFG.ENEMY_SCALE[e.type]||1, rs=r*ks, ey=e.y-e.alt, up=clamp(e.alt/170,0,1), hovering=e.ai==='hand'&&(e.st===0||e.st===4);
   if(!hovering&&e.ai!=='hand'&&!LIGHT){ c.fillStyle='rgba(0,0,0,'+(0.26-0.12*up).toFixed(2)+')'; c.beginPath(); c.ellipse(e.x,e.y+rs*1.05,rs*(0.72-0.25*up),rs*(0.22-0.07*up),0,0,TAU); c.fill(); }
@@ -3061,12 +3102,13 @@ function drawEnemy(c,e){
   else if(e.ai==='crow'){ sy=e.st===2?0.85:1+Math.sin(animT*12+e.wob)*0.07; if(e.st===1) rot=Math.sin(animT*45)*0.08; }
   else if(e.ai==='hand'){ rot=0; sx=1; if(e.st===1) c.translate(rand(-2,2),rand(-2,2)); else if(e.st!==3) c.translate(0,Math.sin(animT*3+e.wob)*4); }
   else if(e.ai==='roomba'){ rot=Math.sin(animT*20+e.wob)*0.03; }
-  c.rotate(rot); c.scale(sx,sy);
+  if(!LIGHT) c.rotate(rot); c.scale(sx,sy);   // かるくする時は ゆらゆら（回転）を やめる（回転した 絵は 描くのが 重い）
   // 絵は切り取らずに丸ごと描く。端で切れていた絵は fixCv に整えた版が入っている
   let src=im?(fixCv.get(im)||im):enemyArt(e.type);
   if(S) src=tinted(src,im?im.src:'art:'+e.type,st,e.boss?512:288);
-  if(im){ const h=r*2.7*ks, w=h*im.naturalWidth/im.naturalHeight; c.drawImage(src,-w/2,-h/2,w,h); }
-  else{ const size=ART*r/32*ks; c.drawImage(src,-size/2,-size/2,size,size); }
+  const k=DPR*SC;   // 画面の 1あたりの 画素数（下ごしらえの 大きさ）
+  if(im){ const h=r*2.7*ks, w=h*im.naturalWidth/im.naturalHeight; c.drawImage(fitSpr(src,w*k,h*k),-w/2,-h/2,w,h); }
+  else{ const size=ART*r/32*ks; c.drawImage(fitSpr(src,size*k,size*k),-size/2,-size/2,size,size); }
   c.restore();
   if(e.boss){
     const bw=Math.max(r*1.6,rs*1.2), by=e.ai==='hand'?ey+rs*1.55:ey-rs*1.35-13;
@@ -3383,31 +3425,66 @@ function stageBgDim(im){   // 絵の 明るさを 小さく ちぢめて はか�
     const d=g.getImageData(0,0,16,16).data; let L=0; for(let i=0;i<d.length;i+=4) L+=(0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2])/255;
     L/=256; return clamp(1-CFG.STAGE_BG.target/Math.max(L,0.01),0.08,CFG.STAGE_BG.maxDim); }catch(e){ return 0.25; }
 }
+/* 地面（ステージ背景の 絵・コードの 地面・小物）は、画面より すこし 大きい 絵（BGC）に 1回だけ 描いて おく。
+   毎フレームは その絵を 1:1 で 貼るだけ。カメラが よはくを こえたら、ずらして コピーし、あたらしく 見えた 帯だけ 描きたす。
+   暗さの 調整も 下ごしらえの 時に すませる。絵が 読めた時は 0.6秒かけて コードの 地面から 入れかわる */
+const BGC={a:null,b:null,x0:0,y0:0,w:0,h:0,k:1,key:'',fx:0,fy:0,fade:-1};
+function bgUseImg(){ const SB=SBG[G.stage.bg]; return !!(SB&&SB.im&&imgOk(SB.im)&&!autoNoImg()); }
+function bgCanvas(cv,w,h){ cv=cv||document.createElement('canvas'); if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; } return cv; }
+function paintBg(g,x0,y0,w,h,rx,ry,rw,rh){   // バッファ（左上 x0,y0・はば w,h）の うち 四角 rx..rx+rw を 描く
+  const B=worldBg(G.stage), W=CFG.WORLD, SB=SBG[G.stage.bg], img=bgUseImg(), k=BGC.k;
+  g.setTransform(k,0,0,k,-x0*k,-y0*k);
+  g.save(); g.beginPath(); g.rect(rx,ry,rw,rh); g.clip();
+  g.fillStyle=B.th.base; g.fillRect(rx,ry,rw,rh);
+  const X0=Math.max(0,x0), Y0=Math.max(0,y0), X1=Math.min(W,x0+w), Y1=Math.min(W,y0+h);   // バッファ全体の 地面（clip で 帯だけ 出る＝つぎめが 出ない）
+  if(X1>X0&&Y1>Y0){ g.imageSmoothingEnabled=true;
+    if(img){
+      if(CFG.STAGE_BG.mode==='world'){ const iw=SB.im.naturalWidth/W, ih=SB.im.naturalHeight/W; g.drawImage(SB.im,X0*iw,Y0*ih,(X1-X0)*iw,(Y1-Y0)*ih,X0,Y0,X1-X0,Y1-Y0); }
+      else { const pat=g.createPattern(SB.im,'repeat'), sc=CFG.STAGE_BG.tile/SB.im.naturalWidth;
+        if(pat&&pat.setTransform&&typeof DOMMatrix!=='undefined') pat.setTransform(new DOMMatrix([sc,0,0,sc,0,0])); g.fillStyle=pat; g.fillRect(X0,Y0,X1-X0,Y1-Y0); }
+      if(SB.dim>0){ g.fillStyle='rgba(12,10,40,'+SB.dim.toFixed(3)+')'; g.fillRect(X0,Y0,X1-X0,Y1-Y0); }
+    } else g.drawImage(B.gc,X0*B.GS,Y0*B.GS,(X1-X0)*B.GS,(Y1-Y0)*B.GS,X0,Y0,X1-X0,Y1-Y0);
+  }
+  if(!img||CFG.STAGE_BG.props){   // 木・花などの 小物（帯に かかる ものだけ）
+    vis.length=0; const M=130, a0=Math.max(0,((rx-M)/B.CELL)|0), a1=Math.min(B.cells-1,((rx+rw+M)/B.CELL)|0), b0=Math.max(0,((ry-M)/B.CELL)|0), b1=Math.min(B.cells-1,((ry+rh+M)/B.CELL)|0);
+    for(let j=b0;j<=b1;j++) for(let i=a0;i<=a1;i++) for(const o of B.grid[j*B.cells+i]) if(o.x+o.s>rx&&o.x-o.s<rx+rw&&o.y+o.s>ry&&o.y-o.s<ry+rh) vis.push(o);
+    vis.sort((a,b)=>(a.flat===b.flat)?a.y-b.y:(a.flat?-1:1));
+    for(const o of vis){
+      if(o.flip){ g.save(); g.translate(o.x,o.y); g.scale(-1,1); g.drawImage(o.cv,-o.s/2,-o.s/2,o.s,o.s); g.restore(); }
+      else g.drawImage(o.cv,o.x-o.s/2,o.y-o.s/2,o.s,o.s);
+    }
+  }
+  g.restore();
+}
 function drawWorldBg(c,cx,cy){
-  const B=worldBg(G.stage), W=CFG.WORLD, SB=SBG[G.stage.bg];
-  c.fillStyle=B.th.base; c.fillRect(cx-4,cy-4,VW+8,VH+8);
-  const x0=Math.max(0,cx), y0=Math.max(0,cy), x1=Math.min(W,cx+VW), y1=Math.min(W,cy+VH);
-  vis.length=0;
-  const fade=SB&&SB.im?clamp((animT-SB.at)/0.6,0,1):0;   // 読めた 直後は 0.6秒かけて コードの 地面から 絵へ
-  if(SB&&SB.im&&imgOk(SB.im)){   // 絵の 地面：ワールドに はりつけた くりかえし模様（カメラに ついてくる）＋見やすさの ための 暗さ
-    if(fade<1&&x1>x0&&y1>y0){ c.drawImage(B.gc,x0*B.GS,y0*B.GS,(x1-x0)*B.GS,(y1-y0)*B.GS,x0,y0,x1-x0,y1-y0); c.globalAlpha=fade; }
-    if(!SB.pat){ SB.pat=c.createPattern(SB.im,'repeat'); const k=CFG.STAGE_BG.tile/SB.im.naturalWidth;
-      if(SB.pat&&SB.pat.setTransform&&typeof DOMMatrix!=='undefined') SB.pat.setTransform(new DOMMatrix([k,0,0,k,0,0])); }
-    if(x1>x0&&y1>y0){ c.imageSmoothingEnabled=true;
-      if(CFG.STAGE_BG.mode==='world'){ const iw=SB.im.naturalWidth/W, ih=SB.im.naturalHeight/W;   // 1枚の 絵の うち 見えている ところだけ
-        c.drawImage(SB.im,x0*iw,y0*ih,(x1-x0)*iw,(y1-y0)*ih,x0,y0,x1-x0,y1-y0); }
-      else { c.fillStyle=SB.pat; c.fillRect(x0,y0,x1-x0,y1-y0); }
-      if(SB.dim>0){ c.fillStyle='rgba(12,10,40,'+SB.dim.toFixed(3)+')'; c.fillRect(x0,y0,x1-x0,y1-y0); } }
-    c.globalAlpha=1;
-    if(!CFG.STAGE_BG.props) return;
+  const k=DPR*SC, mode=bgUseImg()?'img':'code', key=G.stage.id+'|'+k.toFixed(4)+'|'+VW.toFixed(1)+'|'+VH.toFixed(1)+'|'+mode;
+  const Mx=Math.ceil(VW*0.15), My=Math.ceil(VH*0.12), snap=v=>Math.round(v*k)/k;
+  const w=snap(VW+2*Mx), h=snap(VH+2*My), PW=Math.round(w*k), PH=Math.round(h*k);
+  if(BGC.key!==key){   // まるごと 描く（ステージ・画面の大きさ・絵の あり なしが かわった時）
+    const fadeIn = BGC.key && BGC.key.split('|').slice(0,4).join('|')===key.split('|').slice(0,4).join('|') && mode==='img';
+    if(fadeIn){ const t=BGC.a; BGC.a=BGC.b; BGC.b=t; BGC.fx=BGC.x0; BGC.fy=BGC.y0; BGC.fade=animT; } else BGC.fade=-1;   // b＝まえの 地面（入れかわり用）
+    BGC.k=k; BGC.key=key; BGC.w=w; BGC.h=h; BGC.x0=snap(cx-Mx); BGC.y0=snap(cy-My);
+    BGC.a=bgCanvas(BGC.a,PW,PH); if(!fadeIn) BGC.b=bgCanvas(BGC.b,PW,PH);
+    paintBg(BGC.a.getContext('2d'),BGC.x0,BGC.y0,w,h,BGC.x0,BGC.y0,w,h);
+  } else if(cx<BGC.x0||cy<BGC.y0||cx+VW>BGC.x0+w||cy+VH>BGC.y0+h){   // よはくを こえた：ずらして コピー＋見えた 帯だけ 描く
+    BGC.fade=-1;
+    const ox=BGC.x0, oy=BGC.y0, nx=snap(cx-Mx), ny=snap(cy-My), g=BGC.b.getContext('2d');
+    g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,PW,PH);
+    const over=Math.abs(nx-ox)<w&&Math.abs(ny-oy)<h;
+    if(over){ g.drawImage(BGC.a,Math.round((ox-nx)*k),Math.round((oy-ny)*k));
+      if(nx<ox) paintBg(g,nx,ny,w,h,nx,ny,ox-nx,h);
+      if(nx+w>ox+w) paintBg(g,nx,ny,w,h,ox+w,ny,nx-ox,h);
+      const ix0=Math.max(nx,ox), ix1=Math.min(nx+w,ox+w);
+      if(ny<oy) paintBg(g,nx,ny,w,h,ix0,ny,ix1-ix0,oy-ny);
+      if(ny+h>oy+h) paintBg(g,nx,ny,w,h,ix0,oy+h,ix1-ix0,ny-oy);
+    } else paintBg(g,nx,ny,w,h,nx,ny,w,h);
+    const t=BGC.a; BGC.a=BGC.b; BGC.b=t; BGC.x0=nx; BGC.y0=ny;
   }
-  else if(x1>x0&&y1>y0){ c.imageSmoothingEnabled=true; c.drawImage(B.gc,x0*B.GS,y0*B.GS,(x1-x0)*B.GS,(y1-y0)*B.GS,x0,y0,x1-x0,y1-y0); } const M=180, a0=Math.max(0,((cx-M)/B.CELL)|0), a1=Math.min(B.cells-1,((cx+VW+M)/B.CELL)|0), b0=Math.max(0,((cy-M)/B.CELL)|0), b1=Math.min(B.cells-1,((cy+VH+M)/B.CELL)|0);
-  for(let j=b0;j<=b1;j++) for(let i=a0;i<=a1;i++) for(const o of B.grid[j*B.cells+i]) if(o.x+o.s>cx&&o.x-o.s<cx+VW&&o.y+o.s>cy&&o.y-o.s<cy+VH) vis.push(o);
-  vis.sort((a,b)=>(a.flat===b.flat)?a.y-b.y:(a.flat?-1:1));   // ラグ・花・草を先に、木などは 奥から手前の順に
-  for(const o of vis){
-    if(o.flip){ c.save(); c.translate(o.x,o.y); c.scale(-1,1); c.drawImage(o.cv,-o.s/2,-o.s/2,o.s,o.s); c.restore(); }
-    else c.drawImage(o.cv,o.x-o.s/2,o.y-o.s/2,o.s,o.s);
-  }
+  c.save(); c.setTransform(1,0,0,1,0,0);
+  const f=BGC.fade<0?1:clamp((animT-BGC.fade)/0.6,0,1);
+  if(f<1){ c.drawImage(BGC.b,Math.round((BGC.fx-cx)*k),Math.round((BGC.fy-cy)*k)); c.globalAlpha=f; } else BGC.fade=-1;
+  c.drawImage(BGC.a,Math.round((BGC.x0-cx)*k),Math.round((BGC.y0-cy)*k));
+  c.restore();
 }
 /* スキルエフェクトの絵 */
 /* 背景イラストの置き場：img/bg_title.png（タイトル）／img/bg_map.png（地図）／img/bg_workshop.png（工房）／img/bg_result.png（結果）
@@ -3861,13 +3938,15 @@ function render(){
     c.fillStyle='#ffd75e'; starPath(c,kx,ky,kr*0.62,0); c.fill(); c.strokeStyle='#c9902a'; c.lineWidth=1.2/SC; c.stroke();
   }
 }
+const FOGG={};
+function fogGrad(c,k,x0,y0,x1,y1,solid,clear){ if(!FOGG[k]){ const g=c.createLinearGradient(x0,y0,x1,y1); g.addColorStop(0,solid); g.addColorStop(1,clear); FOGG[k]=g; } return FOGG[k]; }   // 1回だけ 作って つかいまわす
 function drawFog(c,cx,cy){
   const W=CFG.WORLD, m=150, far=1600, col='rgba(196,186,255,', solid=col+'0.92)', clear=col+'0)';
   let g;
-  if(cx<m){ g=c.createLinearGradient(0,0,m,0); g.addColorStop(0,solid); g.addColorStop(1,clear); c.fillStyle=g; c.fillRect(0,-far,m,W+far*2); c.fillStyle=solid; c.fillRect(-far,-far,far,W+far*2); }
-  if(cx+VW>W-m){ g=c.createLinearGradient(W,0,W-m,0); g.addColorStop(0,solid); g.addColorStop(1,clear); c.fillStyle=g; c.fillRect(W-m,-far,m,W+far*2); c.fillStyle=solid; c.fillRect(W,-far,far,W+far*2); }
-  if(cy<m){ g=c.createLinearGradient(0,0,0,m); g.addColorStop(0,solid); g.addColorStop(1,clear); c.fillStyle=g; c.fillRect(-far,0,W+far*2,m); c.fillStyle=solid; c.fillRect(-far,-far,W+far*2,far); }
-  if(cy+VH>W-m){ g=c.createLinearGradient(0,W,0,W-m); g.addColorStop(0,solid); g.addColorStop(1,clear); c.fillStyle=g; c.fillRect(-far,W-m,W+far*2,m); c.fillStyle=solid; c.fillRect(-far,W,W+far*2,far); }
+  if(cx<m){ g=fogGrad(c,'l',0,0,m,0,solid,clear); c.fillStyle=g; c.fillRect(0,-far,m,W+far*2); c.fillStyle=solid; c.fillRect(-far,-far,far,W+far*2); }
+  if(cx+VW>W-m){ g=fogGrad(c,'r',W,0,W-m,0,solid,clear); c.fillStyle=g; c.fillRect(W-m,-far,m,W+far*2); c.fillStyle=solid; c.fillRect(W,-far,far,W+far*2); }
+  if(cy<m){ g=fogGrad(c,'t',0,0,0,m,solid,clear); c.fillStyle=g; c.fillRect(-far,0,W+far*2,m); c.fillStyle=solid; c.fillRect(-far,-far,W+far*2,far); }
+  if(cy+VH>W-m){ g=fogGrad(c,'b',0,W,0,W-m,solid,clear); c.fillStyle=g; c.fillRect(-far,W-m,W+far*2,m); c.fillStyle=solid; c.fillRect(-far,W,W+far*2,far); }
 }
 
 /* ---------- HUD ---------- */
@@ -3906,10 +3985,13 @@ function updateHud(){
 let last=0;
 function frame(now){
   requestAnimationFrame(frame);
-  if(state==='play') tuneQuality((now-last)/1000);
-  const dt=Math.min(0.05,Math.max(0,(now-last)/1000)); last=now; animT+=dt; lastDt=dt;
+  const raw=Math.max(0,(now-last)/1000); last=now;
+  if(state==='play'){ tuneQuality(raw); autoTick(raw); }
+  /* 描画が おくれても ゲームの 時間は 実時間どおり：1回の 計算は 0.05秒までに 小分けして、おくれた ぶんを まとめて すすめる
+     （0.25秒より 長く とまった時＝タブの きりかえ等は そこまで。数値は かえない） */
+  let rem=Math.min(raw,0.25); const dt=Math.min(rem,0.05); animT+=rem; lastDt=dt;
   if(state==='play'){
-    update(dt);
+    while(rem>1e-6&&state==='play'){ const st=Math.min(rem,0.05); update(st); rem-=st; if(G.pending>0) break; }
     if(state==='play'&&G.pending>0) openLevelUp();
     updateHud();
   }
@@ -3921,7 +4003,7 @@ function frame(now){
 /* ---------- 起動 ---------- */
 sndLabel(); resize(); newGame(save.form,save.limit); buildTitle(); showOnly('title');
 window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet,
-  endGame, reachedId, mapWalk, get MAPWALK(){return MAPWALK;}, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, kvReveal, STORY, get bgm(){return bgm;} };   // デバッグ用
+  endGame, get AUTO(){return AUTO;}, get BGC(){return BGC;}, get LIGHTMODE(){return LIGHTMODE;}, applyLight, reachedId, mapWalk, get MAPWALK(){return MAPWALK;}, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, kvReveal, STORY, get bgm(){return bgm;} };   // デバッグ用
 if(typeof navigator!=='undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){   // PWA：オフラインでも 起動できるように
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
