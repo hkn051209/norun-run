@@ -913,6 +913,16 @@ body.kvsplash .kvtap{display:block}
 .rr .ri2.ch{background:radial-gradient(circle at 50% 70%,#4c43a8,#1b1a4a)}
 .rr .ri2.ch canvas{width:44px;height:44px}
 .fbtn canvas{max-width:100%}
+
+/* ---- v8.7：コイン・レアの ★ ---- */
+.rrow.coins b{font-size:15px;white-space:normal;text-align:right;line-height:1.35}
+.rr .rt2 .rlv{margin-left:6px;white-space:nowrap}
+.rr .rt2 .rlv i{font-style:normal;font-size:12px;color:#6f6aa8}
+.rr .rt2 .rlv i.on{color:#ffd75e;text-shadow:0 0 4px rgba(255,214,102,.8)}
+.rr .rt2 span small{color:#bfb6e8}
+#rareCnt small{color:#cfc8f0;font-size:11px}
+#eqChip small{font-size:10px;margin-left:1px}
+#eqChip.glint{box-shadow:0 0 10px 2px rgba(255,214,102,.9)!important;border-color:#ffe27a!important}
 </style>
 </head>
 <body>
@@ -1070,6 +1080,7 @@ body.kvsplash .kvtap{display:block}
     <div class="rrow"><span class="ri">⚔️</span><span class="rl">たおした数</span><b id="eKills"></b></div>
     <div class="rrow"><span class="ri">⭐</span><span class="rl">レベル</span><b id="eLv"></b></div>
     <div class="rrow" id="eStarRow"><span class="ri">🌟</span><span class="rl">ひょうか</span><b id="eStars" class="stars"></b></div>
+    <div class="rrow coins"><span class="ri">🪙</span><span class="rl">コイン</span><b id="eCoins"></b></div>
     <div class="rrow mats"><span class="ri">👛</span><span class="rl">ひろった そざい</span><div class="matgrid" id="eMats"></div></div>
     <div class="rrow best"><span class="ri">👑</span><span class="rl">ベスト記録</span><b id="bestEnd"></b></div>
     <div id="eRare"></div>
@@ -1140,7 +1151,7 @@ body.kvsplash .kvtap{display:block}
 
 <script>
 /* ============================================================
-   のるんのだいぼうけん v8.6（コイン表示・レアの おとす敵・戻るボタン・大技の 合図と 音・おかいもので かえる キャラ5つ）（もと：のるんの ほしぞらサバイバル v7.2）
+   のるんのだいぼうけん v8.7（くりかえし あそんでも コイン・レアアイテムの 作りなおし・レアの ★・2つ そうび）（もと：のるんの ほしぞらサバイバル v7.2）
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -1294,6 +1305,11 @@ const CFG = {
      数は ふつうに あそんで とどく くらい（強化なしの 3分プレイ で たおす数の おおよそ 6〜7わり） */
   STAR_KILLS: {1: 180, 2: 220, 3: 260, 4: 330, 5: 400, 6: 350, 7: 400, 8: 420, 9: 450, 10: 350},
   STAR_COIN: 10,   // ★を はじめて とった時の コイン（★1つにつき）
+  /* v8.7：くりかえし あそんでも コイン。クリア＝5＋ステージ番号（5分は 1.5倍・きりすて）／ボス＝コインぶくろ 5まい／エンドレス＝1分ごとに 2まい */
+  COIN: {clearBase:5, long:1.5, bag:5, endlessPerMin:2, rareMax:30},
+  /* v8.7：レアアイテムの ★（同じ レアを ひろうと ★1→★2→★3）。★3で また ひろうと コイン rareMax まい */
+  RARE_LV: {life:[0.5,0.65,0.8], guard:[30,25,20], bell:[10,8,6], gold:[0.30,0.45,0.60],
+            roomba:{dmg:[10,16,24], knock:[240,340,460]}, bellR:260, bellStun:1.0, eq2Stars:20},
   /* おかいもの：のるんの まわりに 出る エフェクト（コインで かう。つよさ工房の そざいとは べつ）。ぜんぶで 450まい＝★30こ（300まい）では ぜんぶは かえない */
   SHOP: [
     {k:'dust',    name:'ほしのこな', ico:'✨', price:30,  desc:'星の粉が ふわふわ まう'},
@@ -1419,12 +1435,23 @@ function forgeCost(k,lv){   // lv＝これから上がるレベル（1〜10）
   return out;
 }
 const RARES = {
-  life:  {name:'いのちのほし',   desc:'HPが0になった時 1回だけ、HP50%で ふっかつ', how:'さいごのステージを はじめて クリアすると もらえる'},
-  guard: {name:'ほしのまもり',   desc:'ダメージを1回 ふせぐ。ふせいでから30秒で もどる', from:'hand',     how:'手を はじめて たおすと かならず おちる（そのあとも まれに）'},
-  bell:  {name:'ほしあつめの鈴', desc:'かけらを ひきよせる はんいが ずっと2ばい',         from:'bosscat',  how:'ボスネコを たおすと まれに おちる'},
-  gold:  {name:'こがねの羽',     desc:'けいけんちの 入りが +20%',                         from:'bosscrow', how:'ボスカラスを たおすと まれに おちる'},
-  roomba:{name:'ルンバの心',     desc:'がめんの はんぶんくらいの かけらが、いつも よってくる', from:'roomba', how:'ルンバを はじめて たおすと かならず おちる（そのあとも まれに）'},
+  life:  {name:'いのちのほし',   desc:'HPが0になった時 1回だけ ふっかつ', how:'さいごのステージを はじめて クリアすると もらえる（そのあとの クリアでも まれに）'},
+  guard: {name:'ほしのまもり',   desc:'ダメージを1回 ふせぐ', from:'hand',     how:'手を はじめて たおすと かならず おちる（そのあとも まれに）'},
+  bell:  {name:'ほしあつめの鈴', desc:'チリン！で 敵を ひるませる',         from:'bosscat',  how:'ボスネコを たおすと まれに おちる'},
+  gold:  {name:'こがねの羽',     desc:'大技ゲージが はやく たまる',                         from:'bosscrow', how:'ボスカラスを たおすと まれに おちる'},
+  roomba:{name:'ルンバの心',     desc:'小さな ルンバが 仲間に なる', from:'roomba', how:'ルンバを はじめて たおすと かならず おちる（そのあとも まれに）'},
 };   // from＝その レアアイテムを おとす 敵（ほかの 敵からは おちない）
+const rareLv = k => Math.max(1,Math.min(3,(save.rareLv&&save.rareLv[k])|0||1));
+function rareText(k,lv){   // その ★での こうか
+  const L=CFG.RARE_LV, i=lv-1;
+  return k==='life'  ? 'HPが0に なった時 1回だけ、HP'+Math.round(L.life[i]*100)+'%で ふっかつ'
+       : k==='guard' ? 'ダメージを1回 ふせぐ。'+L.guard[i]+'秒で もどる（まもれる間は うすい まくが 見える）'
+       : k==='bell'  ? L.bell[i]+'秒ごとに チリン！ 近くの敵を ひるませて、かけらを ひきよせる（ボスは ひるまない）'
+       : k==='gold'  ? '大技ゲージが '+Math.round(L.gold[i]*100)+'% はやく たまる'
+       : k==='roomba'? '小さな ルンバが 仲間に なる。かけらを あつめて、足もとの敵に 体当たり（つよさ ★'+lv+'）' : '';
+}
+const eqSlots = () => totalStars()>=CFG.RARE_LV.eq2Stars ? 2 : 1;   // ★が 20こ いじょうで 2つ そうび
+const eqList = () => [save.equip, eqSlots()>1?save.equip2:null].filter(k=>k&&RARES[k]&&hasRare(k)).filter((k,i,a)=>a.indexOf(k)===i);
 const RARE_HOW = 'ボス（ボスネコ・ボスカラス・手・ルンバ）を たおすと まれに おちる。手とルンバは はじめて たおした時 かならず おちる';
 
 /* ---------- 小道具 ---------- */
@@ -1455,6 +1482,9 @@ function loadSave(){
   s.coins = Math.max(0, s.coins|0);
   s.fxOwn = (s.fxOwn&&typeof s.fxOwn==='object') ? s.fxOwn : {};
   s.charOwn = (s.charOwn&&typeof s.charOwn==='object') ? s.charOwn : {};   // v8.6：おかいもので かった キャラ
+  s.rareLv = (s.rareLv&&typeof s.rareLv==='object') ? s.rareLv : {};       // v8.7：レアアイテムの ★（1〜3）。持っている レアは ★1から
+  for(const k in s.rares) if(s.rares[k]) s.rareLv[k]=Math.max(1,Math.min(3,s.rareLv[k]|0||1));
+  s.equip2 = (typeof s.equip2==='string') ? s.equip2 : null;              // v8.7：2つめの そうび（★20こ いじょう）
   s.fxEq  = (typeof s.fxEq==='string'&&CFG.SHOP.some(x=>x.k===s.fxEq&&s.fxOwn[s.fxEq])) ? s.fxEq : null;
   if(!s.v85){   // いままでの クリアは ★1、ベスト記録の たおした数が とどいて いれば ★3（体力の 記録は ないので ★2は これから）
     let n=0; const add=(id,b)=>{ const m=s.stars[id]|0; if(!(m&b)){ s.stars[id]=m|b; n++; } };
@@ -1482,10 +1512,12 @@ function persist(){ try{ localStorage.setItem(CFG.SAVE_KEY, JSON.stringify(save)
 let save = loadSave();
 if(save._migrated){ delete save._migrated; persist(); }
 const UNLOCK_ALL = /[?&]unlock=1/.test((window.location&&window.location.search)||'');
+const hasEq = k => !!(G&&G.eqs&&G.eqs.includes(k));
 const isOpen = f => UNLOCK_ALL || UNLOCK[f].ok(save);
 if(!isOpen(save.form)) save.form='normal';
 const hasRare = k => UNLOCK_ALL || !!save.rares[k];
 if(save.equip && !(RARES[save.equip]&&hasRare(save.equip))) save.equip=null;
+if(save.equip2 && (!(RARES[save.equip2]&&hasRare(save.equip2))||save.equip2===save.equip)) save.equip2=null;
 if(/[?&]rich=1/.test((window.location&&window.location.search)||'')){ for(const k in MATS) save.mats[k]=Math.max(save.mats[k]||0,999); }   // テスト用：そざい999こ
 
 /* ---------- 効果音（仮：WebAudio合成音） ---------- */
@@ -1500,7 +1532,7 @@ let audioOk=false;
 const bgm={el:null,key:'',vol:-1,bad:{}};
 function bgmWant(){   // いまの画面で 鳴らす曲と 音量
   if(state==='play') return ['stage'+G.stage.id,CFG.BGM.vol];
-  if(state==='levelup'||state==='pause'||state==='end') return [G&&G.stage?'stage'+G.stage.id:'title',CFG.BGM.dim];
+  if(state==='levelup'||state==='pause'||state==='end'||state==='clearfx') return [G&&G.stage?'stage'+G.stage.id:'title',CFG.BGM.dim];
   return ['title',CFG.BGM.vol];
 }
 function bgmSync(force){
@@ -1540,6 +1572,8 @@ const SFX = {
   phase(){ tone(900,0.3,'sine',0.05,-500); },
   boss(){ tone(110,0.6,'sawtooth',0.07,-40); },
   ready(){ tone(880,0.1,'triangle',0.05); tone(1320,0.16,'triangle',0.05,0,0.1); },
+  bell(){ tone(2637,0.35,'sine',0.03,0); tone(3520,0.28,'sine',0.02,0,0.06); tone(1760,0.2,'triangle',0.015,0,0.02); },   // チリン（ひかえめ）
+  coin(){ if(gate('cn',45)) tone(1980,0.06,'triangle',0.02,500); },
   ultReady(){ [1319,1760,2093,2637].forEach((f,i)=>tone(f,0.09,'triangle',0.028,0,i*0.055)); tone(3136,0.22,'sine',0.018,0,0.24); },   // 大技が たまった：キラキラ（ひかえめ）
   ult(form){   // 大技を うった 音：姿ごとに ちがう ふんいき（音量は ひかえめ）
     const T={
@@ -1641,13 +1675,17 @@ function newGame(form,limit,stageId,endless){
     roombaT:2, xpMul:1, eq:null, guardReady:false, guardT:0, revived:false, mats:{}, gotRares:[], pops:[], slams:0, slamHits:0, eaten:0,
   };
   // つよさ工房（素体レベル）とレアアイテム。Lv0・そうびなしなら 今までと まったく同じ
-  const FL=k=>Math.min(FORGE_MAX,save.forge[k]||0), eq=(save.equip&&RARES[save.equip]&&hasRare(save.equip))?save.equip:null;
+  const FL=k=>Math.min(FORGE_MAX,save.forge[k]||0), eqs=eqList(), eq=eqs[0]||null;
   G.p.maxHp+=FORGE.hp.per*FL('hp');
   G.st.power*=1+FORGE.atk.per*FL('atk');
   G.st.move*=1+FORGE.spd.per*FL('spd');
-  G.st.magnet*=(1+FORGE.mag.per*FL('mag'))*(eq==='bell'?2:1);
-  G.xpMul=(1+FORGE.xp.per*FL('xp'))*(eq==='gold'?1.2:1);
-  G.eq=eq; G.guardReady=eq==='guard';
+  G.st.magnet*=(1+FORGE.mag.per*FL('mag'));
+  G.xpMul=(1+FORGE.xp.per*FL('xp'));
+  G.eqs=eqs; G.eq=eq; G.guardReady=eqs.includes('guard');   // そうび（1〜2こ）
+  G.ultMul=eqs.includes('gold')?1+CFG.RARE_LV.gold[rareLv('gold')-1]:1;   // こがねの羽：大技ゲージが はやく たまる
+  G.bellT=eqs.includes('bell')?3:0; G.goldGlint=0;
+  G.buddy=eqs.includes('roomba')?{x:G.p.x-40,y:G.p.y+20,vx:0,vy:0,cd:0,ang:0,lv:rareLv('roomba')}:null;   // ルンバの心：仲間の ルンバ
+  G.bagCoins=0; G.rareUps=[]; G.rareCoins=0; G.cfx=null;
   G.p.kx=0; G.p.ky=0;
   G.p.hp=G.p.maxHp;
 }
@@ -1735,7 +1773,8 @@ function applyPoison(e){
 function onKill(e){
   G.kills++; SFX.kill();
   const before=G.ult;
-  G.ult=Math.min(G.ultNeed,G.ult+(e.boss?10:1));
+  G.ult=Math.min(G.ultNeed,G.ult+(e.boss?10:1)*(G.ultMul||1));
+  if(G.ultMul>1&&G.ult<G.ultNeed&&G.goldGlint<=0) G.goldGlint=0.45;   // こがねの羽：キラッ
   if(before<G.ultNeed && G.ult>=G.ultNeed) ultReadyFx();
   // 撃破：星のかけらが弾ける＋小さな画面揺れ（ボスは強め）
   if(e.boss){
@@ -1767,6 +1806,7 @@ function rollDrops(e){
   if(Math.random()<D.common*dm) gainMat('hoshi',1,e.x-10,e.y-e.alt);
   if(own&&(e.boss||e.elite||Math.random()<D.own*dm)) gainMat(own,1,e.x+10,e.y-e.alt);
   if(e.boss||e.elite) rollRare(e);
+  if(e.boss) G.gems.push({x:e.x+rand(-14,14),y:e.y-e.alt+rand(-6,6),v:0,spd:0,ph:rand(0,TAU),coin:CFG.COIN.bag});   // コインぶくろ（5まい）
 }
 function gainMat(id,n,x,y){
   G.mats[id]=(G.mats[id]||0)+n;
@@ -1778,18 +1818,21 @@ function rollRare(e){
   const first=(e.type==='hand'||e.type==='roomba')&&!save.firstKill[e.type];
   if(e.type==='hand'||e.type==='roomba') save.firstKill[e.type]=true;
   const id=Object.keys(RARES).find(k=>RARES[k].from===e.type);
-  if(id&&!save.rares[id]&&(first||Math.random()<CFG.RARE_RATE)) giveRare(id,e.x,e.y-e.alt);
+  if(id&&((first&&!save.rares[id])||Math.random()<CFG.RARE_RATE)) giveRare(id,e.x,e.y-e.alt);   // 持っていても おちる（★が あがる）。確率は いままで通り
   persist();
 }
 function giveRare(id,x,y){
-  if(save.rares[id]) return false;
-  save.rares[id]=true; persist(); G.gotRares.push(id);
+  let msg;
+  if(!save.rares[id]){ save.rares[id]=true; save.rareLv[id]=1; G.gotRares.push(id); msg='レアアイテム「'+RARES[id].name+'」を てにいれた！'; }
+  else if(rareLv(id)<3){ save.rareLv[id]=rareLv(id)+1; G.rareUps.push(id); msg='「'+RARES[id].name+'」が ★'+save.rareLv[id]+'に つよくなった！'; }
+  else { const c=CFG.COIN.rareMax; save.coins+=c; G.rareCoins+=c; msg='「'+RARES[id].name+'」は もう ★3！ コイン '+c+'まいに かわったよ'; }
+  persist();
   if(x!=null){ G.pops.push({id,n:1,x,y,t:2,max:2,rare:true}); ring(x,y,10,360,0.6,'255,214,102',8); burst(x,y,24,'star','#ffd966',320); }
-  banner('レアアイテム「'+RARES[id].name+'」を てにいれた！'); SFX.clear();
+  banner(msg); SFX.clear();
   return true;
 }
 function addGem(x,y,v){
-  if(G.gems.length>=380){ const i=G.gems.findIndex(g=>!g.heart&&!g.herb); if(i>=0){ v+=G.gems[i].v; G.gems.splice(i,1); } }
+  if(G.gems.length>=380){ const i=G.gems.findIndex(g=>!g.heart&&!g.herb&&!g.coin); if(i>=0){ v+=G.gems[i].v; G.gems.splice(i,1); } }
   G.gems.push({x,y,v,spd:0,ph:rand(0,TAU)});
 }
 function nearestTo(x,y,maxD,skip){
@@ -1913,6 +1956,37 @@ function ultReadyFx(){   // 大技が たまった 瞬間：音＋のるんの �
   SFX.ultReady(); const p=G.p; ring(p.x,p.y,16,180,0.45,'255,226,122',6); ring(p.x,p.y,8,120,0.6,'255,255,255',3);
   const b=$('btnUlt'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
 }
+/* ほしあつめの鈴：チリン！ 近くの 敵を ひるませて（ボスは ひるまない）、まわりの かけらを ひきよせる */
+function bellRing(){
+  const p=G.p, R=CFG.RARE_LV.bellR; SFX.bell();
+  ring(p.x,p.y,14,R,0.5,'255,226,122',6); ring(p.x,p.y,8,R*0.7,0.4,'255,255,255',3); burst(p.x,p.y-20,6,'star','#ffe27a',160);
+  for(const e of G.enemies){ if(e.dead) continue; const d=Math.hypot(e.x-p.x,e.y-p.y); if(d<R&&!e.boss){ e.stun=Math.max(e.stun,CFG.RARE_LV.bellStun); e.stunK='zap'; } }
+  for(const g of G.gems){ if(Math.hypot(g.x-p.x,g.y-p.y)<R*1.5) g.spd=Math.max(g.spd,1); }
+}
+/* ルンバの心：仲間の 小さな ルンバ。近くの かけらへ むかって 吸いこみ（のるんが ひろったのと 同じ）、ふれた 敵に 体当たり */
+function updateBuddy(dt){
+  const B=G.buddy, p=G.p, L=CFG.RARE_LV.roomba, i=B.lv-1;
+  let tx=p.x-(p.dir||1)*42, ty=p.y+22, best=null, bd=260*260;
+  for(const g of G.gems){ if(g.got||g.heart) continue; const dp=(g.x-p.x)**2+(g.y-p.y)**2; if(dp<bd&&(g.x-B.x)**2+(g.y-B.y)**2<340*340){ bd=dp; best=g; } }
+  if(best){ tx=best.x; ty=best.y; }
+  const dx=tx-B.x, dy=ty-B.y, d=Math.hypot(dx,dy)||1, far=Math.hypot(p.x-B.x,p.y-B.y)>360, sp=d<8&&!best?0:(far?460:280), k=Math.min(1,5*dt);
+  B.vx+=(dx/d*sp-B.vx)*k; B.vy+=(dy/d*sp-B.vy)*k; B.x+=B.vx*dt; B.y+=B.vy*dt;
+  if(Math.hypot(B.vx,B.vy)>20) B.ang=Math.atan2(B.vy,B.vx);
+  for(const g of G.gems){ if(g.got||g.heart) continue; const gx=B.x-g.x, gy=B.y-g.y, gd=Math.hypot(gx,gy)||1;
+    if(gd<18){ pickGem(g); if(Math.random()<0.5) burst(B.x,B.y,1,'star','#ffe27a',60); } else if(gd<64){ g.x+=gx/gd*300*dt; g.y+=gy/gd*300*dt; } }
+  B.cd-=dt;
+  if(B.cd<=0) for(const e of G.enemies){ if(e.dead||e.alt>=25) continue; const ex=e.x-B.x, ey=e.y-B.y, ed=Math.hypot(ex,ey)||1;
+    if(ed<e.r+14){ B.cd=0.5; hurtEnemy(e,L.dmg[i]*(1+G.t/200)*power()); if(!e.boss){ e.kx+=ex/ed*L.knock[i]; e.ky+=ey/ed*L.knock[i]; } hitFx(e,'slam'); burst(B.x,B.y,3,'spark','#bfe0ff',140); break; } }
+}
+function drawBuddy(c){
+  const B=G.buddy; if(!B) return; const set=enemyImg.roomba, im=set&&imgOk(set.front)?set.front:null, s=28;
+  c.fillStyle='rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(B.x,B.y+9,12,4,0,0,TAU); c.fill();
+  c.save(); c.translate(B.x,B.y);
+  if(im){ const w=s*im.naturalWidth/im.naturalHeight; c.drawImage(fitSpr(im,w*DPR*SC,s*DPR*SC),-w/2,-s/2,w,s); }
+  else{ c.fillStyle='#5a5f6e'; c.beginPath(); c.arc(0,0,12,0,TAU); c.fill(); c.fillStyle='#8a90a0'; c.beginPath(); c.arc(0,-1,9,0,TAU); c.fill(); c.fillStyle='#7cf0a0'; c.beginPath(); c.arc(Math.cos(B.ang)*6,Math.sin(B.ang)*6-1,2.2,0,TAU); c.fill(); }
+  c.restore();
+  c.fillStyle='#ff8fb8'; c.beginPath(); heartPath(c,B.x,B.y-18,4); c.fill();   // なかまの しるし
+}
 function useUlt(){
   if(state!=='play'||G.ult<G.ultNeed) return;
   G.ult=0; G.ultNeed+=CFG.ULT_STEP;
@@ -1996,7 +2070,10 @@ function update(dt){
   updateGems(dt);
   updateFx(dt);
   updateUltExtras(dt);
-  if(G.eq==='guard'&&!G.guardReady){ G.guardT-=dt; if(G.guardT<=0){ G.guardReady=true; ring(G.p.x,G.p.y,10,200,0.4,'200,180,255',5); } }
+  if(hasEq('guard')&&!G.guardReady){ G.guardT-=dt; if(G.guardT<=0){ G.guardReady=true; ring(G.p.x,G.p.y,10,200,0.4,'200,180,255',5); } }
+  if(hasEq('bell')){ G.bellT-=dt; if(G.bellT<=0){ G.bellT=CFG.RARE_LV.bell[rareLv('bell')-1]; bellRing(); } }
+  if(G.buddy) updateBuddy(dt);
+  if(G.goldGlint>0) G.goldGlint-=dt;
   for(const q of G.pops) q.t-=dt;
   compact(G.pops,q=>q.t>0);
   for(const b of G.bolts) b.life-=dt;
@@ -2115,16 +2192,20 @@ function hurtPlayer(dmg,kx,ky){
   if(p.giant>0||p.phase>0||p.inv>0||p.roll>0) return false;
   if(p.form==='obake'&&p.phaseCd<=0){ p.phase=PERK.obakePhase; p.phaseCd=PERK.obakeCd; SFX.phase(); return false; }
   if(G.guardReady){
-    G.guardReady=false; G.guardT=CFG.GUARD_CD; p.inv=0.7;
+    G.guardReady=false; G.guardT=CFG.RARE_LV.guard[rareLv('guard')-1]; p.inv=0.7;
     ring(p.x,p.y,22,260,0.4,'200,180,255',7); burst(p.x,p.y,12,'star','#d9ccff',220); SFX.phase(); return false;
   }
   p.hp-=dmg; p.inv=0.7; shake(0.18,4); SFX.hurt(); puff(p.x,p.y,5,'#ff8fa8');
   if(kx||ky){ const m=p.form==='purin'?PERK.purinKnock:1; p.kx+=kx*m; p.ky+=ky*m; }   // プリン：ふきとばされにくい
   if(p.hp<=0){
-    if(G.eq==='life'&&!G.revived){
-      G.revived=true; p.hp=p.maxHp*CFG.REVIVE_HP; p.inv=2;
-      flash('255,200,225',0.6,0.5); ring(p.x,p.y,20,500,0.6,'255,143,177',10); burst(p.x,p.y,26,'star','#ffb3cb',360);
-      banner('いのちのほしで ふっかつ！'); SFX.level(); return true;
+    if(hasEq('life')&&!G.revived){
+      G.revived=true; p.hp=p.maxHp*CFG.RARE_LV.life[rareLv('life')-1]; p.inv=2.2;
+      // 星が はじける ふっかつ（見た目だけ 豪華に）
+      flash('255,236,170',0.75,0.6); shake(0.4,7);
+      ring(p.x,p.y,20,560,0.6,'255,214,102',12); ring(p.x,p.y,14,400,0.8,'255,143,177',8); ring(p.x,p.y,8,260,1.0,'255,255,255',5);
+      burst(p.x,p.y,34,'star','#ffe27a',460); burst(p.x,p.y,24,'star','#ffb3cb',360); burst(p.x,p.y,18,'spark','#ffffff',520);
+      for(let i=0;i<8;i++){ const a=i/8*TAU; burst(p.x+Math.cos(a)*70,p.y+Math.sin(a)*70,4,'star','#fff3a8',200); }
+      banner('★ いのちのほしで ふっかつ！ ★'); SFX.level(); tone(1568,0.3,'triangle',0.035,0,0.25); return true;
     }
     p.hp=0; endGame(false);
   }
@@ -2220,14 +2301,14 @@ function updateZones(dt){
 }
 const roombas=[];
 function updateGems(dt){
-  const p=G.p, mag=G.st.magnet, RB=CFG.ROOMBA, RH=CFG.ROOMBA_HEART, auto=G.eq==='roomba'?Math.min(VW,VH)*RH.r:0;
+  const p=G.p, mag=G.st.magnet, RB=CFG.ROOMBA, RH=CFG.ROOMBA_HEART, auto=0;   // （ルンバの心は v8.7 から 仲間の ルンバに）
   roombas.length=0; for(const e of G.enemies) if(e.ai==='roomba'&&!e.dead) roombas.push(e);
   for(const g of G.gems){
     const dx=p.x-g.x, dy=p.y-g.y, d=Math.hypot(dx,dy)||1;
     if(d<mag||g.spd>0){ g.spd=Math.min(620,g.spd+1500*dt); g.x+=dx/d*g.spd*dt; g.y+=dy/d*g.spd*dt; }
     else{
       if(auto&&d<auto){ g.x+=dx/d*RH.spd*dt; g.y+=dy/d*RH.spd*dt; }   // ルンバの心
-      if(!g.heart) for(const e of roombas){   // ルンバが近くの かけらを吸いこむ
+      if(!g.heart&&!g.coin) for(const e of roombas){   // ルンバが近くの かけらを吸いこむ（コインぶくろは すわない）
         const ex=e.x-g.x, ey=e.y-g.y, ed=Math.hypot(ex,ey)||1;
         if(ed>=RB.suck) continue;
         if(ed<e.r+6){ g.got=true; e.stash+=g.v; G.eaten+=g.v; if(Math.random()<0.6) burst(e.x,e.y,1,'star','#ffe27a',70); }
@@ -2236,13 +2317,15 @@ function updateGems(dt){
       }
       if(g.got) continue;
     }
-    if(d<p.r+10){
-      g.got=true;
-      if(g.heart){ heal(20); SFX.heal(); }
-      else{ SFX.pick(); G.xp+=g.v*G.xpMul; while(G.xp>=G.need){ G.xp-=G.need; G.level++; G.need=xpNeed(G.level); G.pending++; } }
-    }
+    if(d<p.r+10) pickGem(g);
   }
   compact(G.gems,g=>!g.got);
+}
+function pickGem(g){
+  g.got=true;
+  if(g.coin){ G.bagCoins+=g.coin; G.pops.push({id:'coin',n:g.coin,x:g.x,y:g.y,t:1.2,max:1.2,coin:true}); SFX.coin(); tone(1320,0.08,'triangle',0.03,300,0.05); return; }   // コインぶくろ
+  if(g.heart){ heal(20); SFX.heal(); }
+  else{ SFX.pick(); G.xp+=g.v*G.xpMul; while(G.xp>=G.need){ G.xp-=G.need; G.level++; G.need=xpNeed(G.level); G.pending++; } }
 }
 /* ---------- エフェクト ----------
    粒子の形：dot=丸 / star=星のかけら / shard=氷の結晶 / bubble=毒の泡 / smoke=煙 / spark=火花・閃光 / ember=火の粉 / flame=炎
@@ -2404,8 +2487,8 @@ function buildSheet(){
     el.classList.toggle('sel',l===save.limit);
     el.onclick=()=>{ save.limit=l; persist(); buildSheet(); };
   }
-  const eq=save.equip;
-  $('shEq').innerHTML=(S.final?'<b>さいごの ステージ！</b> 手は かたい。つよさ工房で つよくしてから いどもう<br>':'')+'そうび：'+(eq?icoImg(eq)+' <b>'+RARES[eq].name+'</b>':'なし')+'（レアアイテムで かえられる）';
+  const eqs=eqList();
+  $('shEq').innerHTML=(S.final?'<b>さいごの ステージ！</b> 手は かたい。つよさ工房で つよくしてから いどもう<br>':'')+'そうび：'+(eqs.length?eqs.map(k=>icoImg(k)+' <b>'+RARES[k].name+' ★'+rareLv(k)+'</b>').join('・'):'なし')+'（レアアイテムで かえられる）';
   $('shPlay').onclick=()=>{ closeSheet(); start(sheetId,false); };
   const eb=$('shEndless'); eb.style.display=((cleared&&endlessOpen())||save.endless[sheetId]||UNLOCK_ALL)?'inline-block':'none';   // エンドレスは エンディングの後（クリアした ステージ）。前に エンドレスで あそんだ ステージは そのまま
   eb.onclick=()=>{ closeSheet(); start(sheetId,true); };
@@ -2821,9 +2904,10 @@ function start(stageId,endless,formOverride){   // 引数なし＝同じステ�
   newGame(f,save.limit,cur.stage,cur.endless); state='play'; showOnly(null); setPlayUi(true);
   banner('ステージ'+G.stage.id+'「'+G.stage.name+'」'+(G.endless?' ∞':G.stage.final?' さいごの ステージ！':''));
 }
-function bankKills(){   // 1回のプレイの成果を もちかえる（たおした数・そざい）。やられても 途中でやめても もちかえる
+function bankKills(){   // 1回のプレイの成果を もちかえる（たおした数・そざい・ひろった コインぶくろ）。やられても 途中でやめても もちかえる
   if(!G||G.banked) return;
   G.banked=true; save.totalKills+=G.kills;
+  if(G.bagCoins>0){ save.coins+=G.bagCoins; G.bagCoins=0; }
   for(const k in G.mats) save.mats[k]=(save.mats[k]||0)+G.mats[k];
   persist();
 }
@@ -2870,7 +2954,7 @@ function copyText(t,btn){ const done=()=>{ const o=btn.textContent; btn.textCont
 /* ---------- エラーの メモ（さいごの 5つ。ゲームの セーブとは べつの キー） ---------- */
 const ERRKEY='norun-daibouken-errors';
 function errList(){ try{ return JSON.parse(localStorage.getItem(ERRKEY)||'[]'); }catch(e){ return []; } }
-function errAdd(msg){ try{ const L=errList(); const d=new Date(), z=n=>String(n).padStart(2,'0'); L.unshift({t:d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds()),m:String(msg).slice(0,400),v:'v8.6',s:state}); localStorage.setItem(ERRKEY,JSON.stringify(L.slice(0,5))); }catch(e){} }
+function errAdd(msg){ try{ const L=errList(); const d=new Date(), z=n=>String(n).padStart(2,'0'); L.unshift({t:d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds()),m:String(msg).slice(0,400),v:'v8.7',s:state}); localStorage.setItem(ERRKEY,JSON.stringify(L.slice(0,5))); }catch(e){} }
 function errText(){ const L=errList(); return L.length?L.map(e=>e.t+'（'+e.v+'・画面:'+e.s+'）\n'+e.m).join('\n\n'):''; }
 function errShow(){ const t=errText(); $('errTxt').textContent=t||'エラーは ありません'; }
 if(typeof window!=='undefined'&&window.addEventListener){
@@ -2894,12 +2978,14 @@ function navSync(){
 }
 if(typeof window!=='undefined'&&window.addEventListener){
   const rearm=()=>{ if(state!=='title'&&NAV.depth<2&&!NAV.ignore) navSync(); };
+  window.addEventListener('pointerdown',()=>{ if(state==='clearfx'&&G.cfx&&G.cfx.t>0.25) G.cfx.done(); });   // クリアの コイン演出は タップで とばせる
   window.addEventListener('pointerdown',rearm,true); window.addEventListener('keydown',rearm,true); window.addEventListener('touchend',rearm,true);
 }
 function goBack(){
   if($('stageSheet').classList.contains('on')){ closeSheet(); return; }          // 準備画面 → ステージえらび
   if($('records').classList.contains('on')){ $('recBack').click(); return; }      // きろく → もとの画面（タイトル／結果）
   switch(state){
+    case 'clearfx': if(G.cfx) G.cfx.done(); return;
     case 'play': case 'pause': case 'levelup': toTitle(); return;                // プレイ中（ひとやすみ・レベルアップ中も）→ タイトルへ
     case 'stage': $('btnBack').click(); return;                                   // ステージえらび → タイトル
     case 'forge': $('btnForgeBack').click(); return;                              // 工房 → タイトル
@@ -2925,7 +3011,8 @@ function endGame(clear){
   const newT=time>b.time, newK=G.kills>b.kills;
   if(newT) b.time=time; if(newK) b.kills=G.kills;
   if(clear){ b.clear=true; save.anyClear=true; save.clears[G.form]=(save.clears[G.form]||0)+1; save.stageClear[S.id]=true; }
-  if(firstClear&&S.final&&!save.rares.life){ save.rares.life=true; G.gotRares.push('life'); }   // 最終面の はじめてのクリア：いのちのほし
+  if(firstClear&&S.final&&!save.rares.life){ save.rares.life=true; save.rareLv.life=1; G.gotRares.push('life'); }   // 最終面の はじめてのクリア：いのちのほし
+  else if(clear&&S.final&&!G.endless&&save.rares.life&&Math.random()<CFG.RARE_RATE) giveRare('life');   // 2回目からの クリアでも まれに（★を あげる ため）
   G.starNew=0; G.coinGain=0;
   if(!G.endless){   // ★3つの 判定（とった ★は へらない）。はじめて とった ★1つにつき コイン
     let got=0; if(clear) got|=1; if(clear&&G.p.hp>=G.p.maxHp*0.5) got|=2; if(G.kills>=(CFG.STAR_KILLS[S.id]||1e9)) got|=4;
@@ -2935,6 +3022,11 @@ function endGame(clear){
   const wasEnd=!!save.story.done;
   G.pendingBook = firstClear ? stagePages(S.id) : null;   // はじめてのクリア：そのステージの 絵本を はさむ
   if(firstClear&&S.final) save.story.done=true;          // エンディング到達 → エンドレス
+  // コイン：クリア報酬（5＋ステージ番号、5分は 1.5倍）＋ ボスの ぶくろ（クリアなら のこりも 自動で）＋ エンドレス（1分ごと）
+  { const C=CFG.COIN; let bag=G.bagCoins||0;
+    if(clear) for(const g of G.gems) if(g.coin&&!g.got){ bag+=g.coin; g.got=true; }
+    const cl=(clear&&!G.endless)?Math.floor((C.clearBase+S.id)*(G.limit>=300?C.long:1)):0, en=G.endless?Math.floor(G.t/60)*C.endlessPerMin:0;
+    G.coinClear=cl; G.coinBag=bag; G.coinEndless=en; G.bagCoins=0; save.coins+=cl+bag+en; }
   bankKills(); persist();
   const opened=Object.keys(FORMS).filter(f=>isOpen(f)&&!wasOpen.includes(f)), msg=[];
   if(clear&&nx&&!nextWasOpen) msg.push('✨ ステージ'+nx.id+'「'+nx.name+'」が あそべるようになった！');
@@ -2944,6 +3036,7 @@ function endGame(clear){
   if(G.pendingBook) msg.push('📖 えほんの あたらしい ページが ひらいたよ');
   if(G.coinGain) msg.push('🪙 ★'+starCount(G.starNew)+'つ ゲット！ コインを '+G.coinGain+'まい もらった（おかいもので つかえるよ）');
   if(opened.length) msg.push('✨ あたらしい へんしん：'+opened.map(f=>FORMS[f].name).join('・'));
+  if(clear&&!G.endless&&totalStars()>=CFG.RARE_LV.eq2Stars&&totalStars()-starCount(G.starNew||0)<CFG.RARE_LV.eq2Stars) msg.push('💎 ★が 20こ！ レアアイテムを 2つ そうび できるように なった！');
   const et=$('endState'); et.className='estate'+(G.endless?' lav':clear?' gold':'');
   et.textContent=G.endless?'∞ エンドレス おしまい':clear?'ステージ'+S.id+' クリア！':'やられちゃった…';
   $('endMsg').textContent=G.endless?'「'+S.name+'」で ここまで いきのこった！':clear?(S.final?'おうちの中からも にげきった！':'つかまらずに にげきった！'):'もういちど ちょうせんしてみよう';
@@ -2954,14 +3047,38 @@ function endGame(clear){
   $('eStars').innerHTML=G.endless?'':starHTML(S.id,G.starNew)+(G.coinGain?'<em class="coin">+'+G.coinGain+'🪙</em>':'');
   const mk=Object.keys(MATS).filter(k=>G.mats[k]);
   $('eMats').innerHTML=mk.length?mk.map(k=>matChip(k,'+'+G.mats[k])).join(''):'<span class="none">こんかいは なし</span>';
-  $('eRare').innerHTML=G.gotRares.map(k=>'<div class="rareget">'+icoImg(k)+'<div><small>レアアイテム げっと！</small><b>'+RARES[k].name+'</b></div></div>').join('');
+  { const parts=[]; if(G.coinClear) parts.push('+'+G.coinClear+'（クリア）'); if(G.coinBag) parts.push((parts.length?'＋':'+')+G.coinBag+'（ボス）'); if(G.coinEndless) parts.push((parts.length?'＋':'+')+G.coinEndless+'（エンドレス）'); if(G.rareCoins) parts.push((parts.length?'＋':'+')+G.rareCoins+'（レア★3）');
+    $('eCoins').textContent=parts.length?'🪙 '+parts.join(''):'🪙 0'; }
+  $('eRare').innerHTML=G.rareUps.map(k=>'<div class="rareget">'+icoImg(k)+'<div><small>レアアイテムが つよくなった！</small><b>'+RARES[k].name+' ★'+rareLv(k)+'</b></div></div>').join('')+G.gotRares.map(k=>'<div class="rareget">'+icoImg(k)+'<div><small>レアアイテム げっと！</small><b>'+RARES[k].name+'</b></div></div>').join('');
   $('unlockMsg').innerHTML=msg.join('<br>');
   $('bestEnd').textContent=G.endless?endlessText(S.id):bestText(S.id,G.limit);
   $('btnNext').style.display=(clear&&nx&&!G.endless)?'inline-block':'none';
-  endButtons();
-  showOnly('end');
-  if(clear) SFX.clear(); else SFX.over();
-  endPeek();
+  const showEnd=()=>{ if(state!=='clearfx'&&state!=='end') return; G.cfx=null; state='end'; endButtons(); showOnly('end'); endPeek(); };
+  if(clear&&!G.endless){   // クリアの 瞬間：のるんの まわりに コインが ふってきて、すいよせられて あつまる（1.4秒。タップで とばせる）
+    state='clearfx'; const p=G.p, n=Math.min(28,8+(G.coinClear||0)+(G.coinBag||0));
+    G.cfx={t:0,done:showEnd,list:Array.from({length:n},(_,i)=>({x:p.x+rand(-VW*0.4,VW*0.4),y:p.y-VH*0.32+rand(-90,0),vy:rand(0,80),d:rand(0,0.3),got:false,sp:rand(0.9,1.2)}))};
+    SFX.clear();
+  } else { endButtons(); showOnly('end'); SFX.over(); endPeek(); }
+}
+function updateClearCoins(dt){
+  const F=G.cfx; if(!F) return; F.t+=dt; const p=G.p;
+  for(const q of F.list){ if(q.got||F.t<q.d) continue; const t=F.t-q.d;
+    if(t<0.55){ q.vy+=900*dt; q.y+=q.vy*dt; }
+    else { const dx=p.x-q.x, dy=p.y-q.y, d=Math.hypot(dx,dy)||1, v=(t-0.55)*2400*q.sp; if(d<16){ q.got=true; SFX.coin(); burst(p.x,p.y-6,2,'star','#ffe27a',120); } else { q.x+=dx/d*Math.min(d,v*dt); q.y+=dy/d*Math.min(d,v*dt); } } }
+  if(F.t>=1.45) F.done();
+}
+function drawClearCoins(c){ const F=G.cfx, im=coinSpr('coin'); for(const q of F.list){ if(q.got||F.t<q.d) continue; const s=24; if(!LIGHT) glow(c,q.x,q.y,18,'255,214,102',0.35); c.drawImage(im,q.x-s/2,q.y-s/2,s,s); } }
+const COINSPR={};
+function coinSpr(k){   // コイン・コインぶくろの 絵（1回だけ 作る）
+  if(COINSPR[k]) return COINSPR[k];
+  const c=document.createElement('canvas'); c.width=c.height=48; const g=c.getContext('2d'); g.translate(24,24);
+  if(k==='coin'){ g.fillStyle='#b8801e'; g.beginPath(); g.arc(0,1.5,19,0,TAU); g.fill(); g.fillStyle='#ffd75e'; g.beginPath(); g.arc(0,0,18,0,TAU); g.fill();
+    g.strokeStyle='#e8a92c'; g.lineWidth=2.5; g.beginPath(); g.arc(0,0,13,0,TAU); g.stroke(); g.fillStyle='#fff3b0'; starPath(g,0,0,8,0); g.fill(); }
+  else { g.fillStyle='rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0,19,15,4,0,0,TAU); g.fill();
+    g.fillStyle='#c98b4a'; g.beginPath(); g.moveTo(-15,16); g.quadraticCurveTo(-19,-2,-8,-9); g.lineTo(8,-9); g.quadraticCurveTo(19,-2,15,16); g.closePath(); g.fill();
+    g.fillStyle='#a86d34'; g.beginPath(); g.ellipse(0,-10,9,4,0,0,TAU); g.fill(); g.fillStyle='#e8b070'; g.beginPath(); g.moveTo(-6,-12); g.lineTo(-10,-20); g.lineTo(0,-15); g.lineTo(10,-20); g.lineTo(6,-12); g.closePath(); g.fill();
+    g.fillStyle='#ffd75e'; g.beginPath(); g.arc(0,4,7,0,TAU); g.fill(); g.fillStyle='#fff3b0'; starPath(g,0,4,4,0); g.fill(); }
+  return COINSPR[k]=c;
 }
 function endPeek(){ requestAnimationFrame(()=>drawPeek($('endNorun'),74,0)); }
 function endButtons(){   // 絵本が まっている間は「おはなしの つづき」だけ。よみおわったら いつものボタン
@@ -3054,15 +3171,20 @@ function buildShop(){
     L.appendChild(row); }
 }
 function openRareBox(){ state='rarebox'; setPlayUi(false); buildRareBox(); showOnly('rarebox'); $('rarebox').scrollTop=0; }
-function buildRareBox(){   // もっている レアアイテムの 一覧と、そうびの つけはずし（中身・こうかは 今まで通り）
-  const keys=Object.keys(RARES), n=keys.filter(hasRare).length;
-  $('rareCnt').textContent='もっている '+n+' / '+keys.length+'　・　ゲームに もっていけるのは 1つ だけ';
+function buildRareBox(){   // もっている レアアイテムの 一覧（★つき）と、そうびの つけはずし（★20こ いじょうで 2つまで）
+  const keys=Object.keys(RARES), n=keys.filter(hasRare).length, slots=eqSlots(), on=eqList();
+  $('rareCnt').innerHTML='もっている '+n+' / '+keys.length+'　・　そうび '+on.length+' / '+slots+(slots<2?'<br><small>★が '+CFG.RARE_LV.eq2Stars+'こ たまると 2つ そうび できるよ（いま ★'+totalStars()+'）</small>':'')
+    +'<br><small>おなじ レアを また ひろうと ★が あがって つよくなるよ</small>';
   const L=$('rareList'); L.innerHTML='';
-  for(const k of keys){ const R=RARES[k], own=hasRare(k), on=save.equip===k, row=document.createElement('div');
-    row.className='rr'+(on?' eq':'')+(own?'':' lock');
-    row.innerHTML='<span class="ri2">'+icoImg(k)+'</span><div class="rt2"><b>'+(own?R.name:'？？？')+(on?'<em>そうびちゅう</em>':'')+'</b><span>'+(own?R.desc:'まだ もっていない：'+(R.how||RARE_HOW))+'</span></div>';
-    if(own){ const b=document.createElement('button'); b.className=on?'ghost':'big'; b.textContent=on?'はずす':'そうびする';
-      b.onclick=()=>{ save.equip=on?null:k; persist(); if(!on) SFX.ready(); else tone(440,0.08,'triangle',0.04,-80); buildRareBox(); };
+  for(const k of keys){ const R=RARES[k], own=hasRare(k), eqOn=on.includes(k), lv=own?rareLv(k):0, row=document.createElement('div');
+    row.className='rr'+(eqOn?' eq':'')+(own?'':' lock');
+    const stars=own?'<span class="rlv">'+[1,2,3].map(i=>'<i class="'+(i<=lv?'on':'')+'">★</i>').join('')+'</span>':'';
+    row.innerHTML='<span class="ri2">'+icoImg(k)+'</span><div class="rt2"><b>'+(own?R.name:'？？？')+stars+(eqOn?'<em>そうびちゅう</em>':'')+'</b><span>'+(own?rareText(k,lv)+(lv<3?'<br><small>つぎの ★'+(lv+1)+'：'+rareText(k,lv+1)+'</small>':'<br><small>★3（さいだい）。また ひろうと コイン'+CFG.COIN.rareMax+'まい</small>'):'まだ もっていない：'+(R.how||RARE_HOW))+'</span></div>';
+    if(own){ const b=document.createElement('button'), full=!eqOn&&on.length>=slots&&slots>1;
+      b.className=eqOn?'ghost':full?'ghost':'big'; b.textContent=eqOn?'はずす':full?'あきが ないよ':'そうびする'; b.disabled=full;
+      b.onclick=()=>{ if(eqOn){ if(save.equip===k){ save.equip=save.equip2; save.equip2=null; } else if(save.equip2===k) save.equip2=null; tone(440,0.08,'triangle',0.04,-80); }
+        else { if(slots>1&&save.equip&&hasRare(save.equip)) save.equip2=k; else save.equip=k; SFX.ready(); }
+        persist(); buildRareBox(); };
       row.appendChild(b); }
     L.appendChild(row); }
 }
@@ -4083,9 +4205,12 @@ function render(){
 
   // 星のかけら・ハート（濃いふちどり＋発光つき。少し大きく、ゆっくり またたく）
   for(const g of G.gems){
-    const y=g.y+Math.sin(animT*4+g.ph)*2, s=(g.heart?36:g.v>1?40:32)*(1+0.07*Math.sin(animT*5+g.ph));
+    const y=g.y+Math.sin(animT*4+g.ph)*2;
+    if(g.coin){ const s=34*(1+0.06*Math.sin(animT*6+g.ph)); c.drawImage(coinSpr('bag'),g.x-s/2,y-s/2-2,s,s); continue; }
+    const s=(g.heart?36:g.v>1?40:32)*(1+0.07*Math.sin(animT*5+g.ph));
     c.drawImage(gemSprite(g.heart?'h':g.v>1?'b':'y'),g.x-s/2,y-s/2,s,s);
   }
+  drawBuddy(c);
 
   // ビームの輪
   if(G.sk.halo && state!=='title'){
@@ -4206,7 +4331,9 @@ function render(){
   drawNorun(c,p.form,animT,p.phase>0,p.face);
   c.restore();
 
-  if(G.eq==='guard'&&G.guardReady){   // ほしのまもり：のるんの まわりの 光るバリア
+  if(G.goldGlint>0){ const a=G.goldGlint/0.45, x=p.x+16, y=p.y-26-(1-a)*8; c.globalAlpha=a; c.fillStyle='#ffe27a'; starPath(c,x,y,5+3*a,animT*6); c.fill(); c.globalAlpha=1; }   // こがねの羽：キラッ
+  if(G.cfx) drawClearCoins(c);
+  if(hasEq('guard')&&G.guardReady){   // ほしのまもり：のるんの まわりの 光るバリア（まもれる 間だけ）
     const R=27+Math.sin(animT*4)*1.5; c.globalCompositeOperation='lighter';
     c.strokeStyle='rgba(200,180,255,.55)'; c.lineWidth=3; c.beginPath(); c.arc(p.x,p.y,R,0,TAU); c.stroke();
     glow(c,p.x+Math.cos(animT*2.4)*R,p.y+Math.sin(animT*2.4)*R,9,'230,215,255',0.9); c.globalCompositeOperation='source-over';
@@ -4280,7 +4407,7 @@ function render(){
   c.font='800 15px '+CANVAS_FONT; c.lineJoin='round';
   for(const q of G.pops){
     const a=clamp(q.t/0.35,0,1), y=q.y-(q.max-q.t)*(q.rare?26:40), s=q.rare?46:26;
-    c.globalAlpha=a; c.drawImage(iconCv(q.id),q.x-s/2-(q.rare?0:8),y-s/2,s,s);
+    c.globalAlpha=a; c.drawImage(q.coin?coinSpr('coin'):iconCv(q.id),q.x-s/2-(q.rare?0:8),y-s/2,s,s);
     if(!q.rare){ c.strokeStyle=IO; c.lineWidth=4; c.strokeText('+'+q.n,q.x+6,y+6); c.fillStyle='#fff'; c.fillText('+'+q.n,q.x+6,y+6); }
   }
   c.globalAlpha=1;
@@ -4341,14 +4468,13 @@ function updateHud(){
     $('ultfill').style.width=Math.min(100,g)+'%'; $('ultbar').classList.toggle('ready',g>=100);
     $('ulttxt').textContent=g>=100?'★ うてる！ ★':Math.floor(G.ult)+' / '+G.ultNeed;
   }
-  const eqk=G.eq?G.eq+'|'+(G.eq==='guard'?(G.guardReady?'ok':Math.ceil(G.guardT)):G.eq==='life'?(G.revived?'x':'ok'):''):'';
+  const st1=k=>k==='guard'?(G.guardReady?'OK':Math.ceil(G.guardT)+'秒'):k==='life'?(G.revived?'つかった':'1かい'):k==='bell'?Math.ceil(G.bellT)+'秒':'';
+  const eqk=(G.eqs||[]).map(k=>k+':'+st1(k)).join('|')+(G.goldGlint>0?'*':'');
   if(hudCache.eq!==eqk){
-    hudCache.eq=eqk; const ch=$('eqChip'); ch.classList.toggle('on',!!G.eq);
-    if(G.eq){
-      const off=(G.eq==='guard'&&!G.guardReady)||(G.eq==='life'&&G.revived);
-      ch.classList.toggle('off',off);
-      ch.innerHTML=icoImg(G.eq)+(G.eq==='guard'?(G.guardReady?'OK':Math.ceil(G.guardT)+'秒'):G.eq==='life'?(G.revived?'つかった':'1かい'):'');
-    }
+    hudCache.eq=eqk; const ch=$('eqChip'); const L=G.eqs||[]; ch.classList.toggle('on',L.length>0);
+    ch.classList.toggle('off',L.length===1&&((L[0]==='guard'&&!G.guardReady)||(L[0]==='life'&&G.revived)));
+    ch.classList.toggle('glint',G.goldGlint>0);
+    ch.innerHTML=L.map(k=>icoImg(k)+'<small>'+st1(k)+'</small>').join(' ');
   }
 }
 
@@ -4361,6 +4487,7 @@ function frame(now){
   /* 描画が おくれても ゲームの 時間は 実時間どおり：1回の 計算は 0.05秒までに 小分けして、おくれた ぶんを まとめて すすめる
      （0.25秒より 長く とまった時＝タブの きりかえ等は そこまで。数値は かえない） */
   let rem=Math.min(raw,0.25); const dt=Math.min(rem,0.05); animT+=rem; lastDt=dt; frameDt=rem;
+  if(state==='clearfx'){ updateClearCoins(rem); updateFx(Math.min(rem,0.05)); }
   if(state==='play'){
     while(rem>1e-6&&state==='play'){ const st=Math.min(rem,0.05); update(st); rem-=st; if(G.pending>0) break; }
     if(state==='play'&&G.pending>0) openLevelUp();
@@ -4380,7 +4507,7 @@ function fpsTick(raw,cost){ if(!FPSBOX) return; FPSBOX.n++; FPSBOX.t+=raw; FPSBO
 /* ---------- 起動 ---------- */
 sndLabel(); resize(); newGame(save.form,save.limit); buildTitle(); showOnly('title');
 window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet,
-  endGame, rollRare, ultReadyFx, get SFX(){return SFX;}, openShop, svEncode, svDecode, errAdd, get AU(){return AU;}, get AUTO(){return AUTO;}, get BGC(){return BGC;}, get LIGHTMODE(){return LIGHTMODE;}, applyLight, reachedId, mapWalk, get MAPWALK(){return MAPWALK;}, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, kvReveal, STORY, get bgm(){return bgm;} };   // デバッグ用
+  endGame, openRareBox, giveRare, rareLv, eqList, eqSlots, totalStars, addEnemy, hurtEnemy, bellRing, buildRareBox, rollRare, ultReadyFx, get SFX(){return SFX;}, openShop, svEncode, svDecode, errAdd, get AU(){return AU;}, get AUTO(){return AUTO;}, get BGC(){return BGC;}, get LIGHTMODE(){return LIGHTMODE;}, applyLight, reachedId, mapWalk, get MAPWALK(){return MAPWALK;}, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, kvReveal, STORY, get bgm(){return bgm;} };   // デバッグ用
 if(typeof navigator!=='undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){   // PWA：オフラインでも 起動できるように
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
