@@ -3,7 +3,7 @@
    ・index.html は ネット優先（つながる時は いつも 最新）。絵・音・フォントは キャッシュ優先
    ・BGM（mp3）は はじめて 鳴らした時に まるごと キャッシュする（さいしょから 全曲は ダウンロードしない）
    ・絵も 起動直後に つかう ものだけ 先に 入れ、あとは はじめて つかった 時に 入れる */
-const CACHE = 'norun-daibouken-v8-4-3';
+const CACHE = 'norun-daibouken-v8-4-4';
 const forms = ['normal','kurage','pan','obake','penguin'], dirs = ['front','back','side'];
 const enemies = ['ant','bee','cat','cat_side','cat_back','crow','crow_side','crow_back','dog','dog_side','dog_back',
   'boss_cat','boss_cat_side','boss_cat_back','boss_crow','boss_crow_side','boss_crow_back','boss_hand','roomba'];
