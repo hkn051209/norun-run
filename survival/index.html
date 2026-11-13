@@ -804,6 +804,21 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 #edge .c{left:58%;bottom:24px;font-size:11px;animation-delay:.9s}#edge .d{left:70%;bottom:8px;font-size:9px;animation-delay:1.3s}
 #sndFloat{border:2px solid var(--gold);background:linear-gradient(#3a3990,#1b1a4a);color:var(--cream-t);width:40px;height:40px}
 @media (max-width:370px){ .bb{font-size:19px} .ribbon.xl{font-size:24px;padding:18px 58px 14px;letter-spacing:.04em} .rl{font-size:13px} .rrow b{font-size:21px} }
+
+/* ---- v8.2：タイトルの キービジュアル（img/keyvisual_title.png が ある時だけ。ロゴ入りの絵を そのまま 見せる） ---- */
+#title.kv{background:linear-gradient(rgba(16,12,52,0) 0,rgba(16,12,52,0) 44%,rgba(16,12,52,.42) 64%,rgba(16,12,52,.72) 100%),
+  url(img/keyvisual_title.png) center top/cover no-repeat,#151142}
+#title.kv.kvwide{background:linear-gradient(rgba(16,12,52,0) 0,rgba(16,12,52,0) 44%,rgba(16,12,52,.42) 64%,rgba(16,12,52,.72) 100%),
+  url(img/keyvisual_title.png) center top/contain no-repeat,#151142}
+#title.kv .tlogo{display:none}
+#title.kv .tbox{margin:auto auto 0;padding-top:max(40vh,160px)}
+#title.kv .hint{display:none}                 /* あそびかたは「せってい」に のっている */
+#title.kv .tprog{margin-top:10px}
+/* 横に ながい画面（パソコン・タブレットの よこ向き）：絵を 左、ボタンを 右に ならべて ロゴに かぶせない */
+#title.kv.kvside{background:linear-gradient(90deg,rgba(16,12,52,0) 0,rgba(16,12,52,0) 40%,rgba(16,12,52,.45) 100%),
+  url(img/keyvisual_title.png) left 4vw center/contain no-repeat,#151142}
+#title.kv.kvside .tbox{margin:auto 4vw auto auto;padding-top:0}
+#pauseAsk{display:none;margin:4px 0 2px;font-size:13px;font-weight:800;color:#ffd0e0}
 </style>
 </head>
 <body>
@@ -943,6 +958,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
   <div class="panel">
     <div class="ribbon">ひとやすみ</div>
     <p id="pauseInfo"></p>
+    <p id="pauseAsk">もういちど「もどる」で ちずへ もどるよ</p>
     <button class="big" id="btnResume">▶ つづける</button><br>
     <button class="ghost" id="btnQuit">🗺 ちずへ</button>
   </div>
@@ -997,7 +1013,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 
 <script>
 /* ============================================================
-   のるんのだいぼうけん v8.2 見た目寄せ（もと：のるんの ほしぞらサバイバル v7.2）
+   のるんのだいぼうけん v8.2（見た目寄せ＋タイトルのキービジュアル・スマホの戻るボタン・ステージ背景の絵）（もと：のるんの ほしぞらサバイバル v7.2）
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -1138,6 +1154,12 @@ const CFG = {
   GUARD_CD: 30,             // ほしのまもり：ふせいでから もどるまでの秒数
   REVIVE_HP: 0.5,           // いのちのほし：ふっかつ時のHP（さいだいHPに対する割合）
   ROOMBA_HEART: {r:0.5, spd:240},
+  /* ステージ（プレイ中）の 地面の絵：img/stagebg_<ステージの bg>.png が あれば コード描画の かわりに つかう（無い ステージは 今まで通り）
+     mode＝'tile'（くりかえして しきつめる。絵は 上下左右の はしが つながる 絵に する）／'world'（1枚の 絵を ワールド全体 3200×3200 に はる）
+     tile＝'tile' の時、絵の よこはばを ワールドの 何マス分に するか（ワールドは 3200）
+     dim＝上に かさねる 暗さ（'auto'＝絵の 明るさを はかって、敵や アイテムが 見やすい 明るさまで 自動で 暗くする）
+     props＝絵の 上にも 木や 花などの 小物を 描くか／alias＝ほかの ファイル名も ためす（ステージ1の forest は starfield でも 可） */
+  STAGE_BG: {dir:'img/stagebg_', mode:'tile', tile:1000, dim:'auto', target:0.26, maxDim:0.55, props:false, alias:{forest:['starfield']}},
   /* BGM（ループ）：タイトル系の画面＝bgm_title、ステージ＝bgm_stage(番号)。ファイルが無い時は 鳴らないだけ
      vol＝ふつうの音量 / dim＝ひとやすみ・レベルアップ・けっか画面の時の音量 */
   BGM: {dir:'bgm/', vol:0.5, dim:0.22},
@@ -1372,7 +1394,7 @@ function resize(){
   VW=w/SC; VH=h/SC;
   cv.width=Math.round(w*DPR); cv.height=Math.round(h*DPR);
 }
-window.addEventListener('resize',()=>{ resize(); NIGHT.cv=null; if(state==='stage') buildMap(); });
+window.addEventListener('resize',()=>{ resize(); NIGHT.cv=null; kvFit(); if(state==='stage') buildMap(); });
 
 /* ---------- 入力 ---------- */
 const keys={};
@@ -2374,7 +2396,7 @@ function drawMapBg(g,W,H){
   for(const [x,y] of [[16,H-16],[W-16,H-16],[W/2,H-13]]){ g.fillStyle='#f3d37e'; g.beginPath(); star5(g,x,y,6*u,2.8*u); g.fill(); }
 }
 function toStages(){
-  bankKills(); newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); closeSheet(); buildMap(); showOnly('stage'); $('stage').scrollTop=1e6;
+  flushPending(); bankKills(); newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); closeSheet(); buildMap(); showOnly('stage'); $('stage').scrollTop=1e6;
 }
 
 
@@ -2461,7 +2483,7 @@ function openShelf(){
 }
 
 /* ---------- 画面遷移 ---------- */
-function showOnly(id){ for(const k of ['title','stage','forge','levelup','pause','end','book','shelf','records','settings']) $(k).classList.toggle('on',k===id); $('sndFloat').classList.toggle('on',['title','stage','forge','book','shelf','records'].includes(id)); }
+function showOnly(id){ if(typeof queueMicrotask==='function') queueMicrotask(navSync); for(const k of ['title','stage','forge','levelup','pause','end','book','shelf','records','settings']) $(k).classList.toggle('on',k===id); $('sndFloat').classList.toggle('on',['title','stage','forge','book','shelf','records'].includes(id)); }
 function setPlayUi(on){ $('hud').classList.toggle('on',on); $('btnUlt').classList.toggle('on',on); $('edge').classList.toggle('on',on); if(on) drawHudFace(); }
 let faceForm='';
 function drawHudFace(){   // HUDの 顔アイコン（いまの すがたの スプライト）。ふきだしにも つかう
@@ -2471,7 +2493,7 @@ function drawHudFace(){   // HUDの 顔アイコン（いまの すがたの ス
   try{ document.documentElement.style.setProperty('--face','url('+c.toDataURL()+')'); }catch(e){}
 }
 function start(stageId,endless,formOverride){   // 引数なし＝同じステージ・同じモードでもう一度
-  initAudio();
+  initAudio(); flushPending();
   if(typeof stageId==='number'&&CFG.STAGES.some(S=>S.id===stageId)) cur={stage:stageId,endless:!!endless};
   const f=(typeof formOverride==='string'&&FORMS[formOverride])?formOverride:save.form;
   newGame(f,save.limit,cur.stage,cur.endless); state='play'; showOnly(null); setPlayUi(true);
@@ -2483,11 +2505,12 @@ function bankKills(){   // 1回のプレイの成果を もちかえる（たお
   for(const k in G.mats) save.mats[k]=(save.mats[k]||0)+G.mats[k];
   persist();
 }
+function flushPending(){ if(!G||!G.pendingBook) return; for(const p of G.pendingBook) save.story.seen[p]=true; if(G.pendingBook.includes(15)) save.story.done=true; G.pendingBook=null; persist(); }
 function toTitle(){
-  bankKills(); closeSheet(); if(!isOpen(save.form)) save.form='normal';
+  flushPending(); bankKills(); closeSheet(); if(!isOpen(save.form)) save.form='normal';
   newGame(save.form,save.limit); state='title'; setPlayUi(false); buildTitle(); showOnly('title');
 }
-function pause(){ if(state!=='play') return; state='pause'; stickEnd(); showOnly('pause');
+function pause(){ if(state!=='play') return; state='pause'; stickEnd(); showOnly('pause'); pauseAsk=false; $('pauseAsk').style.display='none';
   $('pauseInfo').innerHTML='ステージ'+G.stage.id+'「'+G.stage.name+'」<br>'+(G.endless?fmtTime(G.t):'のこり '+fmtTime(Math.ceil(G.limit-G.t)))+'・'+G.kills+'体 たおした'; }
 const rec={from:'title'};
 function openRecords(){   // きろく：タイトルの もちもの・つよさ・そざい と、ステージごとの ベスト
@@ -2498,6 +2521,37 @@ function openRecords(){   // きろく：タイトルの もちもの・つよ�
 }
 function openSettings(){ state='settings'; setPlayUi(false); sndLabel(); showOnly('settings'); }
 function resume(){ if(state!=='pause') return; state='play'; showOnly(null); }
+/* ---------- スマホの「戻る」：タイトル以外の 画面に いる間だけ 履歴を 1つ 積んでおき、戻るが 押されたら ゲームの中で 1つ 戻る ----------
+   行き先は 各画面の「もどる」ボタンと 同じ。プレイ中は ポーズ → もう一度で 確認 → もう一度で 地図へ。タイトルでは ふつうに ページを はなれる */
+let pauseAsk=false;
+const NAV={armed:false,ignore:0};
+function navSync(){
+  if(typeof history==='undefined'||!history.pushState) return;
+  const want=state!=='title';
+  try{
+    if(want&&!NAV.armed){ history.pushState({norun:1},''); NAV.armed=true; }
+    else if(!want&&NAV.armed){ NAV.armed=false; NAV.ignore++; history.back(); }   // タイトルに もどったら 積んだ ぶんを かたづける
+  }catch(e){}
+}
+function goBack(){
+  if($('stageSheet').classList.contains('on')){ closeSheet(); return; }          // 準備画面 → ステージえらび
+  if($('records').classList.contains('on')){ $('recBack').click(); return; }      // きろく → もとの画面（タイトル／結果）
+  switch(state){
+    case 'play': pause(); return;                                                 // プレイ中 → すぐには やめずに ポーズ
+    case 'pause': if(!pauseAsk){ pauseAsk=true; $('pauseAsk').style.display='block'; } else $('btnQuit').click(); return;
+    case 'stage': $('btnBack').click(); return;                                   // ステージえらび → タイトル
+    case 'forge': $('btnForgeBack').click(); return;                              // 工房 → タイトル
+    case 'shelf': $('shelfBack').click(); return;
+    case 'settings': $('setBack').click(); return;
+    case 'book': if(bk.mode==='shelf') bookDone(); else bookSkip(); return;       // 本棚から → 本棚／はさまった絵本 → とばす
+    case 'end': if(G&&G.pendingBook) readPending(); else $('btnToTitle').click(); return;   // 結果 → 地図（絵本が まって いれば 先に 絵本）
+    case 'levelup': return;                                                       // スキルを えらぶまで そのまま
+  }
+}
+if(typeof window!=='undefined'&&typeof history!=='undefined'&&history.pushState){
+  window.addEventListener('popstate',()=>{ if(NAV.ignore>0){ NAV.ignore--; return; } NAV.armed=false; goBack(); navSync(); });
+  if(history.state&&history.state.norun){ NAV.ignore++; history.back(); }   // 読みなおした時に のこった 履歴は かたづける
+}
 function endGame(clear){
   state='end'; stickEnd(); $('btnUlt').classList.remove('on');
   const S=G.stage, wasOpen=Object.keys(FORMS).filter(isOpen), nx=nextStage(S.id), nextWasOpen=nx?stageOpen(nx.id):true;
@@ -3180,12 +3234,40 @@ function worldBg(S){
   return WBG[S.id]={th,gc,GS,grid,CELL,cells};
 }
 const vis=[];
+/* ステージ背景の絵：はじめに 読みこんで おく（毎フレームは 読みこまない）。くりかえし模様（pattern）は 1回だけ つくる */
+const SBG={};
+function loadStageBg(){
+  if(typeof Image==='undefined') return;
+  for(const S of CFG.STAGES){ const k=S.bg; if(SBG[k]) continue;
+    const o=SBG[k]={im:null,pat:null,dim:0}, names=[k,...((CFG.STAGE_BG.alias||{})[k]||[])]; let i=0;
+    const tryNext=()=>{ if(i>=names.length) return; const im=new Image();
+      im.onload=()=>{ o.im=im; if(im.decode) im.decode().catch(()=>{}); o.dim=stageBgDim(im); };
+      im.onerror=()=>{ i++; tryNext(); }; im.src=CFG.STAGE_BG.dir+names[i]+'.png'; };
+    tryNext(); }
+}
+function stageBgDim(im){   // 絵の 明るさを 小さく ちぢめて はかり、目安（target）より 明るい ぶんだけ 暗くする
+  const D=CFG.STAGE_BG.dim; if(typeof D==='number') return D;
+  try{ const c=document.createElement('canvas'); c.width=c.height=16; const g=c.getContext('2d'); g.drawImage(im,0,0,16,16);
+    const d=g.getImageData(0,0,16,16).data; let L=0; for(let i=0;i<d.length;i+=4) L+=(0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2])/255;
+    L/=256; return clamp(1-CFG.STAGE_BG.target/Math.max(L,0.01),0.08,CFG.STAGE_BG.maxDim); }catch(e){ return 0.25; }
+}
+loadStageBg();
 function drawWorldBg(c,cx,cy){
-  const B=worldBg(G.stage), W=CFG.WORLD;
+  const B=worldBg(G.stage), W=CFG.WORLD, SB=SBG[G.stage.bg];
   c.fillStyle=B.th.base; c.fillRect(cx-4,cy-4,VW+8,VH+8);
   const x0=Math.max(0,cx), y0=Math.max(0,cy), x1=Math.min(W,cx+VW), y1=Math.min(W,cy+VH);
-  if(x1>x0&&y1>y0){ c.imageSmoothingEnabled=true; c.drawImage(B.gc,x0*B.GS,y0*B.GS,(x1-x0)*B.GS,(y1-y0)*B.GS,x0,y0,x1-x0,y1-y0); }
-  vis.length=0; const M=180, a0=Math.max(0,((cx-M)/B.CELL)|0), a1=Math.min(B.cells-1,((cx+VW+M)/B.CELL)|0), b0=Math.max(0,((cy-M)/B.CELL)|0), b1=Math.min(B.cells-1,((cy+VH+M)/B.CELL)|0);
+  vis.length=0;
+  if(SB&&SB.im&&imgOk(SB.im)){   // 絵の 地面：ワールドに はりつけた くりかえし模様（カメラに ついてくる）＋見やすさの ための 暗さ
+    if(!SB.pat){ SB.pat=c.createPattern(SB.im,'repeat'); const k=CFG.STAGE_BG.tile/SB.im.naturalWidth;
+      if(SB.pat&&SB.pat.setTransform&&typeof DOMMatrix!=='undefined') SB.pat.setTransform(new DOMMatrix([k,0,0,k,0,0])); }
+    if(x1>x0&&y1>y0){ c.imageSmoothingEnabled=true;
+      if(CFG.STAGE_BG.mode==='world'){ const iw=SB.im.naturalWidth/W, ih=SB.im.naturalHeight/W;   // 1枚の 絵の うち 見えている ところだけ
+        c.drawImage(SB.im,x0*iw,y0*ih,(x1-x0)*iw,(y1-y0)*ih,x0,y0,x1-x0,y1-y0); }
+      else { c.fillStyle=SB.pat; c.fillRect(x0,y0,x1-x0,y1-y0); }
+      if(SB.dim>0){ c.fillStyle='rgba(12,10,40,'+SB.dim.toFixed(3)+')'; c.fillRect(x0,y0,x1-x0,y1-y0); } }
+    if(!CFG.STAGE_BG.props) return;
+  }
+  else if(x1>x0&&y1>y0){ c.imageSmoothingEnabled=true; c.drawImage(B.gc,x0*B.GS,y0*B.GS,(x1-x0)*B.GS,(y1-y0)*B.GS,x0,y0,x1-x0,y1-y0); } const M=180, a0=Math.max(0,((cx-M)/B.CELL)|0), a1=Math.min(B.cells-1,((cx+VW+M)/B.CELL)|0), b0=Math.max(0,((cy-M)/B.CELL)|0), b1=Math.min(B.cells-1,((cy+VH+M)/B.CELL)|0);
   for(let j=b0;j<=b1;j++) for(let i=a0;i<=a1;i++) for(const o of B.grid[j*B.cells+i]) if(o.x+o.s>cx&&o.x-o.s<cx+VW&&o.y+o.s>cy&&o.y-o.s<cy+VH) vis.push(o);
   vis.sort((a,b)=>(a.flat===b.flat)?a.y-b.y:(a.flat?-1:1));   // ラグ・花・草を先に、木などは 奥から手前の順に
   for(const o of vis){
@@ -3197,6 +3279,15 @@ function drawWorldBg(c,cx,cy){
 /* 背景イラストの置き場：img/bg_title.png（タイトル）／img/bg_map.png（地図）／img/bg_workshop.png（工房）／img/bg_result.png（結果）
    タイトル・地図は Canvas、工房・結果は CSS で 読む。無い間は コードの 仮背景になる */
 const BGIMG={};
+/* タイトルの キービジュアル：img/keyvisual_title.png が 読めたら、タイトル画面だけ その絵に する（ロゴと 仮背景・bg_title は 出さない） */
+const KV={im:null,ok:false};
+if(typeof Image!=='undefined'){ KV.im=new Image(); KV.im.onload=()=>{ KV.ok=true; kvFit(); }; KV.im.src='img/keyvisual_title.png'; }
+function kvFit(){   // 横に ながい画面では 絵を 切らずに 全部 見せる（ロゴが 切れないように）
+  if(!KV.ok) return; const t=$('title'); t.classList.add('kv');
+  const ar=KV.im.naturalWidth/KV.im.naturalHeight, iw=window.innerHeight*ar;
+  t.classList.toggle('kvwide', window.innerWidth/window.innerHeight > ar*1.08);
+  t.classList.toggle('kvside', window.innerWidth >= iw + 480);   // 絵の よこに ボタンが ならぶ はばが ある時
+}
 for(const k of ['title','map']){ const im=new Image(); im.onload=()=>{ if(k==='map'&&state==='stage') buildMap(); }; im.src='img/bg_'+k+'.png'; BGIMG[k]=im; }
 const fxImg={};
 for(const k in CFG.FX_SPR){ const im=new Image(); im.src=CFG.FX_SPR[k].src; fxImg[k]=im; }
@@ -3316,6 +3407,7 @@ function drawHero(){ drawPeek($('hero'),2.05,0.7); }
 let lastDt=0;
 const drawL=[];
 function render(){
+  if(state==='title'&&KV.ok) return;   // キービジュアルの時は 画面の絵が すべて（Canvas は かくれて いるので 描かない）
   if(state==='title'||state==='book'||state==='shelf'||state==='records'||state==='settings'){ renderNight(lastDt); if(state==='title') drawHero(); return; }
   if(state==='stage'||state==='forge'||state==='equip'){ renderSky(lastDt); return; }
   const c=ctx, p=G.p;
@@ -3651,12 +3743,13 @@ function frame(now){
   }
   render();
   bgmSync(false);
+  if(NAV.armed!==(state!=='title')&&!NAV.ignore) navSync();
 }
 
 /* ---------- 起動 ---------- */
 sndLabel(); resize(); newGame(save.form,save.limit); buildTitle(); showOnly('title');
 window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet,
-  endGame, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, STORY, get bgm(){return bgm;} };   // デバッグ用
+  endGame, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, STORY, get bgm(){return bgm;} };   // デバッグ用
 if(typeof navigator!=='undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){   // PWA：オフラインでも 起動できるように
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
