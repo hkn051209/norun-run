@@ -806,18 +806,21 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 @media (max-width:370px){ .bb{font-size:19px} .ribbon.xl{font-size:24px;padding:18px 58px 14px;letter-spacing:.04em} .rl{font-size:13px} .rrow b{font-size:21px} }
 
 /* ---- v8.2：タイトルの キービジュアル（img/keyvisual_title.png が ある時だけ。ロゴ入りの絵を そのまま 見せる） ---- */
-#title.kv{background:linear-gradient(rgba(16,12,52,0) 0,rgba(16,12,52,0) 44%,rgba(16,12,52,.42) 64%,rgba(16,12,52,.72) 100%),
-  url(img/keyvisual_title.png) center top/cover no-repeat,#151142}
-#title.kv.kvwide{background:linear-gradient(rgba(16,12,52,0) 0,rgba(16,12,52,0) 44%,rgba(16,12,52,.42) 64%,rgba(16,12,52,.72) 100%),
-  url(img/keyvisual_title.png) center top/contain no-repeat,#151142}
+#title.kv{background:#151142}   /* 実際の 背景（絵＋よはくの 色）は kvPaint() が 入れる */
 #title.kv .tlogo{display:none}
 #title.kv .tbox{margin:auto auto 0;padding-top:max(40vh,160px)}
 #title.kv .hint{display:none}                 /* あそびかたは「せってい」に のっている */
 #title.kv .tprog{margin-top:10px}
 /* 横に ながい画面（パソコン・タブレットの よこ向き）：絵を 左、ボタンを 右に ならべて ロゴに かぶせない */
-#title.kv.kvside{background:linear-gradient(90deg,rgba(16,12,52,0) 0,rgba(16,12,52,0) 40%,rgba(16,12,52,.45) 100%),
-  url(img/keyvisual_title.png) left 4vw center/contain no-repeat,#151142}
 #title.kv.kvside .tbox{margin:auto 4vw auto auto;padding-top:0}
+/* さいしょは 絵だけ（ボタン・進みぐあい・音ボタンは かくす）。タップで メニュー */
+body.kvwait #title .tbox, body.kvwait #sndFloat, body.kvsplash #title .tbox, body.kvsplash #sndFloat{display:none!important}
+body.kvsplash #title{cursor:pointer}
+.kvtap{display:none;position:absolute;left:50%;bottom:calc(4.5% + env(safe-area-inset-bottom));transform:translateX(-50%);pointer-events:none;
+  padding:6px 18px;border-radius:99px;font-size:14px;font-weight:800;letter-spacing:.1em;white-space:nowrap;color:#fff3d0;
+  background:rgba(27,26,74,.62);border:1.5px solid rgba(243,211,126,.75);text-shadow:0 1px 2px rgba(13,12,46,.9);animation:kvblink 1.6s ease-in-out infinite}
+body.kvsplash .kvtap{display:block}
+@keyframes kvblink{0%,100%{opacity:.45}50%{opacity:1}}
 #pauseAsk{display:none;margin:4px 0 2px;font-size:13px;font-weight:800;color:#ffd0e0}
 </style>
 </head>
@@ -850,6 +853,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 <button class="hbtn" id="sndFloat" aria-label="おと">♪</button>
 
 <div class="ov on" id="title">
+  <div class="kvtap">✦ タップしてね ✦</div>
   <div class="tbox">
     <div class="tlogo">
       <canvas id="hero"></canvas>
@@ -1013,7 +1017,7 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 
 <script>
 /* ============================================================
-   のるんのだいぼうけん v8.2（見た目寄せ＋タイトルのキービジュアル・スマホの戻るボタン・ステージ背景の絵）（もと：のるんの ほしぞらサバイバル v7.2）
+   のるんのだいぼうけん v8.3（見た目寄せ＋タイトルのキービジュアル［さいしょは 絵だけ→タップで メニュー］・スマホの戻るボタン・ステージ背景の絵）（もと：のるんの ほしぞらサバイバル v7.2）
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -1405,6 +1409,7 @@ window.addEventListener('keydown',e=>{
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
   keys[k]=true;
   if(e.repeat) return;
+  if(state==='title'&&KV.splash&&!['tab','shift','control','alt','meta'].includes(k)){ kvReveal(); return; }   // 絵だけの 画面：キーでも メニュー
   if(state==='levelup' && ['1','2','3'].includes(k)) pickCard(+k-1);
   else if(state==='play' && (k===' '||k==='e')) useUlt();
   else if((k==='p'||k==='escape') && state==='play') pause();
@@ -2605,6 +2610,7 @@ function banner(txt){ const b=$('banner'); b.innerHTML='<span class="bub"><i cla
 $('btnStart').onclick=()=>{ initAudio();   // はじめて あそぶ前だけ プロローグ（表紙〜3ページ）
   if(!save.story.seen[0]&&!UNLOCK_ALL) openBook(PROLOGUE,'inter',0,toStages); else toStages(); };
 $('btnBook').onclick=readPending;
+$('title').addEventListener('click',e=>{ if(KV.splash){ e.stopPropagation(); e.preventDefault(); kvReveal(); } },true);   // 絵だけの 画面：どこを タップしても メニュー
 $('btnRecords').onclick=()=>{ initAudio(); openRecords(); };
 $('btnRecEnd').onclick=openRecords;
 $('recBack').onclick=()=>{ if(rec.from==='end'){ showOnly('end'); endPeek(); } else toTitle(); };
@@ -3280,13 +3286,45 @@ function drawWorldBg(c,cx,cy){
    タイトル・地図は Canvas、工房・結果は CSS で 読む。無い間は コードの 仮背景になる */
 const BGIMG={};
 /* タイトルの キービジュアル：img/keyvisual_title.png が 読めたら、タイトル画面だけ その絵に する（ロゴと 仮背景・bg_title は 出さない） */
-const KV={im:null,ok:false};
-if(typeof Image!=='undefined'){ KV.im=new Image(); KV.im.onload=()=>{ KV.ok=true; kvFit(); }; KV.im.src='img/keyvisual_title.png'; }
-function kvFit(){   // 横に ながい画面では 絵を 切らずに 全部 見せる（ロゴが 切れないように）
+const KV={im:null,ok:false,splash:false,edge:null};
+if(typeof Image!=='undefined'&&typeof document!=='undefined'&&document.body){
+  document.body.classList.add('kvwait');   // 絵が あるか わかるまで メニューを 出さない（ちらつき よけ）
+  const done=()=>document.body.classList.remove('kvwait');
+  KV.im=new Image();
+  KV.im.onload=()=>{ KV.ok=true; KV.edge=kvEdge(KV.im);
+    if(state==='title'&&document.body.classList.contains('kvwait')){ KV.splash=true; document.body.classList.add('kvsplash'); }   // ひらいた 直後だけ 絵だけの 画面
+    done(); kvFit(); };
+  KV.im.onerror=done; setTimeout(done,2500);   // 絵が 無い／おそい時は 今まで通り メニューから
+  KV.im.src='img/keyvisual_title.png';
+}
+function kvReveal(){   // タップで メニューを 出す
+  if(!KV.splash) return false; KV.splash=false; document.body.classList.remove('kvsplash'); initAudio(); kvFit(); return true;
+}
+function kvEdge(im){   // 絵の ふちの 色（上・下・左右を 8段）をはかる。よはくを 絵の 色あいで うめるため
+  try{ const c=document.createElement('canvas'), N=8; c.width=16; c.height=N*4; const g=c.getContext('2d'); g.drawImage(im,0,0,16,N*4);
+    const d=g.getImageData(0,0,16,N*4).data, px=(x,y)=>{ const i=(y*16+x)*4; return [d[i],d[i+1],d[i+2]]; };
+    const avg=a=>a.reduce((s,v)=>[s[0]+v[0],s[1]+v[1],s[2]+v[2]],[0,0,0]).map(v=>Math.round(v/a.length));
+    const row=y=>avg(Array.from({length:16},(_,x)=>px(x,y)));
+    const side=[]; for(let k=0;k<N;k++){ const a=[]; for(let y=k*4;y<k*4+4;y++){ a.push(px(0,y),px(15,y)); } side.push(avg(a)); }
+    return {top:row(0),bot:row(N*4-1),side};
+  }catch(e){ return null; }
+}
+function kvFit(){   // 絵は 切らずに 全体を 見せる（contain）。よはくは 絵の ふちの 色で うめる
   if(!KV.ok) return; const t=$('title'); t.classList.add('kv');
-  const ar=KV.im.naturalWidth/KV.im.naturalHeight, iw=window.innerHeight*ar;
-  t.classList.toggle('kvwide', window.innerWidth/window.innerHeight > ar*1.08);
-  t.classList.toggle('kvside', window.innerWidth >= iw + 480);   // 絵の よこに ボタンが ならぶ はばが ある時
+  const W=window.innerWidth, H=window.innerHeight, ar=KV.im.naturalWidth/KV.im.naturalHeight;
+  const side=!KV.splash && W >= H*ar + 480;   // メニューの時、横に ながい画面では 絵を 左・ボタンを 右に
+  t.classList.toggle('kvside',side);
+  const sc=Math.min(W/KV.im.naturalWidth,H/KV.im.naturalHeight), dh=KV.im.naturalHeight*sc, y0=(H-dh)/2, y1=y0+dh;
+  const col=c=>'rgb('+c.join(',')+')', E=KV.edge;
+  let fill='#151142';
+  if(E){ const st=[col(E.top)+' 0px',col(E.top)+' '+Math.max(0,y0).toFixed(0)+'px'];
+    E.side.forEach((c,k)=>st.push(col(c)+' '+(y0+(k+0.5)/E.side.length*dh).toFixed(0)+'px'));
+    st.push(col(E.bot)+' '+Math.min(H,y1).toFixed(0)+'px',col(E.bot)+' 100%');
+    fill='linear-gradient(to bottom,'+st.join(',')+')'; }
+  const img='url(img/keyvisual_title.png) '+(side?'left 4vw center':'center center')+'/contain no-repeat';
+  const shade=KV.splash?'':(side?'linear-gradient(90deg,rgba(16,12,52,0) 0,rgba(16,12,52,0) 40%,rgba(16,12,52,.5) 100%),'
+    :'linear-gradient(rgba(16,12,52,0) 0,rgba(16,12,52,0) 40%,rgba(16,12,52,.48) 62%,rgba(16,12,52,.78) 100%),');
+  t.style.background=shade+img+','+fill;
 }
 for(const k of ['title','map']){ const im=new Image(); im.onload=()=>{ if(k==='map'&&state==='stage') buildMap(); }; im.src='img/bg_'+k+'.png'; BGIMG[k]=im; }
 const fxImg={};
@@ -3749,7 +3787,7 @@ function frame(now){
 /* ---------- 起動 ---------- */
 sndLabel(); resize(); newGame(save.form,save.limit); buildTitle(); showOnly('title');
 window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet,
-  endGame, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, STORY, get bgm(){return bgm;} };   // デバッグ用
+  endGame, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, kvReveal, STORY, get bgm(){return bgm;} };   // デバッグ用
 if(typeof navigator!=='undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){   // PWA：オフラインでも 起動できるように
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }

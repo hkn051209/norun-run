@@ -2,7 +2,7 @@
    ・ゲームを 新しくしたら CACHE の番号を 1つ ふやす（古いキャッシュは 自動で けす）
    ・index.html は ネット優先（つながる時は いつも 最新）。絵・音・フォントは キャッシュ優先
    ・BGM（mp3）は はじめて 鳴らした時に まるごと キャッシュする（さいしょから 全曲は ダウンロードしない） */
-const CACHE = 'norun-daibouken-v8-2b';
+const CACHE = 'norun-daibouken-v8-3';
 const forms = ['normal','kurage','pan','obake','penguin'], dirs = ['front','back','side'];
 const enemies = ['ant','bee','cat','cat_side','cat_back','crow','crow_side','crow_back','dog','dog_side','dog_back',
   'boss_cat','boss_cat_side','boss_cat_back','boss_crow','boss_crow_side','boss_crow_back','boss_hand','roomba'];
