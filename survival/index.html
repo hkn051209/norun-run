@@ -377,7 +377,8 @@ h1,h2,h3,b,.big,.bb,.ribbon{font-weight:800}
 .node.now .nl{background:linear-gradient(#ffffff,#d9efff);color:#123e9c}
 @keyframes nowp{from{filter:drop-shadow(0 0 3px #8fe0ff);transform:scale(1)}to{filter:drop-shadow(0 0 12px #8fe0ff) drop-shadow(0 0 5px #fff);transform:scale(1.1)}}
 .tw{position:absolute;font-style:normal;color:#fff6c8;line-height:1;pointer-events:none;animation:twk 1.6s ease-in-out infinite alternate;text-shadow:0 0 6px #ffe9a0}
-#mapNorun{position:absolute;left:8px;bottom:26px;width:76px;height:76px;pointer-events:none;z-index:2}
+#mapNorun{position:absolute;left:8px;top:0;width:60px;height:60px;pointer-events:none;z-index:3;filter:drop-shadow(0 0 6px rgba(255,240,200,.55))}
+:root{--sat:env(safe-area-inset-top)}
 .sign{position:absolute;left:66px;bottom:9px;padding:2px 10px 3px;border-radius:5px;background:linear-gradient(#b98552,#8a5a30);border:2px solid #5a3718;
   color:#fff3d0;font-size:12.5px;font-weight:800;transform:rotate(-6deg);z-index:2;text-shadow:0 1px 0 #5a3718;pointer-events:none}
 #mapToast{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);padding:8px 18px;border-radius:99px;background:rgba(22,20,66,.95);border:2px solid var(--gold);
@@ -822,6 +823,12 @@ body.kvsplash #title{cursor:pointer}
 body.kvsplash .kvtap{display:block}
 @keyframes kvblink{0%,100%{opacity:.45}50%{opacity:1}}
 #pauseAsk{display:none;margin:4px 0 2px;font-size:13px;font-weight:800;color:#ffd0e0}
+
+/* v8.4：地図の 凡例は 見出しの 下に 1行（すごろくの マスに かさならない） */
+.legend{left:50%;right:auto;transform:translateX(-50%);top:calc(88px + env(safe-area-inset-top));display:flex;gap:10px;padding:3px 11px;border-radius:99px;white-space:nowrap}
+.legend div{padding:0;font-size:10.5px;gap:4px}
+.legend div+div{border-top:0}
+.legend img{width:18px;height:18px}
 </style>
 </head>
 <body>
@@ -1017,7 +1024,7 @@ body.kvsplash .kvtap{display:block}
 
 <script>
 /* ============================================================
-   のるんのだいぼうけん v8.3（見た目寄せ＋タイトルのキービジュアル［さいしょは 絵だけ→タップで メニュー］・スマホの戻るボタン・ステージ背景の絵）（もと：のるんの ほしぞらサバイバル v7.2）
+   のるんのだいぼうけん v8.4（キービジュアルは さいしょの 画面だけ・すごろくの 地図・絵本の セリフ）（もと：のるんの ほしぞらサバイバル v7.2）
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -2234,7 +2241,7 @@ const STAGE_MAP = [
   {id:3, name:'はなのそうげん', x:.24, y:.769}, {id:4, name:'まちはずれ',   x:.62, y:.688},
   {id:5, name:'ほしのまち',     x:.26, y:.607}, {id:6, name:'ゆうやけの丘', x:.62, y:.527},
   {id:7, name:'並木の小道',     x:.26, y:.446}, {id:8, name:'おうちの坂道', x:.60, y:.366},
-  {id:9, name:'お庭',           x:.30, y:.287}, {id:10,name:'家の中',       x:.45, y:.208},
+  {id:9, name:'お庭',           x:.30, y:.287}, {id:10,name:'家の中',       x:.56, y:.208},
 ];
 const stageDef = id => CFG.STAGES.find(S=>S.id===id)||null;
 /* マスの状態は3つのどれか1つ：done=クリアずみ（金の星＋チェック）／now=いま あそべる（光る青い星）／lock=まだ いけない（グレーの星＋鍵） */
@@ -2259,11 +2266,16 @@ function nodeURL(st){   // 星のマスの絵（状態ごとに1回だけ作る�
 }
 function mapToast(txt){ const t=$('mapToast'); t.textContent=txt; t.classList.remove('go'); void t.offsetWidth; t.classList.add('go'); }
 function buildMap(){
-  const W=Math.min(window.innerWidth,440), H=Math.max(640,Math.min(window.innerHeight,Math.round(W*2.1)));
+  const sat0=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat'))||0;
+  /* 地図の 高さ：マスと マスの あいだが せまく なりすぎない（約62px 以上）ように、背の ひくい 画面では 地図を すこし 長くして たてに スクロール */
+  const W=Math.min(window.innerWidth,440), H=Math.max(Math.ceil((186+sat0+9*62)/0.93),Math.min(window.innerHeight,Math.round(W*2.1)));
+  /* マスの 高さを ひつようなら すこし つめて、いちばん上の マス（と その上に 立つ のるん）が 見出し・凡例に かくれないように する（下の マス1は そのまま） */
+  const sat=sat0, top=(88+24+4+24+46+sat)/H, Y1=STAGE_MAP[0].y0??STAGE_MAP[0].y;
+  for(const M of STAGE_MAP){ if(M.y0==null) M.y0=M.y; const ytop=STAGE_MAP[9].y0; M.y = ytop<top ? Y1-(Y1-M.y0)*(Y1-top)/(Y1-ytop) : M.y0; }
   const wrap=$('mapWrap'); wrap.style.width=W+'px'; wrap.style.height=H+'px';
   const cvs=$('mapCv'); cvs.width=Math.round(W*DPR); cvs.height=Math.round(H*DPR);
   const g=cvs.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0);
-  if(imgOk(BGIMG.map)) drawCover(g,BGIMG.map,W,H); else drawMapBg(g,W,H);
+  if(imgOk(BGIMG.map)){ drawCover(g,BGIMG.map,W,H); drawMapRoad(g,W,H,true); } else drawMapBg(g,W,H);   // 景色の 絵の 上に 道と マスを 描く
   $('mapLegend').innerHTML='<div><img src="'+nodeURL('done')+'" alt="">クリアずみ</div><div><img src="'+nodeURL('now')+'" alt="">いま あそべる</div><div><img src="'+nodeURL('lock')+'" alt="">まだ いけない</div>';
   const box=$('mapNodes'); box.innerHTML='';
   for(let i=0;i<16;i++){ const t=document.createElement('i'); t.className='tw'; t.textContent=i%3?'✦':'✧';
@@ -2282,9 +2294,8 @@ function buildMap(){
     };
     box.appendChild(b);
   }
-  const nc=$('mapNorun'); nc.width=nc.height=152; const q=nc.getContext('2d'); q.setTransform(1,0,0,1,0,0); q.clearRect(0,0,152,152);
-  q.fillStyle='rgba(8,6,30,.4)'; q.beginPath(); q.ellipse(76,128,34,8,0,0,TAU); q.fill();
-  q.save(); q.translate(76,88); q.scale(2,2); drawNorun(q,'normal',0,false,'front'); q.restore();
+  const nc=$('mapNorun'); nc.width=nc.height=152; MW.W=W; MW.H=H; cancelAnimationFrame(MW.raf);
+  placeNorun(...norunSpot(MAPWALK?MAPWALK.from:reachedId(),W,H));   // のるんは いま とうたつして いる マスの 上
 }
 /* 地図の絵（コードで描く）：下から 森→草原→花畑→まちはずれ→町→夕やけの丘→並木道→坂道→庭→家 */
 function drawMapBg(g,W,H){
@@ -2390,18 +2401,68 @@ function drawMapBg(g,W,H){
     gr=g.createLinearGradient(0,top-10*u,0,top+H*0.1); gr.addColorStop(0,Z[id][0]); gr.addColorStop(1,Z[id][1]); g.fillStyle=gr; g.fill();
     DECOR[id](top,PY(k));
   }
-  // 道（すごろくの道）：スタート → 1 → … → 10 → 家
-  const road=()=>{ g.beginPath(); g.moveTo(PX(0)-74*u,PY(0)+40*u); g.quadraticCurveTo(PX(0)-56*u,PY(0)+2*u,PX(0),PY(0));
-    for(let k=0;k<9;k++){ const sg=PX(k+1)>PX(k)?1:-1, ox=PX(k+1)+sg*46*u; g.bezierCurveTo(ox,PY(k),ox,PY(k+1),PX(k+1),PY(k+1)); }
-    g.quadraticCurveTo(W*0.62,PY(9)-2*u,W*0.69,PY(9)-H*0.036+14*u); };
-  g.lineCap='round'; g.lineJoin='round';
-  road(); g.strokeStyle='rgba(30,22,70,.55)'; g.lineWidth=21*u; g.stroke();
-  road(); g.strokeStyle='#f3e2b8'; g.lineWidth=15*u; g.stroke();
-  road(); g.strokeStyle='rgba(140,190,225,.95)'; g.lineWidth=2.4*u; g.setLineDash([7*u,8*u]); g.stroke(); g.setLineDash([]);
+  drawMapRoad(g,W,H,false);
   for(const [x,y] of [[16,H-16],[W-16,H-16],[W/2,H-13]]){ g.fillStyle='#f3d37e'; g.beginPath(); star5(g,x,y,6*u,2.8*u); g.fill(); }
 }
+/* すごろくの 道：スタート → 1 → … → 10 → 家。区間 k＝マス k → マス k+1（0＝スタート→1、10＝10→家）。どれも 3次ベジェ */
+function mapRoad(W,H){
+  const u=W/390, N=STAGE_MAP, PX=k=>N[k].x*W, PY=k=>N[k].y*H, seg=[];
+  const q2c=(a,c,b)=>[a,[a[0]+(c[0]-a[0])*2/3,a[1]+(c[1]-a[1])*2/3],[b[0]+(c[0]-b[0])*2/3,b[1]+(c[1]-b[1])*2/3],b];
+  seg.push(q2c([PX(0)-74*u,PY(0)+40*u],[PX(0)-56*u,PY(0)+2*u],[PX(0),PY(0)]));
+  for(let k=0;k<9;k++){ const sg=PX(k+1)>PX(k)?1:-1, ox=PX(k+1)+sg*46*u; seg.push([[PX(k),PY(k)],[ox,PY(k)],[ox,PY(k+1)],[PX(k+1),PY(k+1)]]); }
+  seg.push(q2c([PX(9),PY(9)],[W*0.62,PY(9)-2*u],[W*0.69,PY(9)-H*0.036+14*u]));
+  return seg;
+}
+const bez=(s,t)=>{ const m=1-t, a=m*m*m, b=3*m*m*t, c=3*m*t*t, d=t*t*t; return [a*s[0][0]+b*s[1][0]+c*s[2][0]+d*s[3][0], a*s[0][1]+b*s[1][1]+c*s[2][1]+d*s[3][1]]; };
+function drawMapRoad(g,W,H,onImg){   // onImg＝景色の 絵の 上に 描く時（ふちを こくして 見やすく）
+  const u=W/390, S=mapRoad(W,H), reach=reachedId();
+  const path=()=>{ g.beginPath(); g.moveTo(S[0][0][0],S[0][0][1]); for(const s of S) g.bezierCurveTo(s[1][0],s[1][1],s[2][0],s[2][1],s[3][0],s[3][1]); };
+  g.lineCap='round'; g.lineJoin='round';
+  if(onImg){ path(); g.strokeStyle='rgba(20,14,50,.45)'; g.lineWidth=29*u; g.stroke(); }
+  path(); g.strokeStyle='rgba(30,22,70,.6)'; g.lineWidth=21*u; g.stroke();
+  path(); g.strokeStyle='#f3e2b8'; g.lineWidth=15*u; g.stroke();
+  path(); g.strokeStyle='rgba(255,255,255,.35)'; g.lineWidth=5*u; g.stroke();
+  // すごろくの 小さな マス（マスと マスの あいだに 3つ）。もう とおった 道は 金、まだの 道は うすい むらさき
+  for(let k=0;k<S.length;k++) for(const t of [0.27,0.5,0.73]){
+    const [x,y]=bez(S[k],t), went=k<reach;
+    g.fillStyle=went?'#ffd75e':'#cfc6ea'; g.strokeStyle=went?'#a8741a':'#7e76a6'; g.lineWidth=1.6*u;
+    g.beginPath(); g.arc(x,y,3.6*u,0,TAU); g.fill(); g.stroke();
+  }
+}
+/* いま とうたつして いる マス＝あそべる ステージの うち いちばん 先（セーブの 解放・クリアから きめる） */
+function reachedId(){ let r=1; for(const M of STAGE_MAP) if(nodeState(M.id)!=='lock') r=M.id; return r; }
+let MAPWALK=null;   // はじめての クリアで 先の マスが ひらいた時：{from,to}（地図を ひらいた時に 歩いて 見せる）
+const MW={raf:0,W:0,H:0};
+function placeNorun(x,y,face,flip,hop){   // のるんを 地図の 上に 立たせる（足もとが x,y）
+  const nc=$('mapNorun'), q=nc.getContext('2d'); q.setTransform(1,0,0,1,0,0); q.clearRect(0,0,152,152);
+  hop=hop||0; q.fillStyle='rgba(8,6,30,.45)'; q.beginPath(); q.ellipse(76,140,26*(1-hop*0.02),6,0,0,TAU); q.fill();   // かげは 地面に のこる
+  q.save(); q.translate(76,100-hop*152/60); q.scale(2*(flip||1),2); drawNorun(q,'normal',animT,false,face||'front'); q.restore();
+  nc.style.left=(x-30)+'px'; nc.style.top=(y-56)+'px';
+}
+function norunSpot(id,W,H){ const M=STAGE_MAP.find(m=>m.id===id), s=id===10?66:56; return [M.x*W, M.y*H-s*0.36]; }   // 星の マスの 上に 立つ
+function mapWalk(from,to){   // マスから マスへ、道に そって ぴょんぴょん 歩く（1マス 1.2秒）
+  cancelAnimationFrame(MW.raf); const W=MW.W, H=MW.H, S=mapRoad(W,H), per=1.2, steps=to-from; let t0=null;
+  const tick=now=>{
+    if(state!=='stage'){ placeNorun(...norunSpot(to,W,H)); return; }
+    if(t0==null) t0=now; const T=(now-t0)/1000/per;
+    if(T>=steps){ placeNorun(...norunSpot(to,W,H),'front',1,0); const M=STAGE_MAP.find(m=>m.id===to);
+      mapToast('ステージ'+to+'「'+M.name+'」へ すすんだよ！'); tone(880,0.12,'triangle',0.05,300); return; }
+    const k=Math.floor(T), f=T-k, seg=S[from+k];   // 区間（マス from+k → from+k+1）
+    const e=f<0.5?2*f*f:1-2*(1-f)*(1-f), [x,y]=bez(seg,e), [x2,y2]=bez(seg,Math.min(1,e+0.04));
+    const lift=(id,t)=>{ const s=id===10?66:56; return s*0.36*t; };   // マスの 上 → 道 → つぎの マスの 上
+    const up=f<0.15?lift(from+k,1-f/0.15):f>0.85?lift(from+k+1,(f-0.85)/0.15):0;
+    const hop=Math.abs(Math.sin(f*Math.PI*3))*14;
+    const dx=x2-x, dy=y2-y, face=Math.abs(dx)>Math.abs(dy)*0.7?'side':(dy<0?'back':'front');
+    if(Math.floor(f*3)!==MW.lastHop){ MW.lastHop=Math.floor(f*3); tone(520+MW.lastHop*90,0.05,'sine',0.025,120); }
+    placeNorun(x,y-up,face,face==='side'&&dx>0?-1:1,hop);
+    MW.raf=requestAnimationFrame(tick);
+  };
+  MW.lastHop=-1; MW.raf=requestAnimationFrame(tick);
+}
 function toStages(){
-  flushPending(); bankKills(); newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); closeSheet(); buildMap(); showOnly('stage'); $('stage').scrollTop=1e6;
+  flushPending(); bankKills(); newGame(save.form,save.limit,cur.stage,false); state='stage'; setPlayUi(false); closeSheet(); buildMap(); showOnly('stage');
+  const r=MAPWALK?MAPWALK.to:reachedId(), [,ny]=norunSpot(r,MW.W,MW.H); $('stage').scrollTop=Math.max(0,ny-window.innerHeight*0.55);   // とうたつした マスが 見えるように
+  if(MAPWALK){ const w=MAPWALK; MAPWALK=null; setTimeout(()=>{ if(state==='stage') mapWalk(w.from,w.to); },450); }
 }
 
 
@@ -2412,13 +2473,13 @@ const STORY = [
   {img:'00_cover.png', cover:true},
   {img:'01_page.png', t:'ぼくは なに？', x:'ある よるの こと。ほしのもりで、のるんは めを さましました。「ぼく………なに………？」のるんは、じぶんが なにか、しりません。'},
   {img:'02_page.png', t:'へんしんの ひび', x:'のるんは、へんしんが できます。とりに なったり、さかなに なったり、おはなに なったり。でも、いつも かおは のるんのまま。「どこ………いる………？」おなじ かおの なかまを、ずっと さがしています。'},
-  {img:'03_page.png', t:'あかり', x:'そのよる、とおくに あかりが みえました。ぽつん、と あたたかい ひかり。「あかり………いく………」のるんの だいぼうけんが はじまります。'},
-  {img:'04_page.png', t:'もりを ぬけて', x:'もりを ぬけました。ほしの かけらが、みちを てらします。「もり………ぬけた………」あかりは、まだ とおく。'},
+  {img:'03_page.png', t:'あかり', x:'そのよる、とおくに あかりが みえました。ぽつん、と あたたかい ひかり。「あか………り………いく………」のるんの だいぼうけんが はじまります。'},
+  {img:'04_page.png', t:'もりを ぬけて', x:'もりを ぬけました。ほしの かけらが、みちを てらします。「もり………ぬけ………た………」あかりは、まだ とおく。'},
   {img:'05_page.png', t:'くさはら', x:'おおきな くさはら。かぜが、ふわーっと ふきます。「かぜ………ふく………」こたえは、かぜの おとだけ。'},
   {img:'06_page.png', t:'なれない', x:'はなばたけで、のるんは おはなに へんしん。でも、やっぱり かおは のるん。「なれ………ない………」すこしだけ、しょんぼり。'},
   {img:'07_page.png', t:'ふうしゃ', x:'ふうしゃが ゆっくり まわる、はたけの みち。ひとの くらしが、ちかづいてきました。「ひと………いる………」のるんは、そっと すすみます。'},
   {img:'08_page.png', t:'ほしのまち', x:'まちは あかるくて、にぎやか。ひとが いっぱい、わらっています。「ひと………だけ………」なかまは、ここにも いませんでした。'},
-  {img:'09_page.png', t:'おかの うえ', x:'おかを のぼると、みえました。あかりの おうち！「みえた………！ うち………」むねが、どきどき します。'},
+  {img:'09_page.png', t:'おかの うえ', x:'おかを のぼると、みえました。あかりの おうち！「みえ………た………！ うち………」むねが、どきどき します。'},
   {img:'10_page.png', t:'なみきみち', x:'なみきみちを、はやあしで すすみます。「あと………ちょと………」あかりが、だんだん おおきく なります。'},
   {img:'11_page.png', t:'さかみち', x:'おうちの まえの、さかみち。「どき………どき………」あと、ひとがんばり。'},
   {img:'12_page.png', t:'おにわ', x:'おにわに、しのびこみました。「まど………そこ………」まどの あかりが、すぐ そこ。'},
@@ -2559,7 +2620,7 @@ if(typeof window!=='undefined'&&typeof history!=='undefined'&&history.pushState)
 }
 function endGame(clear){
   state='end'; stickEnd(); $('btnUlt').classList.remove('on');
-  const S=G.stage, wasOpen=Object.keys(FORMS).filter(isOpen), nx=nextStage(S.id), nextWasOpen=nx?stageOpen(nx.id):true;
+  const S=G.stage, wasOpen=Object.keys(FORMS).filter(isOpen), nx=nextStage(S.id), nextWasOpen=nx?stageOpen(nx.id):true, reachBefore=reachedId();
   const firstClear=clear&&!G.endless&&!save.stageClear[S.id];
   let time, b;
   if(G.endless){ time=G.t; b=save.endless[S.id]||(save.endless[S.id]={time:0,kills:0}); }
@@ -2574,6 +2635,7 @@ function endGame(clear){
   bankKills(); persist();
   const opened=Object.keys(FORMS).filter(f=>isOpen(f)&&!wasOpen.includes(f)), msg=[];
   if(clear&&nx&&!nextWasOpen) msg.push('✨ ステージ'+nx.id+'「'+nx.name+'」が あそべるようになった！');
+  { const ra=reachedId(); if(clear&&ra>reachBefore) MAPWALK={from:reachBefore,to:ra}; }   // 地図で のるんが 歩いて すすむ
   if(firstClear&&!wasEnd&&save.story.done) msg.push('∞ エンドレスが あそべるようになった！（クリアした ステージで あそべるよ）');
   else if(firstClear&&endlessOpen()) msg.push('∞ このステージの エンドレスが あそべるよ');
   if(G.pendingBook) msg.push('📖 えほんの あたらしい ページが ひらいたよ');
@@ -3310,7 +3372,9 @@ function kvEdge(im){   // 絵の ふちの 色（上・下・左右を 8段）�
   }catch(e){ return null; }
 }
 function kvFit(){   // 絵は 切らずに 全体を 見せる（contain）。よはくは 絵の ふちの 色で うめる
-  if(!KV.ok) return; const t=$('title'); t.classList.add('kv');
+  if(!KV.ok) return; const t=$('title');
+  if(!KV.splash){ t.classList.remove('kv','kvside'); t.style.background=''; return; }   // メニューの 画面は 今まで通り（bg_title＋雲の ロゴ）
+  t.classList.add('kv');
   const W=window.innerWidth, H=window.innerHeight, ar=KV.im.naturalWidth/KV.im.naturalHeight;
   const side=!KV.splash && W >= H*ar + 480;   // メニューの時、横に ながい画面では 絵を 左・ボタンを 右に
   t.classList.toggle('kvside',side);
@@ -3445,7 +3509,7 @@ function drawHero(){ drawPeek($('hero'),2.05,0.7); }
 let lastDt=0;
 const drawL=[];
 function render(){
-  if(state==='title'&&KV.ok) return;   // キービジュアルの時は 画面の絵が すべて（Canvas は かくれて いるので 描かない）
+  if(state==='title'&&KV.splash) return;   // さいしょの 絵だけの 画面では Canvas は かくれて いるので 描かない
   if(state==='title'||state==='book'||state==='shelf'||state==='records'||state==='settings'){ renderNight(lastDt); if(state==='title') drawHero(); return; }
   if(state==='stage'||state==='forge'||state==='equip'){ renderSky(lastDt); return; }
   const c=ctx, p=G.p;
@@ -3787,7 +3851,7 @@ function frame(now){
 /* ---------- 起動 ---------- */
 sndLabel(); resize(); newGame(save.form,save.limit); buildTitle(); showOnly('title');
 window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet,
-  endGame, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, kvReveal, STORY, get bgm(){return bgm;} };   // デバッグ用
+  endGame, reachedId, mapWalk, get MAPWALK(){return MAPWALK;}, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, kvReveal, STORY, get bgm(){return bgm;} };   // デバッグ用
 if(typeof navigator!=='undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){   // PWA：オフラインでも 起動できるように
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
