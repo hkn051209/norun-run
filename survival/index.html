@@ -1151,7 +1151,7 @@ body.kvsplash .kvtap{display:block}
 
 <script>
 /* ============================================================
-   のるんのだいぼうけん v8.7（くりかえし あそんでも コイン・レアアイテムの 作りなおし・レアの ★・2つ そうび）（もと：のるんの ほしぞらサバイバル v7.2）
+   のるんのだいぼうけん v8.7.1（仲間ルンバに 専用の 絵）／v8.7（くりかえし あそんでも コイン・レアアイテムの 作りなおし・レアの ★・2つ そうび）（もと：のるんの ほしぞらサバイバル v7.2）
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -1978,14 +1978,27 @@ function updateBuddy(dt){
   if(B.cd<=0) for(const e of G.enemies){ if(e.dead||e.alt>=25) continue; const ex=e.x-B.x, ey=e.y-B.y, ed=Math.hypot(ex,ey)||1;
     if(ed<e.r+14){ B.cd=0.5; hurtEnemy(e,L.dmg[i]*(1+G.t/200)*power()); if(!e.boss){ e.kx+=ex/ed*L.knock[i]; e.ky+=ey/ed*L.knock[i]; } hitFx(e,'slam'); burst(B.x,B.y,3,'spark','#bfe0ff',140); break; } }
 }
+/* 仲間ルンバの 絵：img/ally_roomba_{front,side,back}.png（side は 左むき）。読めない時は 敵ルンバの 絵 → 灰色の丸＋ハート */
+const ALLY_IMG={}; for(const d of ['front','side','back']){ const im=new Image(); im.src='img/ally_roomba_'+d+'.png'; ALLY_IMG[d]=im; }
 function drawBuddy(c){
-  const B=G.buddy; if(!B) return; const set=enemyImg.roomba, im=set&&imgOk(set.front)?set.front:null, s=28;
+  const B=G.buddy; if(!B) return;
+  // 向き：のるんと 同じ 作法（上=back／下=front／横=side、右へ すすむ時は 反転）。止まったら 最後の 向きのまま
+  const ax=Math.abs(B.vx), ay=Math.abs(B.vy);
+  if(!B.face){ B.face='front'; B.flip=1; }
+  if(Math.hypot(B.vx,B.vy)>20){
+    const side=B.face==='side' ? ax>=ay*0.8 : ax>ay*1.25;
+    if(side){ B.face='side'; B.flip=B.vx>0?-1:1; } else { B.face=B.vy<0?'back':'front'; B.flip=1; }
+  }
+  let im=null, fl=1, s=28;
+  if(imgOk(ALLY_IMG[B.face])){ im=ALLY_IMG[B.face]; fl=B.face==='side'?B.flip:1; s=32; }
+  else if(imgOk(ALLY_IMG.front)){ im=ALLY_IMG.front; s=32; }
+  else { const set=enemyImg.roomba; if(set&&imgOk(set.front)) im=set.front; }
   c.fillStyle='rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(B.x,B.y+9,12,4,0,0,TAU); c.fill();
   c.save(); c.translate(B.x,B.y);
-  if(im){ const w=s*im.naturalWidth/im.naturalHeight; c.drawImage(fitSpr(im,w*DPR*SC,s*DPR*SC),-w/2,-s/2,w,s); }
+  if(im){ const w=s*im.naturalWidth/im.naturalHeight; if(fl<0) c.scale(-1,1); c.drawImage(fitSpr(im,w*DPR*SC,s*DPR*SC),-w/2,-s/2,w,s); }
   else{ c.fillStyle='#5a5f6e'; c.beginPath(); c.arc(0,0,12,0,TAU); c.fill(); c.fillStyle='#8a90a0'; c.beginPath(); c.arc(0,-1,9,0,TAU); c.fill(); c.fillStyle='#7cf0a0'; c.beginPath(); c.arc(Math.cos(B.ang)*6,Math.sin(B.ang)*6-1,2.2,0,TAU); c.fill(); }
   c.restore();
-  c.fillStyle='#ff8fb8'; c.beginPath(); heartPath(c,B.x,B.y-18,4); c.fill();   // なかまの しるし
+  c.fillStyle='#ff8fb8'; c.beginPath(); heartPath(c,B.x,B.y-(im&&im!==(enemyImg.roomba&&enemyImg.roomba.front)?21:18),4); c.fill();   // なかまの しるし
 }
 function useUlt(){
   if(state!=='play'||G.ult<G.ultNeed) return;
@@ -2954,7 +2967,7 @@ function copyText(t,btn){ const done=()=>{ const o=btn.textContent; btn.textCont
 /* ---------- エラーの メモ（さいごの 5つ。ゲームの セーブとは べつの キー） ---------- */
 const ERRKEY='norun-daibouken-errors';
 function errList(){ try{ return JSON.parse(localStorage.getItem(ERRKEY)||'[]'); }catch(e){ return []; } }
-function errAdd(msg){ try{ const L=errList(); const d=new Date(), z=n=>String(n).padStart(2,'0'); L.unshift({t:d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds()),m:String(msg).slice(0,400),v:'v8.7',s:state}); localStorage.setItem(ERRKEY,JSON.stringify(L.slice(0,5))); }catch(e){} }
+function errAdd(msg){ try{ const L=errList(); const d=new Date(), z=n=>String(n).padStart(2,'0'); L.unshift({t:d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds()),m:String(msg).slice(0,400),v:'v8.7.1',s:state}); localStorage.setItem(ERRKEY,JSON.stringify(L.slice(0,5))); }catch(e){} }
 function errText(){ const L=errList(); return L.length?L.map(e=>e.t+'（'+e.v+'・画面:'+e.s+'）\n'+e.m).join('\n\n'):''; }
 function errShow(){ const t=errText(); $('errTxt').textContent=t||'エラーは ありません'; }
 if(typeof window!=='undefined'&&window.addEventListener){

@@ -3,7 +3,7 @@
    ・index.html は ネット優先（つながる時は いつも 最新）。絵・音・フォントは キャッシュ優先
    ・BGM（mp3）は はじめて 鳴らした時に まるごと キャッシュする（さいしょから 全曲は ダウンロードしない）
    ・絵も 起動直後に つかう ものだけ 先に 入れ、あとは はじめて つかった 時に 入れる */
-const CACHE = 'norun-daibouken-v8-7';
+const CACHE = 'norun-daibouken-v8-7-1';
 const forms = ['normal','kurage','pan','obake','penguin','hiyoko','kinoko','purin','kitsune','panda'], dirs = ['front','back','side'];
 const enemies = ['ant','bee','cat','cat_side','cat_back','crow','crow_side','crow_back','dog','dog_side','dog_back',
   'boss_cat','boss_cat_side','boss_cat_back','boss_crow','boss_crow_side','boss_crow_back','boss_hand','roomba'];
@@ -12,6 +12,7 @@ const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 
 const ASSETS = [   // 先に 入れておくのは 起動直後に つかう 絵だけ（タイトルまわり・のるん・敵・エフェクト）
   ...forms.flatMap(f => dirs.map(d => `img/norun_${f}_${d}.png`)),
   ...enemies.map(e => `img/enemy_${e}.png`),
+  ...dirs.map(d => `img/ally_roomba_${d}.png`),   // v8.7.1：仲間ルンバ（ルンバの心）
   'img/fx-water-slash-chappi.png', 'img/fx-grass-chappi.png', 'img/fx-fire-chappi.png',
   'img/keyvisual_title.png', 'img/bg_title.png',
 ];
