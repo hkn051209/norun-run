@@ -123,7 +123,7 @@ p b{color:var(--pink-d)}
 .ghost{display:inline-block;margin:10px 0 0 8px;padding:10px 18px;border-radius:999px;border:2.5px solid var(--lav);
   background:#fff;color:var(--ink);font-weight:900;font-size:14px}
 .best{font-size:13px;color:var(--orange);font-weight:900}
-#forms{display:flex;gap:6px;justify-content:center;margin:10px 0 6px}
+#forms{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;justify-content:center;margin:10px 0 6px}
 .fbtn{flex:1;min-width:0;padding:4px 0 6px;border-radius:16px;border:2.5px solid var(--line);background:var(--lav-l);
   font-size:11px;font-weight:900;position:relative;color:var(--ink)}
 .fbtn canvas{width:48px;height:48px;display:block;margin:0 auto}
@@ -867,9 +867,10 @@ body.kvsplash .kvtap{display:block}
 .node .nst i{font-size:12px;line-height:1;color:#6f6aa8;text-shadow:none}
 .node .nst i.on,.stars i.on,.shstars .on i{color:#ffd75e;text-shadow:0 0 5px rgba(255,214,102,.9)}
 .stars i{font-size:22px;margin-left:2px}
+#eStars{text-shadow:none}   /* 結果の ★の 行は 影なし（文字が 二重に 見えないように） */
 .stars i.nw{animation:starpop .8s ease-out}
 @keyframes starpop{0%{transform:scale(2.2) rotate(-30deg);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1)}}
-.stars .coin{font-style:normal;font-size:13px;margin-left:8px;padding:2px 8px;border-radius:99px;background:linear-gradient(#ffe48a,#ffb83d);color:#5a3a00;vertical-align:4px}
+.stars .coin{text-shadow:none;-webkit-text-stroke:0;filter:none;font-style:normal;font-weight:800;line-height:1.3;font-size:13px;margin-left:8px;padding:2px 8px;border-radius:99px;background:linear-gradient(#ffe48a,#ffb83d);color:#5a3a00;vertical-align:4px}
 .shstars{display:flex;flex-direction:column;gap:3px;margin:2px 0 8px;padding:7px 10px;border-radius:14px;background:var(--glass);border:1.5px solid rgba(243,211,126,.35);text-align:left;font-size:12px;color:#d9d2f5}
 .shstars i{font-size:15px;margin-right:6px}
 .shstars .on{color:#fff3d0}.shstars b{color:#9fe6b8}
@@ -893,6 +894,25 @@ body.kvsplash .kvtap{display:block}
 .setsec .msg.ng{color:#ffb3c8}.setsec .msg.ok{color:#9fe6b8}
 .setsec pre{margin:6px 0 0;max-height:90px;overflow:auto;white-space:pre-wrap;word-break:break-all;font:10.5px/1.4 monospace;color:#ffd0e0;background:#14123e;border-radius:10px;padding:6px}
 #fpsBox{position:fixed;left:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:50;pointer-events:none;padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.6);color:#9fffb4;font:11px/1.3 monospace;white-space:pre}
+
+/* ---- v8.6：大技が たまった 合図・おかいものの キャラの 段 ---- */
+#btnUlt .rdy{display:none;position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);white-space:nowrap;pointer-events:none;
+  padding:3px 10px;border-radius:99px;font-size:12px;font-weight:800;color:#5a3a00;background:linear-gradient(#fff3b0,#ffc94a);border:2px solid #fff;
+  box-shadow:0 0 10px rgba(255,214,102,.9),0 2px 0 #a8741a;animation:rdyb .7s ease-in-out infinite alternate}
+#btnUlt .rdy::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#ffc94a}
+#btnUlt.ready .rdy{display:block}
+#btnUlt.ready{animation:ultpulse .9s ease-in-out infinite}
+#btnUlt.pop{animation:ultpop .5s ease-out,ultpulse .9s ease-in-out .5s infinite}
+@keyframes ultpulse{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.12);filter:brightness(1.25)}}
+@keyframes ultpop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
+@keyframes rdyb{0%{transform:translate(-50%,0)}100%{transform:translate(-50%,-4px)}}
+#ultbar.ready{animation:ultbar .8s ease-in-out infinite alternate}
+@keyframes ultbar{0%{box-shadow:0 0 0 rgba(255,214,102,0)}100%{box-shadow:0 0 10px 3px rgba(255,214,102,.95)}}
+.shopHd{margin:8px 2px 0;font-size:12.5px;font-weight:800;color:var(--gold-l);text-align:left}
+.shopHd:first-child{margin-top:0}
+.rr .ri2.ch{background:radial-gradient(circle at 50% 70%,#4c43a8,#1b1a4a)}
+.rr .ri2.ch canvas{width:44px;height:44px}
+.fbtn canvas{max-width:100%}
 </style>
 </head>
 <body>
@@ -919,7 +939,7 @@ body.kvsplash .kvtap{display:block}
   <div class="hsub"><span id="kills" class="pill">0 たおした</span><span id="lightTag" class="pill ltag" style="display:none"></span><div id="skills"></div></div>
 </div>
 <div id="edge" aria-hidden="true"><i class="es a">✦</i><i class="es b">★</i><i class="es c">✧</i><i class="es d">✦</i></div>
-<button id="btnUlt" aria-label="大技"><span class="in"><i class="st">★</i><b class="tx">大技</b></span><i class="sp s1">✦</i><i class="sp s2">✦</i><i class="sp s3">✧</i></button>
+<button id="btnUlt" aria-label="大技"><span class="rdy">つかえるよ！</span><span class="in"><i class="st">★</i><b class="tx">大技</b></span><i class="sp s1">✦</i><i class="sp s2">✦</i><i class="sp s3">✧</i></button>
 <div id="banner"></div>
 <button class="hbtn" id="sndFloat" aria-label="おと">♪</button>
 
@@ -1120,7 +1140,7 @@ body.kvsplash .kvtap{display:block}
 
 <script>
 /* ============================================================
-   のるんのだいぼうけん v8.5（セーブを まもる・ステージの ★3つ・コインと おかいもの・?fps=1 と エラーの メモ）（もと：のるんの ほしぞらサバイバル v7.2）
+   のるんのだいぼうけん v8.6（コイン表示・レアの おとす敵・戻るボタン・大技の 合図と 音・おかいもので かえる キャラ5つ）（もと：のるんの ほしぞらサバイバル v7.2）
    単体HTML + Canvas / 外部ライブラリなし
    ------------------------------------------------------------
    調整は下の CFG / FORMS / SKILLS / ETYPES。
@@ -1287,7 +1307,8 @@ const CFG = {
 
 /* のるんの絵（透過PNG）。img/norun_{姿}_{front,back,side}.png。side は左向きの絵で、右へ進む時は左右反転する。無ければ仮絵。 */
 const SPRITES = {};
-for(const f of ['normal','kurage','pan','obake','penguin']) SPRITES[f]={front:'img/norun_'+f+'_front.png',back:'img/norun_'+f+'_back.png',side:'img/norun_'+f+'_side.png'};
+/* おかいものの キャラ（hiyoko・kinoko・purin・kitsune・panda）も 同じ きまりの ファイル名。絵が とどくまでは 仮の絵 */
+for(const f of ['normal','kurage','pan','obake','penguin','hiyoko','kinoko','purin','kitsune','panda']) SPRITES[f]={front:'img/norun_'+f+'_front.png',back:'img/norun_'+f+'_back.png',side:'img/norun_'+f+'_side.png'};
 /* 敵の絵。side/back がある敵は のるんと同じ規則で向きを切り替える（side は左向きが正、右へ進む時に反転）。
    正面絵だけの敵（アリ・ハチ）は今までどおり（右へ進む時はそのまま、左で反転）。
    読み込めない向きは正面絵、正面絵も無ければ Canvas の仮絵になる。 */
@@ -1302,9 +1323,17 @@ const FORMS = {
   pan:     {name:'パン',     speed:1.35, grip:1.9, aff:'move',    perk:'はやく うごくほど こうげきが つよい',      ult:'きょだいパンとっしん', ultDesc:'大きくなって むてきで体当たり'},
   obake:   {name:'おばけ',   speed:1.05, grip:10,  aff:'poison',  perk:'どくが つよく・ながい。あぶない時 すりぬけ', ult:'すりぬけ どくぎり',   ultDesc:'しばらく完全すりぬけ＋全体に どく'},
   penguin: {name:'ペンギン', speed:0.80, grip:10,  aff:'halo',    perk:'HPが たかい。ビームの輪が ふとい',         ult:'ブリザード',          ultDesc:'がめん全体を こおらせる'},
+  // ここから：おかいもので コインで かう キャラ（shop＝ねだん。かうまでは えらべない）
+  hiyoko:  {name:'ひよこ',   speed:1.22, grip:14,  aff:null, shop:50,  perk:'小さくて あたりにくい。足が はやいけど 体力は すくなめ',  ult:'ぴよぴよストーム',   ultDesc:'ひよこが わらわら出て まわりの敵を いっせいに ついばむ'},
+  kinoko:  {name:'キノコ',   speed:1.00, grip:10,  aff:null, shop:70,  perk:'そざいが 少し 出やすい',                                ult:'ねむり胞子',         ultDesc:'胞子を ばらまいて まわりの敵を 全部 ねむらせる'},
+  purin:   {name:'プリン',   speed:1.00, grip:9,   aff:null, shop:90,  perk:'ぷるぷるで ふきとばされにくい',                         ult:'ぷるぷるウェーブ',   ultDesc:'しょうげきはで まわりの敵を 全部 ふきとばす'},
+  kitsune: {name:'きつね',   speed:1.15, grip:13,  aff:null, shop:110, perk:'足が はやくて、ひろう はんいが ひろい',                 ult:'きつねび',           ultDesc:'青い炎が 敵を おいかけて もやす'},
+  panda:   {name:'パンダ',   speed:0.90, grip:10,  aff:null, shop:130, perk:'体力が おおい。少し 足が おそい',                       ult:'ごろごろローリング', ultDesc:'ころがって 一直線に 敵を なぎたおす'},
 };
+const SHOP_CHARS = Object.keys(FORMS).filter(f=>FORMS[f].shop);
 const PERK = { normalMagnet:1.8, kurageChain:1.6, kurageStun:2.0, panPerSpeed:0.6, panCap:1.5,
-               obakePoison:1.7, obakePoisonDur:6, obakePhase:2.0, obakeCd:7.0, penguinHp:60, penguinHalo:1.8 };
+               obakePoison:1.7, obakePoisonDur:6, obakePhase:2.0, obakeCd:7.0, penguinHp:60, penguinHalo:1.8,
+               hiyokoR:0.7, hiyokoHp:-30, kinokoDrop:1.3, purinKnock:0.25, kitsuneMagnet:1.5, pandaHp:50 };   // 下の5つ：おかいもの キャラ
 
 /* 解放条件 */
 const UNLOCK = {
@@ -1314,6 +1343,7 @@ const UNLOCK = {
   obake:   {ok:s=>s.totalKills>=500,         how:s=>'いきものを 合計500体たおす（いま '+s.totalKills+'体）'},
   penguin: {ok:s=>(s.clears.kurage||0)>=1,   how:()=>'くらげで 1回クリア'},
 };
+for(const f of Object.keys(FORMS)) if(FORMS[f].shop) UNLOCK[f]={ok:s=>!!(s.charOwn&&s.charOwn[f]), how:()=>'おかいもので かうと つかえるよ（🪙'+FORMS[f].shop+'）'};
 
 /* スキル：同じものを重ねて取るとレベルアップ（最大 SKILL_MAX）。数値は skill*() 関数内 */
 const SKILLS = {
@@ -1390,11 +1420,11 @@ function forgeCost(k,lv){   // lv＝これから上がるレベル（1〜10）
 }
 const RARES = {
   life:  {name:'いのちのほし',   desc:'HPが0になった時 1回だけ、HP50%で ふっかつ', how:'さいごのステージを はじめて クリアすると もらえる'},
-  guard: {name:'ほしのまもり',   desc:'ダメージを1回 ふせぐ。ふせいでから30秒で もどる'},
-  bell:  {name:'ほしあつめの鈴', desc:'かけらを ひきよせる はんいが ずっと2ばい'},
-  gold:  {name:'こがねの羽',     desc:'けいけんちの 入りが +20%'},
-  roomba:{name:'ルンバの心',     desc:'がめんの はんぶんくらいの かけらが、いつも よってくる'},
-};
+  guard: {name:'ほしのまもり',   desc:'ダメージを1回 ふせぐ。ふせいでから30秒で もどる', from:'hand',     how:'手を はじめて たおすと かならず おちる（そのあとも まれに）'},
+  bell:  {name:'ほしあつめの鈴', desc:'かけらを ひきよせる はんいが ずっと2ばい',         from:'bosscat',  how:'ボスネコを たおすと まれに おちる'},
+  gold:  {name:'こがねの羽',     desc:'けいけんちの 入りが +20%',                         from:'bosscrow', how:'ボスカラスを たおすと まれに おちる'},
+  roomba:{name:'ルンバの心',     desc:'がめんの はんぶんくらいの かけらが、いつも よってくる', from:'roomba', how:'ルンバを はじめて たおすと かならず おちる（そのあとも まれに）'},
+};   // from＝その レアアイテムを おとす 敵（ほかの 敵からは おちない）
 const RARE_HOW = 'ボス（ボスネコ・ボスカラス・手・ルンバ）を たおすと まれに おちる。手とルンバは はじめて たおした時 かならず おちる';
 
 /* ---------- 小道具 ---------- */
@@ -1424,6 +1454,7 @@ function loadSave(){
   s.stars = (s.stars&&typeof s.stars==='object') ? s.stars : {};
   s.coins = Math.max(0, s.coins|0);
   s.fxOwn = (s.fxOwn&&typeof s.fxOwn==='object') ? s.fxOwn : {};
+  s.charOwn = (s.charOwn&&typeof s.charOwn==='object') ? s.charOwn : {};   // v8.6：おかいもので かった キャラ
   s.fxEq  = (typeof s.fxEq==='string'&&CFG.SHOP.some(x=>x.k===s.fxEq&&s.fxOwn[s.fxEq])) ? s.fxEq : null;
   if(!s.v85){   // いままでの クリアは ★1、ベスト記録の たおした数が とどいて いれば ★3（体力の 記録は ないので ★2は これから）
     let n=0; const add=(id,b)=>{ const m=s.stars[id]|0; if(!(m&b)){ s.stars[id]=m|b; n++; } };
@@ -1509,7 +1540,22 @@ const SFX = {
   phase(){ tone(900,0.3,'sine',0.05,-500); },
   boss(){ tone(110,0.6,'sawtooth',0.07,-40); },
   ready(){ tone(880,0.1,'triangle',0.05); tone(1320,0.16,'triangle',0.05,0,0.1); },
-  ult(){ tone(200,0.7,'sawtooth',0.07,1400); [784,988,1175,1568].forEach((f,i)=>tone(f,0.2,'triangle',0.06,0,0.15+i*0.08)); },
+  ultReady(){ [1319,1760,2093,2637].forEach((f,i)=>tone(f,0.09,'triangle',0.028,0,i*0.055)); tone(3136,0.22,'sine',0.018,0,0.24); },   // 大技が たまった：キラキラ（ひかえめ）
+  ult(form){   // 大技を うった 音：姿ごとに ちがう ふんいき（音量は ひかえめ）
+    const T={
+      normal: ()=>{ tone(200,0.6,'sawtooth',0.04,1400); [784,988,1175,1568].forEach((f,i)=>tone(f,0.18,'triangle',0.04,0,0.15+i*0.08)); },
+      kurage: ()=>{ tone(1600,0.3,'sawtooth',0.03,-1200); tone(900,0.22,'square',0.02,600,0.12); tone(1800,0.2,'sawtooth',0.025,-1400,0.26); },
+      pan:    ()=>{ [330,440,554].forEach((f,i)=>tone(f,0.15,'square',0.028,180,i*0.09)); tone(160,0.4,'triangle',0.045,-60,0.3); },
+      obake:  ()=>{ tone(620,0.8,'sine',0.035,-360); tone(470,0.8,'sine',0.028,-260,0.12); },
+      penguin:()=>{ [1568,1319,1760,2093].forEach((f,i)=>tone(f,0.24,'sine',0.03,0,i*0.07)); tone(300,0.5,'triangle',0.028,-150); },
+      hiyoko: ()=>{ for(let i=0;i<7;i++) tone(1700+(i%2)*450,0.06,'triangle',0.026,520,i*0.065); },
+      kinoko: ()=>{ for(let i=0;i<4;i++) tone(340-i*30,0.18,'sine',0.035,-120,i*0.11); tone(880,0.45,'sine',0.016,-320,0.22); },
+      purin:  ()=>{ for(let i=0;i<6;i++) tone(230+(i%2)*70,0.09,'sine',0.04,0,i*0.065); tone(110,0.45,'triangle',0.045,-40,0.32); },
+      kitsune:()=>{ tone(300,0.5,'sawtooth',0.026,900); tone(620,0.42,'triangle',0.028,520,0.1); tone(1240,0.3,'sine',0.018,-400,0.3); },
+      panda:  ()=>{ tone(90,0.9,'square',0.03,-30); [392,523,659].forEach((f,i)=>tone(f,0.12,'triangle',0.032,0,i*0.08)); },
+    };
+    (T[form]||T.normal)();
+  },
   clear(){ [523,659,784,1047,1319].forEach((f,i)=>tone(f,0.22,'triangle',0.07,0,i*0.12)); },
   over(){ [392,330,262,196].forEach((f,i)=>tone(f,0.25,'triangle',0.06,0,i*0.16)); },
 };
@@ -1585,11 +1631,11 @@ function newGame(form,limit,stageId,endless){
   const c=CFG.WORLD/2, stage=CFG.STAGES.find(S=>S.id===stageId)||CFG.STAGES[0];
   G={
     form, stage, endless:!!endless, limit:endless?Infinity:limit, ref:endless?CFG.ENDLESS.ref:limit, nextBoss:CFG.ENDLESS.bossEvery, t:0, kills:0, level:1, xp:0, need:xpNeed(1), pending:0, ult:0, ultNeed:CFG.ULT_NEED, banked:false,
-    p:{x:c,y:c,vx:0,vy:0,hp:0,maxHp:CFG.PLAYER_HP+(form==='penguin'?PERK.penguinHp:0),form,inv:0,phase:0,phaseCd:0,giant:0,dir:1,r:16,tilt:0,bob:0,flip:1,face:'front'},
-    st:{power:1,cd:1,bspd:1,move:185,magnet:72*(form==='normal'?PERK.normalMagnet:1)},
+    p:{x:c,y:c,vx:0,vy:0,hp:0,maxHp:CFG.PLAYER_HP+(form==='penguin'?PERK.penguinHp:form==='panda'?PERK.pandaHp:form==='hiyoko'?PERK.hiyokoHp:0),form,inv:0,phase:0,phaseCd:0,giant:0,roll:0,rvx:0,rvy:0,rollA:0,dir:1,r:16*(form==='hiyoko'?PERK.hiyokoR:1),tilt:0,bob:0,flip:1,face:'front'},
+    st:{power:1,cd:1,bspd:1,move:185,magnet:72*(form==='normal'?PERK.normalMagnet:form==='kitsune'?PERK.kitsuneMagnet:1)},
     sk:{shot:1},
     tm:{shot:0.4,homing:0.6,ice:0.8,fire:1,thunder:1.2,water:1.4,halo:0.3,herb:2},
-    orbA:0, haloPulse:0,
+    orbA:0, haloPulse:0, chicks:[], foxf:[],
     enemies:[],bullets:[],gems:[],fx:[],zones:[],herbs:[],bolts:[],falls:[],finale:false,handOut:false,antT:3,
     spawnT:0.5,bossIdx:0,shake:0,shakeAmp:4,flash:null,rings:[],ghosts:[],ghostT:0,
     roombaT:2, xpMul:1, eq:null, guardReady:false, guardT:0, revived:false, mats:{}, gotRares:[], pops:[], slams:0, slamHits:0, eaten:0,
@@ -1690,7 +1736,7 @@ function onKill(e){
   G.kills++; SFX.kill();
   const before=G.ult;
   G.ult=Math.min(G.ultNeed,G.ult+(e.boss?10:1));
-  if(before<G.ultNeed && G.ult>=G.ultNeed) SFX.ready();
+  if(before<G.ultNeed && G.ult>=G.ultNeed) ultReadyFx();
   // 撃破：星のかけらが弾ける＋小さな画面揺れ（ボスは強め）
   if(e.boss){
     burst(e.x,e.y-e.alt,46,'star','#ffe27a',380); burst(e.x,e.y-e.alt,24,'star','#9fe8ff',300); burst(e.x,e.y-e.alt,20,'dot','#ffffff',260);
@@ -1702,7 +1748,7 @@ function onKill(e){
     for(let i=0;i<12;i++){ const a=rand(0,TAU), d=rand(10,90); addGem(e.x+Math.cos(a)*d,e.y+Math.sin(a)*d,2); }
     G.gems.push({x:e.x,y:e.y,v:0,heart:true,spd:0,ph:0});
     if(CFG.BOSS_REWARD.level){ G.level++; G.need=xpNeed(G.level); G.pending++; }
-    if(CFG.BOSS_REWARD.ult){ G.ult=G.ultNeed; SFX.ready(); }
+    if(CFG.BOSS_REWARD.ult){ const was=G.ult>=G.ultNeed; G.ult=G.ultNeed; if(!was) ultReadyFx(); }
     banner(ETYPES[e.type].name+' を たおした！ ごほうび！');
   }else{
     addGem(e.x,e.y,e.xp);
@@ -1717,9 +1763,9 @@ function onKill(e){
 }
 /* そざい：ほしのもと（全部の敵 10%）＋ その敵の そざい（20%、ボス・ルンバは かならず1こ） */
 function rollDrops(e){
-  const D=CFG.DROP, own=DROPS[e.type];
-  if(Math.random()<D.common) gainMat('hoshi',1,e.x-10,e.y-e.alt);
-  if(own&&(e.boss||e.elite||Math.random()<D.own)) gainMat(own,1,e.x+10,e.y-e.alt);
+  const D=CFG.DROP, own=DROPS[e.type], dm=G.p.form==='kinoko'?PERK.kinokoDrop:1;   // キノコ：そざいが 少し 出やすい
+  if(Math.random()<D.common*dm) gainMat('hoshi',1,e.x-10,e.y-e.alt);
+  if(own&&(e.boss||e.elite||Math.random()<D.own*dm)) gainMat(own,1,e.x+10,e.y-e.alt);
   if(e.boss||e.elite) rollRare(e);
 }
 function gainMat(id,n,x,y){
@@ -1727,12 +1773,12 @@ function gainMat(id,n,x,y){
   if(G.pops.length<30) G.pops.push({id,n,x,y,t:1.1,max:1.1});
   if(gate('m',90)) tone(1560,0.07,'triangle',0.03,300);
 }
-/* レアアイテム：ボス級を倒すと、まだ持っていないものから 10%。手とルンバは はじめて倒した時 かならず */
+/* レアアイテム：きまった 敵だけが おとす（RARES の from）。まだ 持っていなければ 10%。手とルンバは はじめて 倒した時 かならず */
 function rollRare(e){
   const first=(e.type==='hand'||e.type==='roomba')&&!save.firstKill[e.type];
   if(e.type==='hand'||e.type==='roomba') save.firstKill[e.type]=true;
-  const pool=Object.keys(RARES).filter(k=>!save.rares[k]);
-  if(pool.length&&(first||Math.random()<CFG.RARE_RATE)) giveRare(pick(pool),e.x,e.y-e.alt);
+  const id=Object.keys(RARES).find(k=>RARES[k].from===e.type);
+  if(id&&!save.rares[id]&&(first||Math.random()<CFG.RARE_RATE)) giveRare(id,e.x,e.y-e.alt);
   persist();
 }
 function giveRare(id,x,y){
@@ -1863,12 +1909,16 @@ function addBolt(pts){
 }
 
 /* ---------- 大技 ---------- */
+function ultReadyFx(){   // 大技が たまった 瞬間：音＋のるんの まわりに 金の 輪（どの 姿でも 同じ）
+  SFX.ultReady(); const p=G.p; ring(p.x,p.y,16,180,0.45,'255,226,122',6); ring(p.x,p.y,8,120,0.6,'255,255,255',3);
+  const b=$('btnUlt'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+}
 function useUlt(){
   if(state!=='play'||G.ult<G.ultNeed) return;
   G.ult=0; G.ultNeed+=CFG.ULT_STEP;
   if(save.fxEq==='rainbow') G.rainbowT=1.8;
   const p=G.p, f=p.form, sc=(1+G.t/200)*G.st.power;
-  banner(FORMS[f].ult+'！'); SFX.ult(); shake(0.35,6);
+  banner(FORMS[f].ult+'！'); SFX.ult(f); shake(0.35,6);
   if(f==='normal'){
     flash('255,226,122',0.5,0.45); ring(p.x,p.y,20,900,0.7,'255,226,122',10); ring(p.x,p.y,10,600,0.9,'255,255,255',5); burst(p.x,p.y,24,'star','#ffe27a',420);
     for(const e of G.enemies) if(onScreen(e)) G.falls.push({e,t:rand(0.1,1.2),dmg:160*sc});
@@ -1888,7 +1938,47 @@ function useUlt(){
     flash('220,245,255',0.6,0.5); ring(p.x,p.y,20,900,0.7,'220,245,255',14); ring(p.x,p.y,10,560,0.9,'255,255,255',5);
     for(let i=0;i<40;i++) burst(p.x+rand(-VW/2,VW/2),p.y+rand(-VH/2,VH/2),1,'shard','#e6f8ff',140);
     for(const e of G.enemies) if(onScreen(e)){ e.stun=Math.max(e.stun,e.boss?2:4.5); e.stunK='ice'; e.slow=8; burst(e.x,e.y-e.alt,4,'shard','#e6faff',190); hurtEnemy(e,55*sc); }
+  }else if(f==='hiyoko'){   // ぴよぴよストーム：まわりの 敵 全部に ひよこが とんでいって 3回 ついばむ
+    flash('255,240,150',0.4,0.4); ring(p.x,p.y,16,460,0.5,'255,226,122',8); burst(p.x,p.y,18,'dot','#ffe27a',300);
+    let n=0; for(const e of G.enemies){ if(Math.hypot(e.x-p.x,e.y-p.y)>460) continue;
+      G.chicks.push({x0:p.x+rand(-10,10),y0:p.y+rand(-10,10),e,t:-rand(0,0.25),dmg:42*sc,hit:0,show:n++<18,ph:rand(0,TAU)}); }
+  }else if(f==='kinoko'){   // ねむり胞子：がめんの 敵を 全部 ねむらせる
+    flash('210,190,255',0.45,0.45); ring(p.x,p.y,20,860,0.8,'214,190,255',12);
+    for(let i=0;i<26;i++) burst(p.x+rand(-VW/2,VW/2),p.y+rand(-VH/2,VH/2),1,'bubble','#e6d8ff',60);
+    for(const e of G.enemies) if(onScreen(e)){ e.stun=Math.max(e.stun,e.boss?2.2:5.5); e.stunK='sleep'; burst(e.x,e.y-e.alt,3,'bubble','#d9c8ff',90); hurtEnemy(e,30*sc); }
+  }else if(f==='purin'){   // ぷるぷるウェーブ：しょうげきはで まわりの 敵を 全部 ふきとばす
+    flash('255,226,170',0.4,0.4); for(let i=0;i<3;i++) ring(p.x,p.y,20,560+i*80,0.45+i*0.12,'255,214,150',12-i*3);
+    for(const e of G.enemies){ const dx=e.x-p.x, dy=e.y-p.y, d=Math.hypot(dx,dy)||1; if(d>620) continue;
+      const kb=e.boss?160:1000; e.kx=dx/d*kb; e.ky=dy/d*kb; e.stun=Math.max(e.stun,e.boss?0.3:0.8); e.stunK='zap'; hitFx(e,'slam'); hurtEnemy(e,75*sc); }
+  }else if(f==='kitsune'){   // きつねび：青い炎が 敵を おいかけて もやす
+    flash('150,190,255',0.4,0.4); ring(p.x,p.y,16,300,0.5,'140,180,255',8);
+    for(let i=0;i<10;i++){ const a=i/10*TAU; G.foxf.push({x:p.x,y:p.y,vx:Math.cos(a)*260,vy:Math.sin(a)*260,t:0,life:6,tg:null,hits:0,hit:new Set(),dmg:55*sc,burn:22*sc}); }
+  }else if(f==='panda'){   // ごろごろローリング：むいている ほうへ まっすぐ ころがる（ぶつかった 敵を なぎたおす）
+    let dx=p.vx, dy=p.vy; if(Math.hypot(dx,dy)<30){ dx=p.dir||1; dy=0; } const m=Math.hypot(dx,dy)||1;
+    p.roll=1.15; p.rvx=dx/m*820; p.rvy=dy/m*820; p.rollA=0; flash('240,240,240',0.3,0.35); ring(p.x,p.y,16,260,0.4,'255,255,255',8);
   }
+}
+/* おかいもの キャラの 大技で つかう もの（ひよこ・きつねび） */
+function updateUltExtras(dt){
+  for(const c of G.chicks){ c.t+=dt; const e=c.e;
+    if(!e.dead&&c.hit<3&&c.t>=0.35+c.hit*0.24){ c.hit++; hurtEnemy(e,c.dmg); if(c.show) burst(e.x,e.y-e.alt,2,'dot','#ffd75e',90); if(c.show&&gate('pk',60)) tone(2200,0.04,'triangle',0.018,300); } }
+  compact(G.chicks,c=>c.t<1.3);
+  for(const f of G.foxf){ f.t+=dt;
+    if(!f.tg||f.tg.dead){ let best=null,bd=1e9; for(const e of G.enemies){ if(e.dead||f.hit.has(e)) continue; const d=(e.x-f.x)**2+(e.y-f.y)**2; if(d<bd){ bd=d; best=e; } } f.tg=best; }
+    if(f.tg){ const dx=f.tg.x-f.x, dy=(f.tg.y-f.tg.alt)-f.y, d=Math.hypot(dx,dy)||1, k=Math.min(1,6*dt); f.vx+=(dx/d*480-f.vx)*k; f.vy+=(dy/d*480-f.vy)*k;
+      if(d<f.tg.r+14){ const e=f.tg; f.hit.add(e); f.hits++; hurtEnemy(e,f.dmg); e.burn=3; e.burnD=Math.max(e.burnD,f.burn); burst(e.x,e.y-e.alt,4,'flame','#8fc0ff',120); f.tg=null; } }
+    f.x+=f.vx*dt; f.y+=f.vy*dt;
+    if(Math.random()<dt*14) burst(f.x,f.y,1,'ember','#9cc8ff',30);
+  }
+  compact(G.foxf,f=>f.t<f.life&&f.hits<3);
+}
+function drawUltExtras(c){
+  for(const f of G.foxf){ glow(c,f.x,f.y,26,'110,160,255',0.55); c.fillStyle='#cfe4ff'; c.beginPath(); c.arc(f.x,f.y,6,0,TAU); c.fill(); c.fillStyle='#ffffff'; c.beginPath(); c.arc(f.x-1.5,f.y-1.5,2.5,0,TAU); c.fill(); }
+  for(const ch of G.chicks){ if(!ch.show||ch.t<0) continue; const e=ch.e, fly=Math.min(1,ch.t/0.35), tx=e.x+Math.cos(ch.ph)*e.r*0.8, ty=e.y-e.alt+Math.sin(ch.ph)*e.r*0.5;
+    const x=ch.x0+(tx-ch.x0)*fly, y=ch.y0+(ty-ch.y0)*fly-Math.sin(fly*Math.PI)*30-(fly>=1?Math.abs(Math.sin(ch.t*14))*6:0), a=ch.t>1.05?Math.max(0,1-(ch.t-1.05)/0.25):1;
+    c.globalAlpha=a; c.fillStyle='#ffe066'; c.beginPath(); c.arc(x,y,7,0,TAU); c.fill(); c.fillStyle='#ff9a3c'; const d=tx>=x?1:-1;
+    c.beginPath(); c.moveTo(x+6*d,y-1); c.lineTo(x+11*d,y+1); c.lineTo(x+6*d,y+3); c.fill(); c.fillStyle='#3a2a1a'; c.beginPath(); c.arc(x+2.5*d,y-2,1.3,0,TAU); c.fill(); }
+  c.globalAlpha=1;
 }
 
 /* ---------- 更新 ---------- */
@@ -1905,6 +1995,7 @@ function update(dt){
   updateHerbs(dt);
   updateGems(dt);
   updateFx(dt);
+  updateUltExtras(dt);
   if(G.eq==='guard'&&!G.guardReady){ G.guardT-=dt; if(G.guardT<=0){ G.guardReady=true; ring(G.p.x,G.p.y,10,200,0.4,'200,180,255',5); } }
   for(const q of G.pops) q.t-=dt;
   compact(G.pops,q=>q.t>0);
@@ -1917,12 +2008,14 @@ function update(dt){
 function updatePlayer(dt){
   const p=G.p, f=FORMS[p.form], inp=getInput();
   const sp=G.st.move*f.speed*(p.giant>0?1.5:1), k=Math.min(1,f.grip*(p.giant>0?3:1)*dt);
-  p.vx+=(inp.x*sp-p.vx)*k; p.vy+=(inp.y*sp-p.vy)*k;
+  if(p.roll>0){ p.roll-=dt; p.vx=p.rvx; p.vy=p.rvy; p.rollA+=dt*16*(p.rvx<0?-1:1);   // ごろごろローリング：まっすぐ ころがる（かべで はねかえる）
+    if(Math.random()<dt*30) burst(p.x,p.y+14,1,'dot','#e8e2d6',80); if(p.roll<=0){ p.inv=Math.max(p.inv,0.6); p.vx*=0.3; p.vy*=0.3; } }
+  else { p.vx+=(inp.x*sp-p.vx)*k; p.vy+=(inp.y*sp-p.vy)*k; }
   p.x+=p.vx*dt; p.y+=p.vy*dt;
   if(p.kx||p.ky){ p.x+=p.kx*dt; p.y+=p.ky*dt; const dec=Math.max(0,1-5*dt); p.kx*=dec; p.ky*=dec; if(Math.abs(p.kx)+Math.abs(p.ky)<3){ p.kx=0; p.ky=0; } }   // 手のノックバック
   const lo=40, hi=CFG.WORLD-40;
-  if(p.x<lo){p.x=lo;p.vx=0;} else if(p.x>hi){p.x=hi;p.vx=0;}
-  if(p.y<lo){p.y=lo;p.vy=0;} else if(p.y>hi){p.y=hi;p.vy=0;}
+  if(p.x<lo){p.x=lo;p.vx=0;p.rvx=Math.abs(p.rvx);} else if(p.x>hi){p.x=hi;p.vx=0;p.rvx=-Math.abs(p.rvx);}
+  if(p.y<lo){p.y=lo;p.vy=0;p.rvy=Math.abs(p.rvy);} else if(p.y>hi){p.y=hi;p.vy=0;p.rvy=-Math.abs(p.rvy);}
   if(Math.abs(inp.x)>0.2) p.dir=inp.x>0?1:-1;
   // 見た目の動き：進む方へ少し傾く／左右で反転／動いている間だけ上下に揺れる／止まると正面
   const spd=Math.hypot(p.vx,p.vy), tilt=clamp(p.vx/200,-1,1)*CFG.TILT_MAX*Math.PI/180;
@@ -2019,14 +2112,14 @@ function handSlam(e){   // 手が地面に おりた瞬間：まわりに範囲�
 /* のるんが ダメージを うける時は ぜんぶ ここを通る（むてき・すりぬけ・ほしのまもり・いのちのほし） */
 function hurtPlayer(dmg,kx,ky){
   const p=G.p;
-  if(p.giant>0||p.phase>0||p.inv>0) return false;
+  if(p.giant>0||p.phase>0||p.inv>0||p.roll>0) return false;
   if(p.form==='obake'&&p.phaseCd<=0){ p.phase=PERK.obakePhase; p.phaseCd=PERK.obakeCd; SFX.phase(); return false; }
   if(G.guardReady){
     G.guardReady=false; G.guardT=CFG.GUARD_CD; p.inv=0.7;
     ring(p.x,p.y,22,260,0.4,'200,180,255',7); burst(p.x,p.y,12,'star','#d9ccff',220); SFX.phase(); return false;
   }
   p.hp-=dmg; p.inv=0.7; shake(0.18,4); SFX.hurt(); puff(p.x,p.y,5,'#ff8fa8');
-  if(kx||ky){ p.kx+=kx; p.ky+=ky; }
+  if(kx||ky){ const m=p.form==='purin'?PERK.purinKnock:1; p.kx+=kx*m; p.ky+=ky*m; }   // プリン：ふきとばされにくい
   if(p.hp<=0){
     if(G.eq==='life'&&!G.revived){
       G.revived=true; p.hp=p.maxHp*CFG.REVIVE_HP; p.inv=2;
@@ -2038,7 +2131,7 @@ function hurtPlayer(dmg,kx,ky){
   return true;
 }
 function updateEnemies(dt){
-  const p=G.p, es=G.enemies, giant=p.giant>0, pr=p.r*(giant?2.4:0.8);
+  const p=G.p, es=G.enemies, rolling=p.roll>0, giant=p.giant>0||rolling, pr=p.r*(p.giant>0?2.4:rolling?2.2:0.8);
   for(const e of es){
     if(e.dead) continue;
     if(e.flash>0) e.flash-=dt;
@@ -2048,6 +2141,7 @@ function updateEnemies(dt){
     if(e.burn>0){ e.burn-=dt; hurtEnemy(e,e.burnD*dt,true); }
     if(e.poison>0){ e.poison-=dt; hurtEnemy(e,e.poisonD*dt,true); if(e.poison<=0) e.poisonD=0; }
     if(e.burn>0&&Math.random()<dt*8) burst(e.x+rand(-0.9,0.9)*e.r,e.y-e.alt+rand(-0.5,0.8)*e.r,1,Math.random()<0.7?'flame':'ember','#ffb347',30);   // 炎と火の粉
+    if(e.stun>0&&e.stunK==='sleep'&&Math.random()<dt*1.5) burst(e.x+e.r*0.5,e.y-e.alt-e.r,1,'bubble','#e6dcff',24);   // ねむりの あわ
     if(e.poison>0&&Math.random()<dt*4) burst(e.x+rand(-0.8,0.8)*e.r,e.y-e.alt-e.r*0.4,1,Math.random()<0.7?'bubble':'smoke',Math.random()<0.7?'#c58cff':'#8a4fd0',28);   // 毒の泡と煙
     if(e.dead) continue;
     let dx=p.x-e.x, dy=p.y-e.y, d=Math.hypot(dx,dy)||1;
@@ -2057,7 +2151,7 @@ function updateEnemies(dt){
     dx=p.x-e.x; dy=p.y-e.y; d=Math.hypot(dx,dy)||1;
     if(d<e.r+pr && e.alt<25){   // 上空にいる間（カラス・手）は当たらない
       if(giant){
-        if(e.slamCd<=0){ e.slamCd=0.25; const kb=e.boss?80:420; e.kx=-dx/d*kb; e.ky=-dy/d*kb; hitFx(e,'slam'); hurtEnemy(e,80*(1+G.t/200)*power()); }
+        if(e.slamCd<=0){ e.slamCd=rolling?0.4:0.25; const kb=e.boss?80:rolling?620:420; e.kx=-dx/d*kb; e.ky=-dy/d*kb; hitFx(e,'slam'); hurtEnemy(e,(rolling?130:80)*(1+G.t/200)*power()); }
       }else if(e.ai!=='hand'){   // 手は「つかみ」の時だけダメージ（handSlam）
         hurtPlayer(e.dmg); if(state!=='play') return;
       }
@@ -2776,7 +2870,7 @@ function copyText(t,btn){ const done=()=>{ const o=btn.textContent; btn.textCont
 /* ---------- エラーの メモ（さいごの 5つ。ゲームの セーブとは べつの キー） ---------- */
 const ERRKEY='norun-daibouken-errors';
 function errList(){ try{ return JSON.parse(localStorage.getItem(ERRKEY)||'[]'); }catch(e){ return []; } }
-function errAdd(msg){ try{ const L=errList(); const d=new Date(), z=n=>String(n).padStart(2,'0'); L.unshift({t:d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds()),m:String(msg).slice(0,400),v:'v8.5',s:state}); localStorage.setItem(ERRKEY,JSON.stringify(L.slice(0,5))); }catch(e){} }
+function errAdd(msg){ try{ const L=errList(); const d=new Date(), z=n=>String(n).padStart(2,'0'); L.unshift({t:d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds()),m:String(msg).slice(0,400),v:'v8.6',s:state}); localStorage.setItem(ERRKEY,JSON.stringify(L.slice(0,5))); }catch(e){} }
 function errText(){ const L=errList(); return L.length?L.map(e=>e.t+'（'+e.v+'・画面:'+e.s+'）\n'+e.m).join('\n\n'):''; }
 function errShow(){ const t=errText(); $('errTxt').textContent=t||'エラーは ありません'; }
 if(typeof window!=='undefined'&&window.addEventListener){
@@ -2787,21 +2881,26 @@ function resume(){ if(state!=='pause') return; state='play'; showOnly(null); }
 /* ---------- スマホの「戻る」：タイトル以外の 画面に いる間だけ 履歴を 1つ 積んでおき、戻るが 押されたら ゲームの中で 1つ 戻る ----------
    行き先は 各画面の「もどる」ボタンと 同じ。プレイ中は ポーズ → もう一度で 確認 → もう一度で 地図へ。タイトルでは ふつうに ページを はなれる */
 let pauseAsk=false;
-const NAV={armed:false,ignore:0};
+/* 守りの 履歴は 2つ 積む（1回 戻っても まだ 1つ のこる）。ブラウザは 操作なしで 積んだ 履歴を とばすことが あるので、
+   戻るの あとは つぎに 画面に さわった 時（タップ・キー）に 積みなおす */
+const NAV={armed:false,depth:0,ignore:0};
 function navSync(){
   if(typeof history==='undefined'||!history.pushState) return;
   const want=state!=='title';
   try{
-    if(want&&!NAV.armed){ history.pushState({norun:1},''); NAV.armed=true; }
-    else if(!want&&NAV.armed){ NAV.armed=false; NAV.ignore++; history.back(); }   // タイトルに もどったら 積んだ ぶんを かたづける
+    if(want){ while(NAV.depth<2){ NAV.depth++; history.pushState({norun:1,d:NAV.depth},''); } NAV.armed=true; }
+    else if(NAV.depth>0){ const n=NAV.depth; NAV.depth=0; NAV.armed=false; NAV.ignore++; history.go(-n); }   // タイトルに もどったら 積んだ ぶんを かたづける
   }catch(e){}
+}
+if(typeof window!=='undefined'&&window.addEventListener){
+  const rearm=()=>{ if(state!=='title'&&NAV.depth<2&&!NAV.ignore) navSync(); };
+  window.addEventListener('pointerdown',rearm,true); window.addEventListener('keydown',rearm,true); window.addEventListener('touchend',rearm,true);
 }
 function goBack(){
   if($('stageSheet').classList.contains('on')){ closeSheet(); return; }          // 準備画面 → ステージえらび
   if($('records').classList.contains('on')){ $('recBack').click(); return; }      // きろく → もとの画面（タイトル／結果）
   switch(state){
-    case 'play': pause(); return;                                                 // プレイ中 → すぐには やめずに ポーズ
-    case 'pause': if(!pauseAsk){ pauseAsk=true; $('pauseAsk').style.display='block'; } else $('btnQuit').click(); return;
+    case 'play': case 'pause': case 'levelup': toTitle(); return;                // プレイ中（ひとやすみ・レベルアップ中も）→ タイトルへ
     case 'stage': $('btnBack').click(); return;                                   // ステージえらび → タイトル
     case 'forge': $('btnForgeBack').click(); return;                              // 工房 → タイトル
     case 'shelf': $('shelfBack').click(); return;
@@ -2810,12 +2909,11 @@ function goBack(){
     case 'shop': $('shopBack').click(); return;                                  // おかいもの → タイトル
     case 'book': if(bk.mode==='shelf') bookDone(); else bookSkip(); return;       // 本棚から → 本棚／はさまった絵本 → とばす
     case 'end': if(G&&G.pendingBook) readPending(); else $('btnToTitle').click(); return;   // 結果 → 地図（絵本が まって いれば 先に 絵本）
-    case 'levelup': return;                                                       // スキルを えらぶまで そのまま
   }
 }
 if(typeof window!=='undefined'&&typeof history!=='undefined'&&history.pushState){
-  window.addEventListener('popstate',()=>{ if(NAV.ignore>0){ NAV.ignore--; return; } NAV.armed=false; goBack(); navSync(); });
-  if(history.state&&history.state.norun){ NAV.ignore++; history.back(); }   // 読みなおした時に のこった 履歴は かたづける
+  window.addEventListener('popstate',()=>{ if(NAV.ignore>0){ NAV.ignore--; return; } NAV.depth=Math.max(0,NAV.depth-1); NAV.armed=NAV.depth>0; goBack(); navSync(); });
+  if(history.state&&history.state.norun){ NAV.ignore++; history.go(-(history.state.d||1)); }   // 読みなおした時に のこった 履歴は かたづける
 }
 function endGame(clear){
   state='end'; stickEnd(); $('btnUlt').classList.remove('on');
@@ -2925,6 +3023,22 @@ function buildShop(){
   $('shopCoins').textContent='🪙 '+save.coins+' まい';
   const eq=CFG.SHOP.find(x=>x.k===save.fxEq); $('shopNow').textContent='いま つけている：'+(eq?eq.ico+' '+eq.name:'なし');
   const L=$('shopList'); L.innerHTML='';
+  const hd=t=>{ const h=document.createElement('div'); h.className='shopHd'; h.textContent=t; L.appendChild(h); };
+  hd('🐾 キャラ（かうと じゅんび画面で えらべる）');
+  for(const f of SHOP_CHARS){ const F=FORMS[f], own=!!save.charOwn[f], key='c:'+f, row=document.createElement('div');
+    row.className='rr'+(own?' eq':'')+(shopPrev===key?' pv':'');
+    const cv=document.createElement('canvas'); cv.width=cv.height=92; const g=cv.getContext('2d'); g.translate(46,52); g.scale(1.45,1.45); drawNorun(g,f,0,false,'front');
+    const ic=document.createElement('span'); ic.className='ri2 ch'; ic.appendChild(cv);
+    const tx=document.createElement('div'); tx.className='rt2'; tx.innerHTML='<b>'+F.name+(own?'<em>もっている</em>':'')+'</b><span>'+F.perk+'<br>大技「'+F.ult+'」'+(own?'':'　🪙'+F.shop)+'</span>';
+    const b=document.createElement('button');
+    if(own){ b.className='ghost'; b.disabled=true; b.textContent='かった'; }
+    else if(save.coins>=F.shop){ const ask=shopAsk===key; b.className='big'+(ask?' ask':''); b.textContent=ask?'ほんとうに かう？':'かう 🪙'+F.shop;
+      b.onclick=e=>{ e.stopPropagation(); shopPrev=key;
+        if(shopAsk!==key){ shopAsk=key; shopAskT=animT; buildShop(); return; }   // エフェクトと 同じく 2回 おして かう
+        save.coins-=F.shop; save.charOwn[f]=true; shopAsk=null; persist(); SFX.ultReady(); buildShop(); buildTitle(); banner&&0; }; }
+    else { b.className='ghost'; b.disabled=true; b.textContent='あと 🪙'+(F.shop-save.coins); }
+    row.append(ic,tx,b); row.onclick=()=>{ shopPrev=key; buildShop(); }; L.appendChild(row); }
+  hd('✨ エフェクト（のるんの まわりに 出る）');
   for(const it of CFG.SHOP){ const own=!!save.fxOwn[it.k], on=save.fxEq===it.k, row=document.createElement('div');
     row.className='rr'+(on?' eq':'')+(shopPrev===it.k?' pv':'');
     row.innerHTML='<span class="ri2 em">'+it.ico+'</span><div class="rt2"><b>'+it.name+(on?'<em>つけている</em>':'')+'</b><span>'+it.desc+(own?'':'　🪙'+it.price)+'</span></div>';
@@ -3007,6 +3121,34 @@ function drawNorun(c,form,t,phasing,face){   // 原点＝体の中心。傾き�
     c.beginPath(); c.ellipse(0,-14.5,17.5,4.8,-0.1,0,TAU); c.fill();
     c.beginPath(); c.moveTo(-10,-15.5); c.quadraticCurveTo(-4,-30,7,-40); c.quadraticCurveTo(6,-26,10,-17); c.closePath(); c.fill();
     c.strokeStyle='#8f74e0'; c.lineWidth=2.4; c.beginPath(); c.moveTo(-9.4,-17.6); c.quadraticCurveTo(0,-15.2,9.6,-19); c.stroke();
+  }else if(form==='hiyoko'){   // 仮の絵：ひよこ
+    c.fillStyle='#ffe066'; c.beginPath(); c.arc(0,2,13,0,TAU); c.fill(); c.beginPath(); c.arc(0,-9,9,0,TAU); c.fill();
+    c.fillStyle='#ffd23f'; c.beginPath(); c.ellipse(-11,4,5,7,0.5,0,TAU); c.fill(); c.beginPath(); c.ellipse(11,4,5,7,-0.5,0,TAU); c.fill();
+    c.fillStyle='#ff9a3c'; c.beginPath(); c.moveTo(-3,-6); c.lineTo(3,-6); c.lineTo(0,-2); c.closePath(); c.fill();
+    c.fillStyle='#ffe066'; c.beginPath(); c.moveTo(-2,-18); c.quadraticCurveTo(0,-24,3,-19); c.fill();
+    if(!noFace){ c.fillStyle='#2a1d12'; c.beginPath(); c.arc(-4,-10,1.6,0,TAU); c.arc(4,-10,1.6,0,TAU); c.fill(); }
+  }else if(form==='kinoko'){   // 仮の絵：キノコ
+    c.fillStyle='#fff3e0'; rr(c,-8,-2,16,18,6); c.fill();
+    c.fillStyle='#e8504a'; c.beginPath(); c.ellipse(0,-6,19,13,0,Math.PI,0); c.lineTo(19,-4); c.quadraticCurveTo(0,0,-19,-4); c.closePath(); c.fill();
+    c.fillStyle='#fff'; for(const [x,y,r] of [[-9,-11,3.2],[3,-15,2.6],[10,-8,2.4]]){ c.beginPath(); c.arc(x,y,r,0,TAU); c.fill(); }
+    drawFace(c,6);
+  }else if(form==='purin'){   // 仮の絵：プリン
+    const w=1+Math.sin(t*7)*0.04;
+    c.fillStyle='#f6d58a'; c.beginPath(); c.moveTo(-17*w,14); c.lineTo(-12*w,-8); c.quadraticCurveTo(0,-14,12*w,-8); c.lineTo(17*w,14); c.closePath(); c.fill();
+    c.fillStyle='#8a4b22'; c.beginPath(); c.moveTo(-12*w,-8); c.quadraticCurveTo(0,-15,12*w,-8); c.quadraticCurveTo(13*w,-3,8,-3); c.quadraticCurveTo(0,0,-8,-3); c.quadraticCurveTo(-13*w,-3,-12*w,-8); c.fill();
+    c.fillStyle='rgba(255,255,255,.5)'; c.beginPath(); c.ellipse(-9,4,2.5,6,0.2,0,TAU); c.fill();
+    drawFace(c,4);
+  }else if(form==='kitsune'){   // 仮の絵：きつね
+    c.fillStyle='#f39a3d'; c.beginPath(); c.moveTo(-14,-6); c.lineTo(-11,-22); c.lineTo(-3,-11); c.closePath(); c.fill(); c.beginPath(); c.moveTo(14,-6); c.lineTo(11,-22); c.lineTo(3,-11); c.closePath(); c.fill();
+    c.beginPath(); c.arc(0,0,15,0,TAU); c.fill();
+    c.fillStyle='#fff6ea'; c.beginPath(); c.ellipse(0,6,10,8,0,0,TAU); c.fill();
+    c.fillStyle='#fff6ea'; c.beginPath(); c.moveTo(13,10); c.quadraticCurveTo(24,6,22,-2); c.quadraticCurveTo(18,8,13,6); c.fill();
+    drawFace(c,0);
+  }else if(form==='panda'){   // 仮の絵：パンダ
+    c.fillStyle='#22202a'; c.beginPath(); c.arc(-11,-12,5.5,0,TAU); c.arc(11,-12,5.5,0,TAU); c.fill();
+    c.fillStyle='#fbfaf7'; c.beginPath(); c.arc(0,0,16,0,TAU); c.fill();
+    c.fillStyle='#22202a'; c.beginPath(); c.ellipse(-6,-2,4,5,0.4,0,TAU); c.ellipse(6,-2,4,5,-0.4,0,TAU); c.fill();
+    if(!noFace){ c.fillStyle='#fff'; c.beginPath(); c.arc(-5.5,-2.5,1.4,0,TAU); c.arc(5.5,-2.5,1.4,0,TAU); c.fill(); c.fillStyle='#22202a'; c.beginPath(); c.ellipse(0,4,2.5,1.8,0,0,TAU); c.fill(); }
   }else if(form==='kurage'){
     c.strokeStyle='#cfe6ff'; c.lineWidth=2.2; c.lineCap='round';
     for(let i=-2;i<=2;i++){ const x=i*5.5, w=Math.sin(t*4+i)*2.5; c.beginPath(); c.moveTo(x,8); c.quadraticCurveTo(x+w,15,x-w,22); c.stroke(); }
@@ -3184,8 +3326,9 @@ const STATUS = {
   burn:  {rgb:'255,96,28',  mix:0.42,hue:true, aura:0.6},   // もえている
   poison:{rgb:'178,96,255', mix:0.45,hue:true, aura:0.55},  // どく
   slow:  {rgb:'70,125,255', mix:0.4, hue:true, aura:0.4},   // おそくなっている
+  sleep: {rgb:'190,170,255',mix:0.45,hue:true, aura:0.5},   // ねむっている（キノコの 大技）
 };
-function statusOf(e){ return e.flash>0?'flash':e.stun>0?(e.stunK==='ice'?'ice':'zap'):e.burn>0?'burn':e.poison>0?'poison':e.slow>0?'slow':null; }
+function statusOf(e){ return e.flash>0?'flash':e.stun>0?(e.stunK==='ice'?'ice':e.stunK==='sleep'?'sleep':'zap'):e.burn>0?'burn':e.poison>0?'poison':e.slow>0?'slow':null; }
 const tintCv=new Map();
 function tinted(src,key,st,maxPx){   // 色を変えた絵を作って覚えておく（絵×状態ごとに1回だけ）
   const k=key+'|'+st; let t=tintCv.get(k); if(t) return t;
@@ -3864,8 +4007,9 @@ function drawShopPreview(){   // おかいもの：えらんだ エフェクト�
   const cvh=$('shopCv'), w=cvh.clientWidth, h=cvh.clientHeight; if(!w) return;
   const W=Math.round(w*DPR), H=Math.round(h*DPR); if(cvh.width!==W||cvh.height!==H){ cvh.width=W; cvh.height=H; }
   const g=cvh.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0); g.clearRect(0,0,w,h);
-  const x=w/2+Math.sin(animT*1.3)*14, y=h*0.6;
-  g.save(); g.translate(x,y); g.scale(1.25,1.25); drawNorun(g,'normal',animT,false,'front'); g.restore();
+  const x=w/2+Math.sin(animT*1.3)*14, y=h*0.6, ch=shopPrev&&shopPrev.startsWith('c:')?shopPrev.slice(2):null;
+  g.save(); g.translate(x,y); g.scale(1.25,1.25); drawNorun(g,ch||'normal',animT,false,'front'); g.restore();
+  if(ch){ PV.list.length=0; return; }   // キャラの 見本は キャラだけ
   if(shopPrev==='rainbow'){ if(Math.random()<0.5) PV.list.push({x:x+rand(-30,30),y:y+rand(-30,20),vx:rand(-30,30),vy:rand(-50,-10),t:0,life:0.8,r:0,vr:0,s:rand(5,9),c:RAINBOW[(Math.random()*6)|0]});
     for(const q of PV.list){ q.t+=lastDt; q.x+=q.vx*lastDt; q.y+=q.vy*lastDt; } compact(PV.list,q=>q.t<q.life&&q.c);
     for(const q of PV.list){ g.globalAlpha=1-q.t/q.life; g.fillStyle=q.c; starPath(g,q.x,q.y,q.s,q.t*4); g.fill(); } g.globalAlpha=1; return; }
@@ -4055,6 +4199,7 @@ function render(){
   if(p.form==='penguin'){ rot+=Math.sin(animT*9)*0.17*p.bob; by=-Math.abs(Math.sin(animT*9))*3.5*p.bob; }
   else if(p.form==='kurage'){ const sq=Math.sin(animT*6)*0.11*(0.3+0.7*p.bob); ky=1+sq; kx=1-sq*0.6; by=-sq*12*p.bob; }
   const gs=giant?2.3:1;
+  if(p.roll>0) rot=p.rollA;   // パンダ：ごろごろ
   c.save(); c.translate(p.x,p.y+by);
   c.rotate(rot); c.scale(p.flip*gs*kx,gs*ky);
   if(p.inv>0&&p.phase<=0&&!giant&&Math.floor(animT*18)%2) c.globalAlpha=0.45;
@@ -4140,6 +4285,7 @@ function render(){
   }
   c.globalAlpha=1;
 
+  drawUltExtras(c);
   if(save.fxEq&&AURA_K[save.fxEq]){   // のるんの まわりの エフェクト（えらんだ もの）
     if(state==='play'){ const mv=Math.hypot(p.x-AU.px,p.y-AU.py)>0.4; AU.px=p.x; AU.py=p.y; auraUpdate(AU,save.fxEq,frameDt,p.x,p.y,mv,auraLevel()); }
     auraDraw(c,AU,save.fxEq,1);
@@ -4222,7 +4368,7 @@ function frame(now){
   }
   render();
   bgmSync(false);
-  if(NAV.armed!==(state!=='title')&&!NAV.ignore) navSync();
+  if((state==='title')===(NAV.depth>0)&&!NAV.ignore) navSync();
   if(FPSBOX) fpsTick(raw,performance.now()-t0);
 }
 
@@ -4234,7 +4380,7 @@ function fpsTick(raw,cost){ if(!FPSBOX) return; FPSBOX.n++; FPSBOX.t+=raw; FPSBO
 /* ---------- 起動 ---------- */
 sndLabel(); resize(); newGame(save.form,save.limit); buildTitle(); showOnly('title');
 window.__norun={ get G(){return G;}, get state(){return state;}, get save(){return save;}, start, pickCard, useUlt, input:dbg, CFG, get Q(){return Q;}, toTitle, toStages, openForge, buildForge, openSheet,
-  endGame, openShop, svEncode, svDecode, errAdd, get AU(){return AU;}, get AUTO(){return AUTO;}, get BGC(){return BGC;}, get LIGHTMODE(){return LIGHTMODE;}, applyLight, reachedId, mapWalk, get MAPWALK(){return MAPWALK;}, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, kvReveal, STORY, get bgm(){return bgm;} };   // デバッグ用
+  endGame, rollRare, ultReadyFx, get SFX(){return SFX;}, openShop, svEncode, svDecode, errAdd, get AU(){return AU;}, get AUTO(){return AUTO;}, get BGC(){return BGC;}, get LIGHTMODE(){return LIGHTMODE;}, applyLight, reachedId, mapWalk, get MAPWALK(){return MAPWALK;}, bookNext, bookSkip, openShelf, readPending, openRecords, openSettings, pause, banner, goBack, NAV, SBG, KV, kvReveal, STORY, get bgm(){return bgm;} };   // デバッグ用
 if(typeof navigator!=='undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){   // PWA：オフラインでも 起動できるように
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
