@@ -141,7 +141,34 @@ export const PLAY_TOWER = {
   windV: 2.4,                     // 横風の 強さ
   slideT: 1.0, slideV: 7.0,       // パンの すべる：時間（秒）と 速さ
   floatG: 0.32, floatMaxFall: 3.0,   // くらげの ふわり：落ちる時の 重力の 割合・いちばん速い 落ちる速さ
+  // 第12弾（コース制）の 新しい しかけ
+  lavaDrop: 1.3,                  // 溶岩の 面は 足場より この ぶん 下（ここまで 落ちたら「あちち」→ はたから）
+  laserH: 0.42,                   // レーザーの 高さ（床から。ジャンプで こえる）
+  laserImmune: 1.2,               // レーザーに 当たった あと、しばらく 当たらない（秒）
+  iceGrip: 1.3, iceWalk: 1.1,     // こおりの 床：止まりにくさ（ふつう 16）・歩く 速さの 倍率
+  crumbleT: 0.55, crumbleBack: 2.8,   // くずれる 足場：のってから くずれるまで・もどるまで（秒）
 };
+
+/* アスレの コース（第12弾）
+   - 順番に ならぶ 部品（plan）で できた、ゴールの ある コース。毎回 部品の 中の 細かい 形（すき間の 数・はば など）は 少し かわる
+   - dy：むずかしさ（エンドレスの「高さ m」と 同じ ものさし）。コースの はじめ → おわりで dy0 → dy1 に だんだん 上がる。
+     エンドレスの いちばん上（今の タワー上部）≒ 100
+   - "S"：とくぎの 部品（パン＝トンネル・くらげ＝ひろい すき間・おばけ＝すりぬけの かべ）。その キャラの 時だけ 出る（ほかの キャラでは とばす）
+   - クリアは「記録」だけ（バッジは 出さない：ごほうびは 勉強でのみ）。コース1は はじめから、クリアすると つぎが ひらく（子どもごと） */
+export const ATHLE_COURSES = [
+  { id: "mori",  icon: "🌳", name: "もりの コース", sub: "かいだん・すき間ジャンプ（はじめての 人に）", dy0: 0, dy1: 12,
+    sky: 0xc9f0d0, floor: 0x9be39b,
+    plan: ["stairs", "gaps", "stairs", "steps", "gaps", "S", "zigzag", "gaps", "steps", "pad"] },
+  { id: "lava",  icon: "🌋", name: "ようがんの 山", sub: "溶岩の 上の 足場を わたろう", dy0: 8, dy1: 42,
+    sky: 0xffd2b0, floor: 0xd9a27a,
+    plan: ["stairs", "gaps", "lava", "steps", "lava", "zigzag", "S", "vanish", "lava", "mover", "pad", "lava"] },
+  { id: "laser", icon: "⚡", name: "レーザー けんきゅうじょ", sub: "むかってくる レーザーを ジャンプで よけよう", dy0: 25, dy1: 68,
+    sky: 0xc7d3ff, floor: 0xb8c6e8,
+    plan: ["gaps", "laser", "steps", "door", "laser", "conveyor", "S", "ice", "laser", "bar", "crumble", "wind", "laser"] },
+  { id: "goukaku", icon: "👑", name: "ごうかく コース", sub: "ぜんぶ 入り・いちばん 長くて むずかしい", dy0: 40, dy1: 100,
+    sky: 0xe3d2ff, floor: 0xc7a8ff,
+    plan: ["gaps", "lava", "laser", "steps", "mover", "ice", "S", "lava", "bar", "crumble", "laser", "conveyor", "wind", "door", "lava", "laser", "vanish", "pad", "lava", "laser"] },
+];
 
 /* アスレで えらべる キャラ（変身）。unlock は あとで 条件を つける時に つかう（null＝はじめから）
    例：unlock: "c200"（記録バッジ c200 を もっていたら えらべる）

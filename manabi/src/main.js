@@ -1,12 +1,12 @@
 import {
-  GRADES, gradeOf, FACES, PASS_ICONS, TEMPO, RUN, SESSION, KINDER, KUKU_MASTER_STREAK, REVIEW_GRADUATE, POINTS, HAT_COLORS, BADGES, PINS, RUN_SPEEDS, CHARACTERS, ASMR_THEMES,
+  GRADES, gradeOf, FACES, PASS_ICONS, TEMPO, RUN, SESSION, KINDER, KUKU_MASTER_STREAK, REVIEW_GRADUATE, POINTS, HAT_COLORS, BADGES, PINS, RUN_SPEEDS, CHARACTERS, ASMR_THEMES, ATHLE_COURSES,
 } from "./config.js";
 import * as store from "./storage.js";
 import { kinderSession, kukuSession, reviewSession, makeChoices, kanaSession, kanjiSession, shuffle } from "./quiz.js";
 import { sfx, speak, stopSpeak, unlockAudio, canSpeak, playBgm, setAudioPrefs, audioStatus, stepSound, registerStepThemes } from "./sound.js";
 import { loadNorun3D, react, setHatColor, setPins } from "./norun3d.js";
 import { runResize, initRunView, startRunView, stopRunView, moveLaneTo, moveLaneBy, setRunHat, runState, laneNow, startPlayRun, playJump, setRunPins } from "./run3d.js";
-import { initTowerView, startTower, stopTower, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, towerToggleView, towerFaceFront, towerResize, setTowerHat, setTowerPins, setTowerChar, charAvailable, towerState } from "./tower3d.js";
+import { initTowerView, startTower, stopTower, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, towerToggleView, towerFaceFront, towerResize, setTowerHat, setTowerPins, setTowerChar, charAvailable, towerState, towerDebugHook } from "./tower3d.js";
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = location.search.includes("debug");
@@ -16,7 +16,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 /* =========================================================
    画面の切り替え
    ========================================================= */
-const SCREENS = ["scTitle", "scPass", "scMy", "scKuku", "scKinder", "scKokugo", "scPlay", "scPlayRun", "scQuiz", "scResult", "scShop", "scPin", "scParent", "scConfirm"];
+const SCREENS = ["scTitle", "scPass", "scMy", "scKuku", "scKinder", "scKokugo", "scPlay", "scAthle", "scPlayRun", "scQuiz", "scResult", "scShop", "scPin", "scParent", "scConfirm"];
 let screen = "loading";
 function show(id) {
   screen = id;
@@ -270,7 +270,8 @@ function checkBadges() {
 let play = null;     // { mode: "run" | "tower", best, newBest }
 function renderPlayMenu() {
   $("runBest").textContent = `じこベスト ${data.play.run.best}m`;
-  $("towerBest").textContent = `じこベスト ${data.play.tower.best}m・しかけが いっぱいの コース`;
+  const nClear = ATHLE_COURSES.filter((c) => courseRec(c.id).clears > 0).length;
+  $("towerBest").textContent = `コース ${nClear}/${ATHLE_COURSES.length} クリア・エンドレス じこベスト ${data.play.tower.best}m`;
   $("asmrBest").textContent = `じこベスト ${data.play.asmr.best}m・${ASMR_THEMES.map((th) => th.name).join("・")}…`;
   renderChars();
 }
@@ -297,7 +298,63 @@ function renderChars() {
 }
 $("playBack").onclick = () => { renderMy(); show("scMy"); };
 $("goRun").onclick = () => startPlay("run");
-$("goTower").onclick = () => startPlay("tower");
+$("goTower").onclick = () => { renderAthle(); show("scAthle"); };
+$("athleBack").onclick = () => { renderPlayMenu(); show("scPlay"); };
+$("goEndless").onclick = () => startPlay("tower");
+
+/* ---------- アスレの コース（第12弾） ----------
+   記録は data.play.courses[id] に 足すだけ（今までの 記録は そのまま）。クリアは 記録だけで、バッジは 出さない */
+const courseRec = (id) => (data.play.courses[id] ||= { clears: 0, bestTime: 0, bestPct: 0, plays: 0 });
+const courseOpen = (i) => i === 0 || courseRec(ATHLE_COURSES[i - 1].id).clears > 0;   // じゅんばんに ひらく（子どもごと）
+const fmtTime = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+function renderAthle() {
+  const box = $("courseList");
+  box.innerHTML = "";
+  ATHLE_COURSES.forEach((c, i) => {
+    const r = courseRec(c.id), open = courseOpen(i);
+    const card = document.createElement("div");
+    card.className = "card playCard courseCard";
+    const rec = r.clears > 0
+      ? `<span class="clear">⭐ クリア ${r.clears}かい</span><span>⏱ ベスト ${fmtTime(r.bestTime)}</span>`
+      : r.plays > 0 ? `<span>🚩 いちばん すすんだ ${r.bestPct}%</span>` : "";
+    card.innerHTML = `<span class="ic">${open ? c.icon : "🔒"}</span><div style="flex:1"><button class="big${i % 2 ? " alt" : ""}">${i + 1}. ${c.name}</button>
+      <div class="note">${c.sub}</div>${open ? `<div class="rec">${rec}</div>` : `<div class="lock">🔒 「${ATHLE_COURSES[i - 1].name}」を クリアすると ひらくよ</div>`}</div>`;
+    const b = card.querySelector("button");
+    b.disabled = !open;
+    b.onclick = () => startPlay("tower", c.id);
+    box.append(card);
+  });
+  $("endlessBest").textContent = `じこベスト ${data.play.tower.best}m・ゴールなしで どこまでも`;
+}
+function finishCourse(cleared, time = 0) {
+  const c = ATHLE_COURSES.find((x) => x.id === play.course), i = ATHLE_COURSES.indexOf(c);
+  const st = towerState(), pct = cleared ? 100 : st ? st.pct : 0;
+  stopTower();
+  const r = courseRec(c.id);
+  const wasOpenNext = i + 1 < ATHLE_COURSES.length && courseOpen(i + 1);
+  const prevBest = r.bestTime;
+  r.plays++;
+  r.bestPct = Math.max(r.bestPct, pct);
+  if (cleared) { r.clears++; if (!r.bestTime || time < r.bestTime) r.bestTime = time; }
+  save();                     // コースも 記録だけ（バッジは 勉強でのみ）
+  sfx.done(); react("cheer");
+  const lines = [];
+  if (cleared) {
+    $("resBig").textContent = `${c.icon} ${c.name} クリア！`;
+    lines.push(`⏱ タイム ${fmtTime(time)}`);
+    lines.push(!prevBest ? "🎉 はじめての クリア！" : time < prevBest ? `🏅 ベスト こうしん！（まえは ${fmtTime(prevBest)}）` : `🏅 ベスト ${fmtTime(r.bestTime)}`);
+    if (!wasOpenNext && i + 1 < ATHLE_COURSES.length) lines.push(`🔓 つぎの「${ATHLE_COURSES[i + 1].name}」が ひらいた！`);
+  } else {
+    $("resBig").textContent = `${c.icon} ${c.name} ${pct}%`;
+    lines.push(`🚩 ${pct}% まで すすんだ（いちばん すすんだのは ${r.bestPct}%）`);
+  }
+  $("resText").textContent = lines.join("\n");
+  const next = cleared && i + 1 < ATHLE_COURSES.length ? ATHLE_COURSES[i + 1] : null;
+  $("resNext").classList.toggle("hidden", !next);
+  if (next) { $("resNext").textContent = `つぎの コース：${next.name}`; $("resNext").onclick = () => startPlay("tower", next.id); }
+  quiz = null;
+  show("scResult");
+}
 $("goAsmr").onclick = () => startPlay("asmr");
 function pMsg(text, ms = 900) {
   const m = $("pMsg");
@@ -306,14 +363,21 @@ function pMsg(text, ms = 900) {
   clearTimeout(pMsg.t);
   pMsg.t = setTimeout(() => m.classList.remove("show"), ms);
 }
-async function startPlay(mode) {
+async function startPlay(mode, course = null) {
   const rec = data.play[mode];
-  play = { mode, best: rec.best, newBest: false, last: 0, kira: 0 };
+  play = { mode, course, best: rec.best, newBest: false, last: 0, kira: 0 };
+  $("resNext").classList.add("hidden");
   const h = HAT_COLORS.find((x) => x.id === data.hat) || HAT_COLORS[0];
   $("pDist").textContent = "0m";
   $("pBest").textContent = `🏅${rec.best}m`;
   $("pKira").textContent = "✨0";
-  $("pKira").classList.toggle("hidden", mode !== "run");
+  $("pKira").classList.toggle("hidden", mode !== "run" && !course);
+  if (course) {   // コース：すすんだ %・タイム・ベスト
+    const r = courseRec(course);
+    $("pDist").textContent = "0%";
+    $("pKira").textContent = "⏱ 0:00";
+    $("pBest").textContent = r.bestTime ? `🏁 ${fmtTime(r.bestTime)}` : "🏁 はじめて";
+  }
   $("scPlayRun").classList.toggle("tower", mode !== "run");   // アスレ・ASMR は バーチャルパッド＋ジャンプ
   $("scPlayRun").classList.toggle("asmr", mode === "asmr");    // ASMR は 視点の ボタンも
   $("pView").classList.remove("on");
@@ -350,18 +414,24 @@ async function startPlay(mode) {
     setTowerPins(data.pins);
     startTower({
       mode: mode === "asmr" ? "asmr" : "athle",
+      course,
+      onCourseTick: (pct, sec) => { if (!play) return; $("pDist").textContent = `${pct}%`; $("pKira").textContent = `⏱ ${fmtTime(sec)}`; },
+      onGoal: (time) => { sfx.streak(); pMsg("⭐ ゴール！", 1400); setTimeout(() => { if (play && play.course === course) finishCourse(true, time); }, 1600); },
+      onLava: () => { sfx.bump(); pMsg("あちち！ はたから もういちど", 1300); },
+      onCrumble: () => sfx.pop(),
       onStep: (id, kind, rate) => { stepSound(id, kind, rate); if (window.G) (window.__steps ||= []).push([id, kind, rate]); },
       onTheme: (th, fl) => pMsg(`${fl}かい ${th.name}`, 1300),
       onDrop: (fl, th, bottom) => { sfx.bump(); pMsg(fl === 1 && bottom ? "1かいまで おちた… さいしょから！" : `${fl}かいに おちた！ ここから つづき`, 1600); },
       onBigBounce: () => sfx.boing(),
       onSwitch: () => { sfx.flag(); pMsg("とびらが ひらいた！", 900); },
-      onHeight: playTick,
+      onHeight: course ? null : playTick,
       onCheckpoint: () => { sfx.flag(); pMsg("🚩 チェックポイント！", 900); },
       onFall: () => { sfx.tap(); pMsg("だいじょうぶ！ はたから もういちど", 1300); },
       onPad: () => sfx.boing(),
-      onBump: () => { sfx.bump(); pMsg("バーに あたった！", 800); },
+      onBump: (kind) => { sfx.bump(); pMsg(kind === "laser" ? "レーザーに あたった！" : "バーに あたった！", 800); },
     });
-    if (mode !== "asmr") pMsg(cdef.id === "norun" ? "のぼろう！" : `${cdef.name}に へんしん！`, 1000);
+    if (course) { const cc = ATHLE_COURSES.find((x) => x.id === course); pMsg(`${cc.icon} ${cc.name} スタート！`, 1300); }
+    else if (mode !== "asmr") pMsg(cdef.id === "norun" ? "のぼろう！" : `${cdef.name}に へんしん！`, 1000);
     else setTimeout(() => { if (play && play.mode === "asmr") pMsg("👆 スワイプで 見まわせるよ", 1800); }, 1500);
   }
 }
@@ -424,6 +494,7 @@ const KEYMAP = { ArrowLeft: "l", KeyA: "l", ArrowRight: "r", KeyD: "r", ArrowUp:
 addEventListener("keydown", (e) => { if (screen === "scPlayRun" && play && play.mode !== "run" && KEYMAP[e.code]) { e.preventDefault(); keys.add(KEYMAP[e.code]); keyStick(); } });
 addEventListener("keyup", (e) => { if (KEYMAP[e.code]) { keys.delete(KEYMAP[e.code]); keyStick(); } });
 function finishPlay(m, kira = 0) {
+  $("resNext").classList.add("hidden");
   const rec = data.play[play.mode];
   const prev = rec.best;
   rec.last = m;
@@ -449,7 +520,8 @@ $("pQuit").onclick = () => {
     const m = R && R.mode === "play" ? Math.floor(R.dist / 2) : play.last, k = R && R.mode === "play" ? R.kira : play.kira;
     stopRunView();
     finishPlay(m, k);
-  } else finishPlay(stopTower());
+  } else if (play.course) finishCourse(false);
+  else finishPlay(stopTower());
 };
 /* ASMR：視点の 切りかえ（寄った 視点 ⇔ 一人称）・正面を むく */
 /* 視点は 3つを じゅんばんに：よった してん → おいかけ → いちにんしょう。ボタンには「つぎの 視点」を 出す */
@@ -639,6 +711,7 @@ $("kokuBack").onclick = () => { renderMy(); show("scMy"); };
 let quiz = null;
 /* 学習の入口（コース選び・復習）から、選択ランが始まる */
 function startQuiz(opts) {
+  $("resNext").classList.add("hidden");   // コースの「つぎの コース」ボタンは 学習の 結果では 出さない
   let qs;
   if (opts.type === "kinder") qs = kinderSession(KINDER.levels[opts.level - 1].max, SESSION.kinder);
   else if (opts.type === "kuku") qs = kukuSession(opts.dan, opts.order);
@@ -836,7 +909,7 @@ function finishQuiz() {
   show("scResult");
 }
 $("resAgain").onclick = () => {
-  if (play) { startPlay(play.mode); return; }
+  if (play) { startPlay(play.mode, play.course); return; }
   if (quiz.opts.type === "review" && !data.review.length) { renderMy(); show("scMy"); return; }
   startQuiz(quiz.opts);
 };
@@ -1204,7 +1277,7 @@ show("scTitle");
 if (DEBUG) {
   window.G = {
     store, get me() { return me; }, get data() { return data; }, get quiz() { return quiz; }, get screen() { return screen; },
-    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, towerToggleView, towerFaceFront, get play() { return play; },
+    enter, startQuiz, renderMy, show, openParent, moveLaneTo, runState, laneNow, renderKokugo, startPlay, towerState, towerStick, towerJump, towerSkill, towerTeleport, towerLook, towerCam, towerToggleView, towerFaceFront, towerDebugHook, get play() { return play; },
   };
   document.title = "ready";
 }

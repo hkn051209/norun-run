@@ -7,11 +7,13 @@
    - 記録＝のった足場の いちばん高い所（m）
    - キャラ（変身）：のるん／くらげ（二段ジャンプ・ふわり）／パン（すべる）。とくぎの 部品は その キャラの 時だけ 出る
    - ASMRタワー：区間ごとに 素材テーマ（しゃりしゃり・ぷにぷに・ねばねば…）。足場の 見た目・足音・はね・すべりが かわる
+   - 第12弾：アスレに「コース」（ゴールあり・4つ）を 追加。エンドレスは そのまま。
+     新しい しかけ：溶岩（落ちたら はたから）・むかってくる レーザー（ジャンプで よける）・こおりの 床・くずれる 足場
    ========================================================= */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/GLTFLoader.js";
 import { findPinSlots, applyPins } from "./norun-model.js";
-import { PLAY_TOWER as P, CHARACTERS, PAN_SLIDE, ASMR_THEMES, ASMR, OBAKE, PENGUIN, SHAPE_SOUND, ASMR_CAM } from "./config.js";
+import { PLAY_TOWER as P, CHARACTERS, PAN_SLIDE, ASMR_THEMES, ASMR, OBAKE, PENGUIN, SHAPE_SOUND, ASMR_CAM, ATHLE_COURSES } from "./config.js";
 import { buildRoom, LOOK, themeOf } from "./asmr-rooms.js";
 
 const W = P.laneW;
@@ -80,7 +82,8 @@ scene.add(farTower);
 
 /* ---------- コース ---------- */
 const COL = { floor: 0x9be39b, stair: 0xffd86b, step: 0x8fd3ff, gap: 0xff9ec7, zig: 0xc7a8ff, mover: 0xffa64d, bar: 0x9be3d6, wall: 0x8fd3ff,
-  vanish: 0xb6a4ff, conv: 0x8b9bb4, door: 0xff9e5e, wind: 0xa8e6ff, duck: 0xffcf66, wide: 0x9be3d6 };
+  vanish: 0xb6a4ff, conv: 0x8b9bb4, door: 0xff9e5e, wind: 0xa8e6ff, duck: 0xffcf66, wide: 0x9be3d6,
+  rock: 0x6b5a66, laser: 0x9aa6c8, ice: 0xbfefff, crumble: 0xc9a27a, goal: 0xffe17a };
 const topMats = new Map();
 function topMatOf(c) {   // 上の面は 部品の色を うすくした色
   if (!topMats.has(c)) {
@@ -105,6 +108,7 @@ const arrowTex = (dir) => canvasTex(128, 128, (x, w, h) => {
 const solids = [];      // { x0, x1, y0, y1, z0, z1, g, mov?, pad?, mat?, van?, conv?, off? }
 const bars = [];        // { cx, cz, y, half, ang, sp, g }
 const flags = [];       // { z, y, g, cloth, hit }
+const beams = [];       // むかってくる レーザー（{ z, y, sec, g, dbl }）
 const extras = [];      // 景色や しかけ（{ z, g, update?(dt,t) }）
 const zones = [];       // 風・スイッチなどの 区間（{ kind, x0, x1, z0, z1, y, ... }）
 function addBox(x0, x1, y0, y1, z0, z1, color, opt = {}) {
@@ -174,7 +178,7 @@ function addSign(z, y, text, sub, color = "#ff7eb6") {
 }
 
 /* ---------- 部品 ---------- */
-const B = { z: 0, y: 0, last: "", n: 0, mode: "athle", theme: 0, secLeft: 0, char: "norun" };
+const B = { z: 0, y: 0, last: "", n: 0, mode: "athle", theme: 0, secLeft: 0, char: "norun", dy: 0, course: null };   // dy：むずかしさ（エンドレスは 高さ ＝ dy）
 function rest(len) {
   fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.floor);
   addFlag(B.z + 0.6, B.y);
@@ -189,7 +193,7 @@ const PARTS = {
   gaps() {     // すき間を ジャンプで こえる
     const k = randInt(2, 3);
     for (let i = 0; i < k; i++) {
-      B.z += rand(1.4, Math.min(2.5, 1.7 + B.y * 0.02));
+      B.z += rand(1.4, Math.min(2.5, 1.7 + B.dy * 0.02));
       B.y += rand(0, 0.45);
       const len = rand(3, 4.2);
       fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.gap);
@@ -227,7 +231,7 @@ const PARTS = {
     const k = randInt(1, 2);
     for (let i = 0; i < k; i++) {
       const len = rand(5, 6);
-      const s = laneBox(1, B.y - 0.5, B.y, B.z, B.z + len, COL.mover, { mov: { ph: rand(0, 6.28), sp: rand(1.5, 1.9) + B.y * 0.004, dx: 0 } });
+      const s = laneBox(1, B.y - 0.5, B.y, B.z, B.z + len, COL.mover, { mov: { ph: rand(0, 6.28), sp: rand(1.5, 1.9) + B.dy * 0.004, dx: 0 } });
       s.w = s.x1 - s.x0;
       B.z += len;
       if (i < k - 1) { fullBox(B.y - 0.6, B.y, B.z, B.z + 2.4, COL.floor); B.z += 2.4; }
@@ -250,7 +254,7 @@ const PARTS = {
     }
     g.position.set(0, B.y + 0.45, cz);
     scene.add(g);
-    bars.push({ cx: 0, cz, y: B.y, half, ang: rand(0, 6.28), sp: (Math.random() < 0.5 ? -1 : 1) * (1.3 + Math.min(0.6, B.y * 0.006)), g });
+    bars.push({ cx: 0, cz, y: B.y, half, ang: rand(0, 6.28), sp: (Math.random() < 0.5 ? -1 : 1) * (1.3 + Math.min(0.6, B.dy * 0.006)), g });
     B.z += len;
   },
 
@@ -366,8 +370,145 @@ const PARTS = {
     fullBox(B.y - 0.6, B.y, B.z, B.z + 4, COL.wide);
     B.z += 4;
   },
+
+  /* ---- 2026-11-13 第12弾：コースの 新しい しかけ ---- */
+  lava() {     // 溶岩：下が 溶岩の 区間を、足場（岩）を つたって わたる。むずかしく なると 小さく・はなれて・くずれる 岩や 動く 岩が まざる
+    const d = Math.min(1, B.dy / 100);
+    // 岩の おくゆき（すすむ 向き）は、走って とんだ ジャンプ（約4m）で とびこえて しまわない 長さに（第12弾・テストで 調整）
+    const k = randInt(4, 5) + Math.round(d * 2), size = 2.4 - d * 0.6, deep = 3.4 - d * 0.6, gap0 = 1.0 + d * 0.8;
+    const z0 = B.z, lavaY = B.y - P.lavaDrop;
+    let l = 1;
+    fullBox(B.y - 0.6, B.y, B.z, B.z + 1.2, COL.rock); B.z += 1.2;      // 岸
+    for (let i = 0; i < k; i++) {
+      B.z += rand(gap0 * 0.8, gap0);
+      B.y += rand(-0.1, 0.25 + d * 0.25);
+      // ならび：ふつうの 岩 → 動く 岩 → くずれる 岩 …（くずれる 岩の つぎに 動く 岩は 来ない＝まって いられない 所を 作らない）
+      const kind = d > 0.55 && i % 3 === 1 ? "mov" : d > 0.25 && i % 3 === 2 ? "crumble" : "rock";
+      const len = deep + (kind === "mov" ? 0.4 : 0);
+      if (kind === "mov") {
+        const s = laneBox(1, B.y - 0.5, B.y, B.z, B.z + len, COL.mover, { mov: { ph: rand(0, 6.28), sp: 1.1 + d * 0.6, dx: 0 } });
+        s.w = s.x1 - s.x0;
+      } else {
+        const s = addBox(LANE_X[l] - size / 2, LANE_X[l] + size / 2, B.y - 0.8, B.y, B.z, B.z + len, kind === "crumble" ? COL.crumble : COL.rock,
+          kind === "crumble" ? { van: { t: -1, offT: 0, crumble: true } } : {});
+        if (kind === "crumble") crackMark(s);
+        l = Math.max(0, Math.min(2, l + pick([-1, 0, 1])));
+      }
+      B.z += len;
+    }
+    B.z += rand(gap0 * 0.8, gap0);
+    fullBox(B.y - 0.6, B.y, B.z, B.z + 1.6, COL.rock); B.z += 1.6;      // 向こう岸
+    lavaPool(z0 + 1.0, B.z - 1.4, lavaY);
+    if (!B.seen.lava) { B.seen.lava = true; addSign(z0 + 0.6, B.y, "🌋 ようがんに おちないで！", "いわを つたって わたろう", "#ff6a3d"); }
+  },
+  laser() {    // むかってくる レーザー：前から 流れてくる 光の バー。ジャンプで よける（当たっても 少し もどるだけ）
+    const d = Math.min(1, B.dy / 100);
+    const len = 16 + Math.round(d * 4);
+    fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.laser);
+    const z0 = B.z, z1 = B.z + len;
+    // 発射口（向こうの はしの 門）
+    const gate = new THREE.Group();
+    for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.6, 0.5), lambert(0x4b5579, 0.3)); p.position.set(sx * (FULL / 2 + 0.3), 1.3, 0); gate.add(p); }
+    const top = new THREE.Mesh(new THREE.BoxGeometry(FULL + 1.1, 0.4, 0.5), lambert(0x4b5579, 0.3)); top.position.y = 2.6; gate.add(top);
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), new THREE.MeshBasicMaterial({ color: 0xff3b6b })); lamp.position.set(0, 2.95, 0); gate.add(lamp);
+    gate.position.set(0, B.y, z1 - 0.3); scene.add(gate);
+    extras.push({ z: z1, g: gate });
+    zones.push({ kind: "laser", z0, z1, y: B.y, v: 3.2 + d * 2.8, every: 2.9 - d * 1.15, dbl: d > 0.6, t: 0.6, lamp });
+    if (!B.seen.laser) { B.seen.laser = true; addSign(z0 + 0.6, B.y, "⚡ レーザーが くるよ", "ジャンプで よけよう", "#ff3b6b"); }
+    B.z = z1;
+  },
+  ice() {      // こおりの 床：すべって 止まりにくい。とちゅうで 道が ほそく なる
+    const d = Math.min(1, B.dy / 100);
+    const a = 4, nar = 4 + Math.round(d * 3), b = 3;
+    fullBox(B.y - 0.6, B.y, B.z, B.z + a, COL.ice, { ice: true }); B.z += a;
+    const l = randInt(0, 2);
+    laneBox(l, B.y - 0.6, B.y, B.z, B.z + nar, COL.ice, { ice: true });
+    if (d > 0.5) laneBox(l === 1 ? pick([0, 2]) : 1, B.y - 0.6, B.y, B.z + nar * 0.5, B.z + nar, COL.ice, { ice: true });
+    B.z += nar;
+    fullBox(B.y - 0.6, B.y, B.z, B.z + b, COL.ice, { ice: true }); B.z += b;
+    if (!B.seen.ice) { B.seen.ice = true; addSign(B.z - a - nar - b + 0.6, B.y, "🧊 つるつる こおり", "ゆっくり すすもう", "#4fb3ff"); }
+  },
+  crumble() {  // くずれる 足場：のって 少しすると ぐらぐら → 下へ 落ちる（しばらくして もどる）
+    const d = Math.min(1, B.dy / 100);
+    const k = randInt(4, 5) + Math.round(d);
+    let l = randInt(0, 2);
+    for (let i = 0; i < k; i++) {
+      B.z += 0.6 + d * 0.4;
+      B.y += rand(0, 0.35);
+      const s = addBox(LANE_X[l] - 1.15, LANE_X[l] + 1.15, B.y - 0.6, B.y, B.z, B.z + 2.9, COL.crumble, { van: { t: -1, offT: 0, crumble: true } });
+      crackMark(s);
+      B.z += 2.9;
+      l = Math.max(0, Math.min(2, l + pick([-1, 1])));
+    }
+    if (!B.seen.crumble) { B.seen.crumble = true; addSign(B.z - k * 3, B.y, "🪨 くずれる あしば", "とまらずに すすもう", "#c9873a"); }
+  },
+  goal() {     // ゴール：ひろい 台と アーチ・大きな ほし
+    const len = 9;
+    fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.goal);
+    const gz = B.z + 3;
+    const g = new THREE.Group();
+    for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 3.6, 12), lambert(0xffffff, 0.35)); p.position.set(sx * (FULL / 2 - 0.2), 1.8, 0); g.add(p); }
+    const tex = canvasTex(512, 128, (x, w, h) => { x.fillStyle = "#ff7eb6"; x.beginPath(); x.roundRect(4, 4, w - 8, h - 8, 50); x.fill(); x.fillStyle = "#fff"; x.font = `900 76px "NorunMaru",sans-serif`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("⭐ ゴール ⭐", w / 2, h / 2 + 4); });
+    const ban = new THREE.Mesh(new THREE.PlaneGeometry(FULL, FULL / 4), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true }));
+    ban.position.y = 3.7; ban.rotation.y = Math.PI; g.add(ban);
+    const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.8, 0), lambert(0xffd93b, 0.6)); star.position.set(0, 1.6, 2.2); g.add(star);
+    g.position.set(0, B.y, gz); scene.add(g);
+    extras.push({ z: gz + 30, g, update: (dt) => { star.rotation.y += dt * 2; star.position.y = 1.6 + Math.sin(T.time * 2) * 0.2; } });
+    zones.push({ kind: "goal", z: gz, y: B.y });
+    B.goalZ = gz;
+    B.z += len;
+  },
 };
+/* くずれる 足場の しるし（ひび） */
+function crackMark(s) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(s.x1 - s.x0 - 0.2, s.z1 - s.z0 - 0.2), new THREE.MeshBasicMaterial({ map: crackTex, transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.y = 0.02; s.g.add(m);
+}
+const crackTex = canvasTex(128, 128, (x, w, h) => {
+  x.strokeStyle = "rgba(90,50,20,.75)"; x.lineWidth = 5; x.lineCap = "round";
+  for (const [a, b] of [[[64, 64], [20, 30]], [[64, 64], [110, 40]], [[64, 64], [50, 118]], [[64, 64], [100, 100]], [[40, 45], [10, 70]]]) { x.beginPath(); x.moveTo(...a); x.lineTo(...b); x.stroke(); }
+});
+/* 溶岩の 池（光る もようが 流れる） */
+const lavaTex = canvasTex(256, 256, (x, w, h) => {
+  x.fillStyle = "#ff5a1f"; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 60; i++) { const r = rand(8, 34); const gr = x.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, i % 3 ? "#ffd23f" : "#fff2a8"); gr.addColorStop(1, "rgba(255,90,31,0)"); x.save(); x.translate(rand(0, w), rand(0, h)); x.fillStyle = gr; x.beginPath(); x.arc(0, 0, r, 0, 7); x.fill(); x.restore(); }
+  x.strokeStyle = "rgba(150,30,10,.5)"; x.lineWidth = 6;
+  for (let i = 0; i < 10; i++) { x.beginPath(); x.moveTo(rand(0, w), rand(0, h)); x.bezierCurveTo(rand(0, w), rand(0, h), rand(0, w), rand(0, h), rand(0, w), rand(0, h)); x.stroke(); }
+});
+lavaTex.wrapS = lavaTex.wrapT = THREE.RepeatWrapping;
+const lavaMat = new THREE.MeshBasicMaterial({ map: lavaTex, fog: false });
+function lavaPool(z0, z1, y) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(FULL + 8, z1 - z0), lavaMat);
+  m.rotation.x = -Math.PI / 2; m.position.set(0, y, (z0 + z1) / 2);
+  scene.add(m);
+  extras.push({ z: z1, g: m });
+  zones.push({ kind: "lava", z0, z1, y });
+}
+const beamGeo = new THREE.CylinderGeometry(0.11, 0.11, FULL + 0.6, 10); beamGeo.rotateZ(Math.PI / 2);
+const glowGeo = new THREE.CylinderGeometry(0.26, 0.26, FULL + 0.6, 10); glowGeo.rotateZ(Math.PI / 2);
+const beamMat = new THREE.MeshBasicMaterial({ color: 0xff2d6b });
+const glowMat = new THREE.MeshBasicMaterial({ color: 0xff7aa8, transparent: true, opacity: 0.35, depthWrite: false });
+function spawnBeam(zn, z) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(beamGeo, beamMat), new THREE.Mesh(glowGeo, glowMat));
+  g.position.set(0, zn.y + P.laserH, z); scene.add(g);
+  beams.push({ z, y: zn.y, sec: zn, g });
+}
+/* コース：plan の 部品を じゅんばんに ならべて、さいごに ゴール。むずかしさ（dy）は すすむほど 上がる */
+const SKILL_PART = { pan: "duck", kurage: "wide", obake: "ghost" };
+function buildCourse(c) {
+  const plan = c.plan.filter((k) => k !== "S" || SKILL_PART[B.char]).map((k) => (k === "S" ? SKILL_PART[B.char] : k));
+  plan.forEach((name, i) => {
+    B.dy = c.dy0 + (c.dy1 - c.dy0) * (plan.length > 1 ? i / (plan.length - 1) : 0);
+    B.last = name;
+    PARTS[name]();
+    rest(rand(3.2, 4.0));
+    B.n++;
+  });
+  PARTS.goal();
+}
 function addPart() {
+  B.dy = B.y;   // エンドレス：むずかしさ ＝ 高さ（今までと 同じ）
   const list = Object.entries(P.parts).filter(([k, v]) => B.y >= v.from && k !== B.last && (!v.char || v.char === B.char));
   let r = Math.random() * list.reduce((s, [, v]) => s + v.w, 0);
   let name = list[0][0];
@@ -597,16 +738,18 @@ function clearCourse() {
   for (const b of bars) disposeGroup(b.g);
   for (const f of flags) disposeGroup(f.g);
   for (const e of extras) disposeGroup(e.g);
-  solids.length = 0; bars.length = 0; flags.length = 0; extras.length = 0; zones.length = 0;
+  for (const b of beams) disposeGroup(b.g);
+  solids.length = 0; bars.length = 0; flags.length = 0; extras.length = 0; zones.length = 0; beams.length = 0;
 }
 /* opts.mode："athle"（アスレ）／"asmr"（ASMRタワー） */
 export function startTower(opts) {
   stopTower();
   clearCourse();
-  Object.assign(B, { z: -4, y: 0, last: "", n: 0, mode: opts.mode || "athle", char: nr.cur ? nr.cur.id : "norun" });
+  const course = opts.course ? ATHLE_COURSES.find((c) => c.id === opts.course) : null;   // opts.course：コースの id（なし＝エンドレス）
+  Object.assign(B, { z: -4, y: 0, last: "", n: 0, mode: opts.mode || "athle", char: nr.cur ? nr.cur.id : "norun", dy: 0, course, seen: {}, goalZ: 0 });
   const asmr = B.mode === "asmr";
-  if (asmr) ensureRooms(0); else rest(9);
-  T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed, themeIdx: -1, floor: -1 };
+  T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed, themeIdx: -1, floor: -1, goal: false, runT: 0, immune: 0, pct: 0 };
+  if (asmr) ensureRooms(0); else { rest(9); if (course) buildCourse(course); }
   Object.assign(me, ME0, { x: 0, y: 0, z: asmr ? 4.2 : -2, wait: 0.9 });
   Object.assign(cam, { yaw: 0, pitch: 0.15, yawS: 0, pitchS: 0.15, idle: 99, fp: false, mode: "near" });
   farTower.visible = !asmr;
@@ -635,7 +778,7 @@ export function towerStick(x, y) {
   stick.x = x * k; stick.y = y * k;
 }
 // プールの 上は、部屋の テーマでは なく プールの 素材の 手ざわり（はちみつの 部屋でも ビーズの 上は ビーズ。しずみ・はねは なし）
-const floorProps = () => (me.on && me.on.pool ? { ...NORMAL, walk: me.on.pool.walk } : me.on && me.on.mat ? { ...NORMAL, ...themeOf(me.on.mat) } : NORMAL);
+const floorProps = () => (me.on && me.on.ice ? { ...NORMAL, grip: P.iceGrip, walk: P.iceWalk } : me.on && me.on.pool ? { ...NORMAL, walk: me.on.pool.walk } : me.on && me.on.mat ? { ...NORMAL, ...themeOf(me.on.mat) } : NORMAL);
 /* ASMR：いまいる フロアの テーマ（ふわふわの 重力などは 部屋ぜんたいに かかる） */
 const roomTheme = () => (B.mode === "asmr" && A.rooms[A.k] ? A.rooms[A.k].theme : null);
 /* プール（第11弾）：キャラの まわりが へこむ。ビーズ・わたあめは つぶが よけて しずみ、スライム・かき氷・チョコは 表面が へこむ */
@@ -719,12 +862,14 @@ function setGhost(on) {
   if (ch.outline) ch.outline.visible = !on;
 }
 export const towerState = () => (T ? {
-  best: T.best, falls: T.falls, cpN: T.cpN, speed: T.speed, mode: B.mode, char: nr.cur && nr.cur.id, theme: T.themeIdx, floor: A.k, approach: !!A.approach,
+  best: T.best, falls: T.falls, cpN: T.cpN, speed: T.speed, mode: B.mode, course: B.course && B.course.id, goal: T.goal, pct: T.pct, runT: T.runT, goalZ: B.goalZ, cp: T.cp,
+  beams: beams.map((b) => ({ z: b.z, y: b.y })), char: nr.cur && nr.cur.id, theme: T.themeIdx, floor: A.k, approach: !!A.approach,
   rooms: A.rooms.map((r) => ({ r: r.r, theme: r.theme.id, exit: r.exit, holes: r.holes })),
   me: { ...me, on: !!me.on, onMat: me.on && me.on.mat, onConv: !!(me.on && me.on.conv) },
   solids: solids.map((s) => ({ x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1, z0: s.z0, z1: s.z1, pad: !!s.pad, mov: !!s.mov, van: !!s.van, off: !!s.off, conv: !!s.conv, mat: s.mat, room: s.room, floor: !!s.floor, bound: !!s.bound, pillar: !!s.pillar, deco: !!s.deco, ghostWall: !!s.ghostWall, kind: s.kind, noBreak: !!s.noBreak })),
   bars: bars.map((b) => ({ cz: b.cz, y: b.y, ang: b.ang, half: b.half })),
   zones: zones.map((z) => ({ kind: z.kind, z: z.z, z0: z.z0, z1: z.z1, x: z.x, open: z.open, y: z.y })),
+  ice: solids.filter((s) => s.ice).length,
 } : null);
 
 function onResize() {
@@ -736,12 +881,12 @@ function onResize() {
 }
 addEventListener("resize", onResize);
 
-function respawn() {
+function respawn(lava = false) {
   T.falls++;
   if (me.phaseT > 0) setGhost(false);
   Object.assign(me, ME0, { x: 0, y: T.cp.y, z: T.cp.z, wait: 0.7 });
   T.camY = T.cp.y;
-  if (T.onFall) T.onFall(T.falls);
+  if (T.onFall && !lava) T.onFall(T.falls);
 }
 
 /* 1つの 軸ずつ 動かして、かべに ぶつかったら 止める（ひくい段は そのまま のぼる） */
@@ -769,11 +914,14 @@ function moveAxis(axis, d) {
 }
 
 const clock = new THREE.Clock();
+let dbgHook = null;
+export function towerDebugHook(fn) { dbgHook = fn; }
 function loop() {
   if (!T) return;
   T.raf = requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = (T.time += dt);
+  if (dbgHook) dbgHook(dt, { me, solids, beams, zones, bars, stick, B, T });   // テスト用（?debug の 時だけ main.js から つかう）
   const sk = skills();
 
   // コースを 先へ つぎたす・後ろを 消す
@@ -794,7 +942,7 @@ function loop() {
     // 吹き抜けの 中で 上の かいの 床に 近づいたら、上の かいを 半とうめいで 見せる
     const cur = A.rooms[A.k], at = cur && cur.atrium;
     setApproach(!!at && me.x > at.x0 - 0.6 && me.x < at.x1 + 0.6 && me.z > at.z0 - 0.6 && me.z < at.z1 + 0.6 && me.y > cur.y + ASMR.floorH - 5);
-  } else while (B.z < me.z + 80) addPart();
+  } else if (!B.course) while (B.z < me.z + 80) addPart();
   for (let i = solids.length - 1; i >= 0; i--) {
     const s = solids[i];
     if (s.z1 < me.z - 18 && s.z1 < T.cp.z - 2) { disposeGroup(s.g); solids.splice(i, 1); }
@@ -816,14 +964,17 @@ function loop() {
       const v = s.van;
       if (s.off) {
         v.offT -= dt;
-        if (v.offT <= 0) { s.off = false; s.g.visible = true; s.g.scale.setScalar(1); }
-        else if (v.offT < 0.4) { s.g.visible = true; s.g.scale.setScalar(1 - v.offT / 0.4 * 0.9); }   // ふわっと もどる
+        if (v.offT <= 0) { s.off = false; s.g.visible = true; s.g.scale.setScalar(1); s.g.position.y = s.y1; s.g.rotation.set(0, 0, 0); }
+        else if (v.offT < 0.4) { s.g.visible = true; s.g.position.y = s.y1; s.g.rotation.set(0, 0, 0); s.g.scale.setScalar(1 - v.offT / 0.4 * 0.9); }   // ふわっと もどる
+        else if (v.crumble) { s.g.visible = true; s.g.position.y -= dt * (6 + (v.fall = (v.fall || 0) + dt * 18)); s.g.rotation.x += dt * 1.5; if (s.g.position.y < s.y1 - 12) s.g.visible = false; }   // くずれて 下へ 落ちる
       } else {
         if (me.on === s && v.t < 0) v.t = 0;
         if (v.t >= 0) {
           v.t += dt;
-          s.g.visible = v.t < P.vanishT * 0.45 || Math.floor(v.t * 14) % 2 === 0;   // ちかちか
-          if (v.t > P.vanishT) { s.off = true; s.g.visible = false; v.t = -1; v.offT = P.vanishOff; if (me.on === s) me.on = null; }
+          const lim = v.crumble ? P.crumbleT : P.vanishT;
+          if (v.crumble) { s.g.rotation.z = Math.sin(v.t * 55) * 0.05; s.g.position.y = s.y1 - Math.min(0.12, v.t * 0.2); }   // ぐらぐら
+          else s.g.visible = v.t < P.vanishT * 0.45 || Math.floor(v.t * 14) % 2 === 0;   // ちかちか
+          if (v.t > lim) { s.off = true; s.g.visible = !!v.crumble; v.t = -1; v.offT = v.crumble ? P.crumbleBack : P.vanishOff; v.fall = 0; if (me.on === s) me.on = null; if (v.crumble && T.onCrumble) T.onCrumble(); }
         }
       }
     }
@@ -833,6 +984,25 @@ function loop() {
     }
   }
   for (const b of bars) { b.ang += b.sp * dt; b.g.rotation.y = b.ang; }
+  for (const e of extras) if (e.update) e.update(dt);
+  lavaTex.offset.x += dt * 0.03; lavaTex.offset.y += dt * 0.05;   // 溶岩が ゆっくり 流れる
+  // むかってくる レーザー：門から 一定の 間かくで 出て、手前へ 流れる（近くに いる 時だけ）
+  for (const zn of zones) {
+    if (zn.kind !== "laser") continue;
+    const near = me.z > zn.z0 - 14 && me.z < zn.z1 + 1;
+    zn.lamp.visible = !near || zn.t > 0.35 || Math.floor(T.time * 10) % 2 === 0;   // 出る 前に ちかちか
+    if (!near) continue;
+    zn.t -= dt;
+    if (zn.t <= 0) { zn.t = zn.every; spawnBeam(zn, zn.z1 - 0.3); if (zn.dbl) spawnBeam(zn, zn.z1 + 1.4); if (T.onLaser) T.onLaser(); }
+  }
+  for (let i = beams.length - 1; i >= 0; i--) {
+    const bm = beams[i];
+    bm.z -= bm.sec.v * dt;
+    if (bm.z < bm.sec.z1) bm.g.position.z = bm.z; else bm.g.position.z = bm.sec.z1 - 0.3;   // 2本目は 門の 中で まつ
+    bm.g.visible = bm.z < bm.sec.z1 + 0.01;
+    bm.g.children[1].scale.setScalar(1 + Math.sin(T.time * 20 + i) * 0.12);
+    if (bm.z < bm.sec.z0 - 0.5) { disposeGroup(bm.g); beams.splice(i, 1); }
+  }
   if (asmr) for (const s of solids) {
     if (!s.mat || s.floor) continue;
     const th = themeOf(s.mat);
@@ -995,6 +1165,31 @@ function loop() {
       me.z = Math.max(b.cz - 5, me.z - 1.6);
       if (T.onBump) T.onBump();
     }
+  }
+
+  // レーザー：当たったら 回る バーと 同じ（少し 後ろへ はねる。落ちない）。当たった あと しばらくは 当たらない
+  if (T.immune > 0) T.immune -= dt;
+  if (!asmr && T.immune <= 0 && me.stun <= 0) for (const bm of beams) {
+    if (bm.z >= bm.sec.z1) continue;
+    if (Math.abs(me.z - bm.z) < 0.4 && me.y < bm.y + P.laserH + 0.12 && me.y > bm.y - 0.6) {
+      me.stun = 0.55; me.vy = 5; me.on = null; me.squash = -0.2; me.slideT = 0;
+      me.z = Math.max(bm.sec.z0 - 1, me.z - 1.6); T.immune = P.laserImmune;
+      if (T.onBump) T.onBump("laser");
+      break;
+    }
+  }
+  // 溶岩：おちたら「あちち」→ 直前の はたから
+  for (const zn of zones) if (zn.kind === "lava" && me.z > zn.z0 && me.z < zn.z1 && me.y < zn.y + 0.15) { if (T.onLava) T.onLava(); respawn(true); break; }
+  // ゴール
+  if (B.course && !T.goal && me.on) for (const zn of zones) if (zn.kind === "goal" && me.z > zn.z && Math.abs(me.y - zn.y) < 1) {
+    T.goal = true; me.wait = 99; stick.x = stick.y = 0;
+    if (T.onGoal) T.onGoal(Math.round(T.runT * 10) / 10);
+  }
+  if (B.course) {
+    if (!T.goal && T.time > 0.9) T.runT += dt;
+    const pct = Math.max(0, Math.min(99, Math.floor(((me.z + 2) / Math.max(1, B.goalZ + 2)) * 100)));
+    if (T.goal) T.pct = 100; else if (pct > T.pct) T.pct = pct;
+    if (T.onCourseTick) T.onCourseTick(T.pct, Math.floor(T.runT));
   }
 
   // 高さの記録・チェックポイント（ASMR は チェックポイントなし）
@@ -1209,6 +1404,8 @@ function loop() {
   farTower.position.set(-16, T.camY * 0.6 - 30, me.z + 110);
   if (asmr && T.themeIdx >= 0) {
     scene.background.lerp(new THREE.Color(LOOK[ASMR_THEMES[T.themeIdx].id].sky), 1 - Math.exp(-2 * dt));
+  } else if (B.course) {
+    scene.background.set(B.course.sky);   // コースごとの 空の 色
   } else {
     const h = T.camY;
     for (let i = 0; i < SKY.length - 1; i++) {

@@ -52,7 +52,8 @@ export function newData() {
     kokugo: { kana: 0, kanji: 0, upto: {} },   // 国語コース：正解数 / upto: 学年ごとの「ならった ところまで」（配当漢字の数）
     review: [],              // [{ key, q, streak }]
     defeated: 0,             // 復習で「やっつけた」数
-    play: { run: { best: 0, last: 0, plays: 0, total: 0, kira: 0, bestKira: 0 }, tower: { best: 0, last: 0, plays: 0 }, asmr: { best: 0, last: 0, plays: 0 }, char: "norun" },   // 遊びモードの記録（m）
+    play: { run: { best: 0, last: 0, plays: 0, total: 0, kira: 0, bestKira: 0 }, tower: { best: 0, last: 0, plays: 0 }, asmr: { best: 0, last: 0, plays: 0 }, char: "norun",
+      courses: {} },   // 遊びモードの記録（m）。courses：アスレの コース（第12弾）{ mori: { clears, bestTime（秒・0＝まだ）, bestPct, plays } }。tower は エンドレス
     badges: [],              // もらった バッジの id
     pins: ["panda", null, null],   // 帽子の バッジ（スロット1〜3 に つけている もの）
     days: {},                // "2026-11-06": 正解数
@@ -83,7 +84,8 @@ export function loadData(id) {
   if (!d || typeof d !== "object") return base;
   return { ...base, ...d, kinder: { ...base.kinder, ...(d.kinder || {}) }, kokugo: { ...base.kokugo, ...(d.kokugo || {}) },
     play: { run: { ...base.play.run, ...((d.play || {}).run || {}) }, tower: { ...base.play.tower, ...((d.play || {}).tower || {}) },
-      asmr: { ...base.play.asmr, ...((d.play || {}).asmr || {}) }, char: (d.play || {}).char || "norun" } };
+      asmr: { ...base.play.asmr, ...((d.play || {}).asmr || {}) }, char: (d.play || {}).char || "norun",
+      courses: { ...((d.play || {}).courses || {}) } } };
 }
 
 export function saveData(id, data) {
