@@ -1,21 +1,22 @@
 /* のるんのだいぼうけん：Service Worker（オフラインでも 起動できるように）
    ・ゲームを 新しくしたら CACHE の番号を 1つ ふやす（古いキャッシュは 自動で けす）
    ・index.html は ネット優先（つながる時は いつも 最新）。絵・音・フォントは キャッシュ優先
-   ・BGM（mp3）は はじめて 鳴らした時に まるごと キャッシュする（さいしょから 全曲は ダウンロードしない） */
-const CACHE = 'norun-daibouken-v8-4';
+   ・BGM（mp3）は はじめて 鳴らした時に まるごと キャッシュする（さいしょから 全曲は ダウンロードしない）
+   ・絵も 起動直後に つかう ものだけ 先に 入れ、あとは はじめて つかった 時に 入れる */
+const CACHE = 'norun-daibouken-v8-4-2';
 const forms = ['normal','kurage','pan','obake','penguin'], dirs = ['front','back','side'];
 const enemies = ['ant','bee','cat','cat_side','cat_back','crow','crow_side','crow_back','dog','dog_side','dog_back',
   'boss_cat','boss_cat_side','boss_cat_back','boss_crow','boss_crow_side','boss_crow_back','boss_hand','roomba'];
 const pad = n => String(n).padStart(2,'0');
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
-const ASSETS = [
+const ASSETS = [   // 先に 入れておくのは 起動直後に つかう 絵だけ（タイトルまわり・のるん・敵・エフェクト）
   ...forms.flatMap(f => dirs.map(d => `img/norun_${f}_${d}.png`)),
   ...enemies.map(e => `img/enemy_${e}.png`),
-  'img/bg_title.png', 'img/bg_map.png', 'img/bg_workshop.png', 'img/bg_result.png', 'img/keyvisual_title.png',
-  ...['forest','starfield','meadow','flower','townedge','town','sunset','trees','slope','garden','house'].map(k => `img/stagebg_${k}.png`),
   'img/fx-water-slash-chappi.png', 'img/fx-grass-chappi.png', 'img/fx-fire-chappi.png',
-  'story/00_cover.png', ...Array.from({length:14}, (_, i) => `story/${pad(i+1)}_page.png`), 'story/15_backcover.png',
+  'img/keyvisual_title.png', 'img/bg_title.png',
 ];
+/* ステージ背景（stagebg_*）・地図／工房／結果の 背景・絵本の 絵・BGM は 先に 読まない。
+   はじめて 画面を ひらいた時に 読んだものを その時 キャッシュに 入れ、2回目からは キャッシュから 出す */
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c =>
     Promise.all([...CORE, ...ASSETS].map(u => c.add(u).catch(() => {})))   // 無いファイルは とばす
