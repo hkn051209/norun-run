@@ -329,7 +329,7 @@ function renderAthle() {
 function finishCourse(cleared, time = 0) {
   const c = ATHLE_COURSES.find((x) => x.id === play.course), i = ATHLE_COURSES.indexOf(c);
   const st = towerState(), pct = cleared ? 100 : st ? st.pct : 0;
-  stopTower();
+  stopTower(); resetFloat();
   const r = courseRec(c.id);
   const wasOpenNext = i + 1 < ATHLE_COURSES.length && courseOpen(i + 1);
   const prevBest = r.bestTime;
@@ -380,6 +380,8 @@ async function startPlay(mode, course = null) {
   }
   $("scPlayRun").classList.toggle("tower", mode !== "run");   // アスレ・ASMR は バーチャルパッド＋ジャンプ
   $("scPlayRun").classList.toggle("asmr", mode === "asmr");    // ASMR は 視点の ボタンも
+  $("scPlayRun").classList.toggle("athle", mode === "tower");  // アスレは さわった 所に 出る パッド（第13弾）
+  resetFloat();
   $("pView").classList.remove("on");
   $("pView").querySelector("span").textContent = "おいかけ";
   $("pSkill").classList.add("hidden");
@@ -483,10 +485,41 @@ stickEl.addEventListener("pointerdown", (e) => {
 });
 stickEl.addEventListener("pointermove", (e) => { if (e.pointerId === stickId) stickAt(e); });
 for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) stickEl.addEventListener(ev, (e) => { if (e.pointerId === stickId) resetStick(); });
+/* ---------- アスレ（第13弾）：さわった 所に 出る パッド ----------
+   画面の どこを さわっても（ボタンの 上を のぞく）その 場所に パッドが 出て、指を ずらした 方向・量で 歩く。はなすと 消える。
+   ジャンプは 右下の ボタン（ボタンは さわっても パッドは 出ない）。2本目の 指は パッドに しない */
+const floatEl = $("pFloat"), floatKnob = $("pFloatKnob");
+const FLOAT_R = 75, FLOAT_LIM = 75 * 0.62;
+let floatId = null, floatO = null;
+function resetFloat() {
+  floatId = null; floatO = null;
+  floatEl.classList.remove("on");
+  floatKnob.style.transform = "";
+}
+function floatAt(e) {
+  let dx = e.clientX - floatO.x, dy = e.clientY - floatO.y;
+  const m = Math.hypot(dx, dy);
+  if (m > FLOAT_LIM) { dx *= FLOAT_LIM / m; dy *= FLOAT_LIM / m; }
+  floatKnob.style.transform = `translate(${dx}px,${dy}px)`;
+  let x = dx / FLOAT_LIM, y = -dy / FLOAT_LIM;
+  if (Math.hypot(x, y) < 0.15) { x = 0; y = 0; }   // さわった だけ（まんなか）は 止まる
+  towerStick(x, y);
+}
+$("scPlayRun").addEventListener("pointerdown", (e) => {
+  if (!play || play.mode !== "tower" || floatId !== null || e.target.closest("button")) return;
+  e.preventDefault();
+  floatId = e.pointerId; floatO = { x: e.clientX, y: e.clientY };
+  try { $("scPlayRun").setPointerCapture(e.pointerId); } catch (_) {}
+  floatEl.style.left = `${e.clientX}px`; floatEl.style.top = `${e.clientY}px`;
+  floatEl.classList.add("on");
+  floatAt(e);
+});
+$("scPlayRun").addEventListener("pointermove", (e) => { if (e.pointerId === floatId) floatAt(e); });
+for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) $("scPlayRun").addEventListener(ev, (e) => { if (e.pointerId === floatId) { resetFloat(); towerStick(0, 0); } });
 // パソコン：矢印キー・WASD で 同じように
 const keys = new Set();
 function keyStick() {
-  if (!play || play.mode === "run" || stickId !== null) return;
+  if (!play || play.mode === "run" || stickId !== null || floatId !== null) return;
   const x = (keys.has("r") ? 1 : 0) - (keys.has("l") ? 1 : 0), y = (keys.has("u") ? 1 : 0) - (keys.has("d") ? 1 : 0);
   towerStick(x, y);
 }
@@ -521,7 +554,7 @@ $("pQuit").onclick = () => {
     stopRunView();
     finishPlay(m, k);
   } else if (play.course) finishCourse(false);
-  else finishPlay(stopTower());
+  else { resetFloat(); finishPlay(stopTower()); }
 };
 /* ASMR：視点の 切りかえ（寄った 視点 ⇔ 一人称）・正面を むく */
 /* 視点は 3つを じゅんばんに：よった してん → おいかけ → いちにんしょう。ボタンには「つぎの 視点」を 出す */

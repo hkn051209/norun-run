@@ -160,16 +160,23 @@ function addFlag(z, y) {
   flags.push({ z, y, g, cloth, hit: false });
 }
 /* 看板（ASMR の テーマ名・とくぎの ヒント） */
-function addSign(z, y, text, sub, color = "#ff7eb6") {
-  const tex = canvasTex(512, 160, (x, w, h) => {
+function addSign(z, y, text, sub, color = "#ff7eb6", wide = 3.4) {
+  const tex = canvasTex(Math.round(512 * wide / 3.4), 160, (x, w, h) => {
     x.fillStyle = "rgba(255,255,255,.92)"; x.beginPath(); x.roundRect(6, 6, w - 12, h - 12, 40); x.fill();
     x.strokeStyle = color; x.lineWidth = 10; x.stroke();
     x.fillStyle = "#3b2a5a"; x.textAlign = "center"; x.textBaseline = "middle";
-    x.font = `900 64px "NorunMaru","Hiragino Maru Gothic ProN","Rounded Mplus 1c",sans-serif`; x.fillText(text, w / 2, sub ? 64 : h / 2);
-    if (sub) { x.font = `800 34px "NorunMaru","Hiragino Maru Gothic ProN",sans-serif`; x.fillStyle = "#7d6b9c"; x.fillText(sub, w / 2, 118); }
+    // ながい 文は 字を 小さく して 看板に おさめる（第13弾）
+    let px = 64; x.font = `900 ${px}px "NorunMaru","Hiragino Maru Gothic ProN","Rounded Mplus 1c",sans-serif`;
+    while (px > 30 && x.measureText(text).width > w - 56) { px -= 2; x.font = `900 ${px}px "NorunMaru","Hiragino Maru Gothic ProN","Rounded Mplus 1c",sans-serif`; }
+    x.fillText(text, w / 2, sub ? 64 : h / 2);
+    if (sub) {
+      let sp = 34; x.font = `800 ${sp}px "NorunMaru","Hiragino Maru Gothic ProN",sans-serif`;
+      while (sp > 20 && x.measureText(sub).width > w - 56) { sp -= 2; x.font = `800 ${sp}px "NorunMaru","Hiragino Maru Gothic ProN",sans-serif`; }
+      x.fillStyle = "#7d6b9c"; x.fillText(sub, w / 2, 118);
+    }
   });
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.06), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(wide, 1.06), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
   m.position.set(0, y + 4.3, z);
   m.rotation.y = Math.PI;   // カメラ（後ろ）の方を むく
   m.renderOrder = 5;
@@ -497,6 +504,8 @@ function spawnBeam(zn, z) {
 /* コース：plan の 部品を じゅんばんに ならべて、さいごに ゴール。むずかしさ（dy）は すすむほど 上がる */
 const SKILL_PART = { pan: "duck", kurage: "wide", obake: "ghost" };
 function buildCourse(c) {
+  // コース1の さいしょの 看板：あたらしい 操作（さわった 所に パッド）の 説明（第13弾）
+  if (c.id === "mori") addSign(3.2, 0, "👆 さわった ところに パッドが でるよ", "ジャンプは みぎしたの ボタン！", "#ff7eb6", 6.4);
   const plan = c.plan.filter((k) => k !== "S" || SKILL_PART[B.char]).map((k) => (k === "S" ? SKILL_PART[B.char] : k));
   plan.forEach((name, i) => {
     B.dy = c.dy0 + (c.dy1 - c.dy0) * (plan.length > 1 ? i / (plan.length - 1) : 0);
