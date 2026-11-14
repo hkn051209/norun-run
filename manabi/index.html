@@ -6,6 +6,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#f3ecff">
+<!-- PWA：ホーム画面に インストールできるように（manifest.webmanifest／sw.js は この index.html と同じフォルダ） -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>
+if(typeof navigator!=='undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){   // PWA：オフラインでも 起動できるように
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+</script>
 <title>のるん まなび</title>
 <style>
 /* 丸い 文字：M PLUS Rounded 1c（OFL・つかう 文字だけの サブセット。ない 文字は 端末の 丸ゴシックへ） */
