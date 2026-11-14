@@ -112,6 +112,13 @@ h3{font-size:19px;margin:16px 0 8px;color:var(--sub)}
 #pKnob{position:absolute;left:50%;top:50%;width:44%;height:44%;margin:-22% 0 0 -22%;border-radius:50%;background:#ff7eb6;box-shadow:0 5px 0 #d65a94,inset 0 -6px 0 rgba(0,0,0,.08);transition:transform .08s}
 #pStick.on #pKnob{transition:none}
 #scPlayRun.tower #pStick{display:block}
+/* アスレ（第13弾）：左下の 固定パッドは かくして、さわった 所に 出る パッド（#pFloat）を つかう。ジャンプは 右下 */
+#scPlayRun.athle #pStick{display:none}
+#scPlayRun.athle{touch-action:none}
+#pFloat{position:fixed;left:0;top:0;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:rgba(255,255,255,.42);border:4px solid rgba(255,255,255,.95);box-shadow:0 6px 0 rgba(59,42,90,.16),inset 0 0 0 10px rgba(255,158,199,.22);pointer-events:none;z-index:6;display:none}
+#pFloat.on{display:block;animation:floatIn .12s ease-out}
+#pFloatKnob{position:absolute;left:50%;top:50%;width:46%;height:46%;margin:-23% 0 0 -23%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffd1e6 0 20%,#ff8fc2 60%);box-shadow:0 5px 0 #e46aa5}
+@keyframes floatIn{from{transform:scale(.6);opacity:.3}to{transform:scale(1);opacity:1}}
 #scPlayRun.tower .laneBtn{display:none}
 #scPlayRun.tower .jumpBtn{margin-bottom:10px}
 .pRight{display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -469,8 +476,11 @@ h3::before{content:"✦ ";color:#ffc94d}
     <button class="camBtn" id="pFront" aria-label="まえを むく"><b>⬆</b><span>まえを むく</span></button>
   </div>
   <div id="pMsg"></div>
+  <!-- アスレ（第13弾）：画面の どこを さわっても、その 場所に 出る パッド -->
+  <div id="pFloat" aria-hidden="true"><div id="pFloatKnob"></div></div>
   <div id="pCtl">
     <div id="pStick" aria-label="いどうの パッド"><div id="pKnob"></div></div>
+    <div id="pStickSpacer"></div>
     <button class="laneBtn" id="pLeft" aria-label="ひだりへ">◀</button>
     <div class="pRight">
       <button class="skillBtn hidden" id="pSkill" aria-label="すべる"><b>🛷</b>すべる</button>
