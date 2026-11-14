@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>のるんクラフト（仮）</title>
+<meta name="theme-color" content="#8fd3ff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="のるんクラフト">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+<style>
+  :root {
+    --sab: env(safe-area-inset-bottom, 0px); --sat: env(safe-area-inset-top, 0px);
+    --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
+    --slot: min(54px, calc((100vw - 28px - var(--sal) - var(--sar)) / 9));
+    --jump: clamp(72px, 15vmin, 104px);
+    --act: clamp(58px, 12vmin, 84px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; overscroll-behavior: none;
+    font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", "Yu Gothic UI", system-ui, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  button { font: inherit; color: inherit; touch-action: none; -webkit-user-select: none; user-select: none; }
+
+  /* 照準（タッチの 時だけ） */
+  #cross { position: fixed; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; pointer-events: none; display: none; opacity: .85; }
+  #cross::before, #cross::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35); border-radius: 2px; }
+  #cross::before { left: 10px; top: 2px; width: 2px; height: 18px; }
+  #cross::after { left: 2px; top: 10px; width: 18px; height: 2px; }
+  body.touch #cross { display: block; }
+
+  /* さわった 所に 出る パッド */
+  #pad { position: fixed; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; pointer-events: none; display: none;
+    background: rgba(255,255,255,.18); border: 3px solid rgba(255,255,255,.7); }
+  #pad.show { display: block; }
+  #knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; border-radius: 50%; transform: translate(-50%,-50%);
+    background: rgba(255,255,255,.85); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+
+  /* ホットバー */
+  #hotbar { position: fixed; left: 50%; bottom: calc(8px + var(--sab)); transform: translateX(-50%); display: flex; gap: 2px; padding: 3px;
+    background: rgba(30,40,70,.45); border-radius: 10px; }
+  .slot { position: relative; width: var(--slot); height: var(--slot); padding: 0; border: 3px solid rgba(255,255,255,.25); border-radius: 8px;
+    background: rgba(255,255,255,.14); cursor: pointer; flex: none; }
+  .slot canvas { position: absolute; inset: 12%; width: 76%; height: 76%; image-rendering: pixelated; border-radius: 3px; pointer-events: none; }
+  .slot.empty canvas { opacity: .5; }
+  .slot.sel { border-color: #fff; background: rgba(255,255,255,.4); transform: translateY(-4px); box-shadow: 0 0 0 2px #ffd84a; }
+  .slot .num { position: absolute; right: 2px; bottom: 0; font-size: calc(var(--slot) * .3); font-weight: 800; color: #fff;
+    text-shadow: 0 0 2px #000, 0 1px 2px #000, 1px 0 2px #000, -1px 0 2px #000; pointer-events: none; }
+  #selName { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--slot) + 22px + var(--sab)); pointer-events: none;
+    font-size: 14px; font-weight: 800; color: #fff; text-shadow: 0 0 3px #000, 0 1px 3px #000; }
+
+  /* 右下の ボタン */
+  #btns { position: fixed; right: calc(12px + var(--sar)); bottom: calc(var(--slot) + 26px + var(--sab));
+    display: grid; grid-template-columns: var(--act) var(--jump); grid-template-rows: var(--act) var(--jump); gap: 10px; align-items: center; justify-items: center; pointer-events: none; }
+  .gbtn { pointer-events: auto; border: 4px solid rgba(255,255,255,.85); border-radius: 50%; color: #fff; font-weight: 800; line-height: 1.05;
+    box-shadow: 0 4px 0 rgba(0,0,0,.25); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; }
+  .gbtn .ic { font-size: 1.5em; line-height: 1; }
+  .gbtn.on { transform: translateY(3px) scale(.95); box-shadow: 0 1px 0 rgba(0,0,0,.25); filter: brightness(1.15); }
+  #btnJump { grid-column: 2; grid-row: 2; width: var(--jump); height: var(--jump); background: rgba(255,146,60,.82); font-size: calc(var(--jump) * .17); }
+  #btnBreak { grid-column: 2; grid-row: 1; width: var(--act); height: var(--act); background: rgba(232,84,110,.82); font-size: calc(var(--act) * .19); }
+  #btnPlace { grid-column: 1; grid-row: 2; width: var(--act); height: var(--act); background: rgba(64,160,236,.82); font-size: calc(var(--act) * .19); }
+
+  #btnMenu { position: fixed; left: calc(10px + var(--sal)); top: calc(10px + var(--sat)); width: 48px; height: 48px; border-radius: 14px;
+    border: 3px solid rgba(255,255,255,.85); background: rgba(30,40,70,.5); color: #fff; font-size: 22px; font-weight: 800; cursor: pointer; }
+  #hint { position: fixed; left: 50%; top: calc(14px + var(--sat)); transform: translateX(-50%); max-width: calc(100vw - 140px); padding: 8px 14px; border-radius: 14px;
+    background: rgba(30,40,70,.6); color: #fff; font-size: 14px; font-weight: 700; text-align: center; pointer-events: none; transition: opacity .6s; line-height: 1.5; }
+  #hint.hide { opacity: 0; }
+  #hint .pc { display: inline; } #hint .tc { display: none; }
+  body.touch #hint .pc { display: none; } body.touch #hint .tc { display: inline; }
+  #toast { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); padding: 10px 18px; border-radius: 16px; background: rgba(30,40,70,.82);
+    color: #fff; font-size: 17px; font-weight: 800; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+  #toast.show { opacity: 1; }
+
+  #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #8fd3ff; color: #fff;
+    font-size: 22px; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,.25); transition: opacity .4s; }
+  #loading.hide { opacity: 0; pointer-events: none; }
+
+  /* メニュー */
+  #menu { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(20,30,60,.55); touch-action: auto; }
+  #menu.show { display: flex; }
+  #panel { width: min(420px, 92vw); max-height: 92vh; overflow: auto; padding: 18px; border-radius: 22px; background: #fffdf6; color: #3a3350; text-align: center; }
+  #panel h1 { margin: 0 0 10px; font-size: 22px; }
+  #panel .mbtn { display: block; width: 100%; margin: 8px 0; padding: 12px; border: 0; border-radius: 14px; background: #ffd84a; color: #3a3350;
+    font-size: 17px; font-weight: 800; cursor: pointer; touch-action: manipulation; box-shadow: 0 3px 0 rgba(0,0,0,.15); }
+  #panel .mbtn.sub { background: #d9ecff; } #panel .mbtn.warn { background: #ffd1d6; } #panel .mbtn.back { background: #c9f0c0; }
+  #menuMsg { min-height: 1.4em; margin: 8px 0 2px; font-size: 14px; font-weight: 700; color: #7a5fb0; }
+  #codeBox { display: none; } #codeBox.show { display: block; }
+  #codeText { width: 100%; height: 92px; border-radius: 10px; border: 2px solid #cdbfe6; padding: 8px; font: 12px/1.4 monospace; resize: none;
+    -webkit-user-select: text; user-select: text; touch-action: auto; word-break: break-all; }
+  #panel .help { margin: 10px 0 0; font-size: 12px; color: #77708a; line-height: 1.6; text-align: left; }
+
+  /* 横に 長い 画面で 高さが 低い 時（スマホの 横向き）は ボタンを 少し 小さく */
+  @media (max-height: 420px) { :root { --jump: 72px; --act: 56px; --slot: min(44px, calc((100vw - 28px) / 9)); } #btns { gap: 6px; } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="cross"></div>
+<div id="pad"><div id="knob"></div></div>
+
+<button id="btnMenu" aria-label="メニュー">☰</button>
+<div id="hint">
+  <span class="tc">👆 ひだりを さわると パッドが でるよ／みぎを スワイプで みまわす</span>
+  <span class="pc">WASD で あるく・ドラッグで みまわす・クリックで こわす・右クリックで おく・スペースで ジャンプ</span>
+</div>
+<div id="toast"></div>
+
+<div id="btns">
+  <button id="btnBreak" class="gbtn" aria-label="こわす"><span class="ic">✊</span>こわす</button>
+  <button id="btnPlace" class="gbtn" aria-label="おく"><span class="ic">🧱</span>おく</button>
+  <button id="btnJump" class="gbtn" aria-label="ジャンプ"><span class="ic">⬆</span>ジャンプ</button>
+</div>
+<div id="selName"></div>
+<div id="hotbar"></div>
+
+<div id="menu">
+  <div id="panel">
+    <h1>のるんクラフト</h1>
+    <button id="mClose" class="mbtn back">あそびに もどる</button>
+    <button id="mSave" class="mbtn">💾 ほぞん する</button>
+    <button id="mExport" class="mbtn sub">📤 コードを かきだす</button>
+    <button id="mImport" class="mbtn sub">📥 コードを よみこむ</button>
+    <div id="codeBox">
+      <textarea id="codeText" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+      <button id="codeDo" class="mbtn" data-mode="copy">コピー</button>
+    </div>
+    <div id="menuMsg"></div>
+    <button id="mReset" class="mbtn warn">🌱 さいしょから（あたらしい せかい）</button>
+    <p class="help">・せかいは じどうで ほぞん されるよ。<br>・ひかって いる ブロックを「こわす」と ひろえる。したの れつで えらんだ ブロックを「おく」で おける。</p>
+  </div>
+</div>
+<div id="loading">よみこみちゅう…</div>
+
+<script type="module" src="src/main.js"></script>
+<script>
+  /* PWA：2回目からは オフラインでも 起動できる */
+  if ("serviceWorker" in navigator) {
+    addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch((e) => console.warn("sw", e)); });
+  }
+</script>
+</body>
+</html>
