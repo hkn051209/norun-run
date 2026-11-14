@@ -430,6 +430,8 @@ async function startPlay(mode, course = null) {
       onCheckpoint: () => { sfx.flag(); pMsg("🚩 チェックポイント！", 900); },
       onFall: () => { sfx.tap(); pMsg("だいじょうぶ！ はたから もういちど", 1300); },
       onPad: () => sfx.boing(),
+      onWarp: (mark) => { sfx.streak(); pMsg(`${mark} ワープ！`, 800); },
+      onBridge: () => { sfx.flag(); pMsg("はしが のびる！", 800); },
       onBump: (kind) => { sfx.bump(); pMsg(kind === "laser" ? "レーザーに あたった！" : "バーに あたった！", 800); },
     });
     if (course) { const cc = ATHLE_COURSES.find((x) => x.id === course); pMsg(`${cc.icon} ${cc.name} スタート！`, 1300); }

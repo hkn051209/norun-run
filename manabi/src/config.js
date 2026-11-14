@@ -147,6 +147,11 @@ export const PLAY_TOWER = {
   laserImmune: 1.2,               // レーザーに 当たった あと、しばらく 当たらない（秒）
   iceGrip: 1.3, iceWalk: 1.1,     // こおりの 床：止まりにくさ（ふつう 16）・歩く 速さの 倍率
   crumbleT: 0.55, crumbleBack: 2.8,   // くずれる 足場：のってから くずれるまで・もどるまで（秒）
+  // 第14弾（アスレ 第3弾）の 新しい しかけ
+  updraftV: 6.5,                  // 上昇気流：風の 柱の 中で 上へ 運ばれる 速さ（柱の 上の はしで ふわっと とまる）
+  springV: 9.6, springBig: 12.8,  // ばね：のると 自動で はねる 速さ／着地の 少し前に ジャンプを おすと 大きく はねる
+  bridgeOut: 5.5,                 // 伸びる橋：スイッチを ふんでいる 間 のびる 速さ（m/秒）
+  warpCool: 0.8,                  // ワープ扉：出てから つぎの 扉に 入れるまで（秒）
 };
 
 /* アスレの コース（第12弾）
@@ -168,6 +173,19 @@ export const ATHLE_COURSES = [
   { id: "goukaku", icon: "👑", name: "ごうかく コース", sub: "ぜんぶ 入り・いちばん 長くて むずかしい", dy0: 40, dy1: 100,
     sky: 0xe3d2ff, floor: 0xc7a8ff,
     plan: ["gaps", "lava", "laser", "steps", "mover", "ice", "S", "lava", "bar", "crumble", "laser", "conveyor", "wind", "door", "lava", "laser", "vanish", "pad", "lava", "laser"] },
+  // ---- 第14弾（アスレ 第3弾）：コース 5〜8。むずかしさの 上は 100 の まま（長さで 差を つける） ----
+  { id: "kaze",  icon: "🌪️", name: "かぜの たに", sub: "上昇気流に のって 高い 所へ", dy0: 20, dy1: 75,
+    sky: 0xd4f4ff, floor: 0xa8e6c8,
+    plan: ["gaps", "updraft", "steps", "updraft", "zigzag", "wind", "S", "updraft", "vanish", "mover", "updraft", "wind", "pad", "updraft"] },
+  { id: "warp",  icon: "🚪", name: "ワープの おしろ", sub: "ワープの とびらで べつの 所へ", dy0: 30, dy1: 85,
+    sky: 0xf0dcff, floor: 0xd8c2f0,
+    plan: ["gaps", "warp", "stairs", "door", "warp", "lava", "S", "warp", "conveyor", "laser", "warp", "crumble", "bar", "updraft", "warp"] },
+  { id: "bane",  icon: "🌀", name: "ばねばね スプリング", sub: "ばねで リズムよく・のびる はし", dy0: 35, dy1: 92,
+    sky: 0xfff0c8, floor: 0xffd98a,
+    plan: ["gaps", "spring", "bridge", "steps", "spring", "zigzag", "bridge", "S", "ice", "spring", "laser", "bridge", "mover", "spring", "crumble", "bridge", "spring"] },
+  { id: "champ", icon: "🏆", name: "チャンピオン コース", sub: "ぜんぶ 入り 第2弾・いちばん 長い", dy0: 45, dy1: 100,
+    sky: 0xffe0e8, floor: 0xffb3c8,
+    plan: ["gaps", "spring", "lava", "updraft", "laser", "warp", "steps", "bridge", "ice", "S", "lava", "mover", "updraft", "crumble", "laser", "spring", "door", "warp", "bar", "conveyor", "bridge", "wind", "lava", "updraft", "vanish", "laser", "spring", "warp", "pad", "lava", "laser"] },
 ];
 
 /* アスレで えらべる キャラ（変身）。unlock は あとで 条件を つける時に つかう（null＝はじめから）

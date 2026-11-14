@@ -83,7 +83,8 @@ scene.add(farTower);
 /* ---------- コース ---------- */
 const COL = { floor: 0x9be39b, stair: 0xffd86b, step: 0x8fd3ff, gap: 0xff9ec7, zig: 0xc7a8ff, mover: 0xffa64d, bar: 0x9be3d6, wall: 0x8fd3ff,
   vanish: 0xb6a4ff, conv: 0x8b9bb4, door: 0xff9e5e, wind: 0xa8e6ff, duck: 0xffcf66, wide: 0x9be3d6,
-  rock: 0x6b5a66, laser: 0x9aa6c8, ice: 0xbfefff, crumble: 0xc9a27a, goal: 0xffe17a };
+  rock: 0x6b5a66, laser: 0x9aa6c8, ice: 0xbfefff, crumble: 0xc9a27a, goal: 0xffe17a,
+  updraft: 0x9fe0c0, warp: 0xc9b3f0, warpWall: 0xe6d9ff, spring: 0xffb04d, bridge: 0x8fd3ff, deck: 0xd9a066 };
 const topMats = new Map();
 function topMatOf(c) {   // 上の面は 部品の色を うすくした色
   if (!topMats.has(c)) {
@@ -449,6 +450,103 @@ const PARTS = {
     }
     if (!B.seen.crumble) { B.seen.crumble = true; addSign(B.z - k * 3, B.y, "🪨 くずれる あしば", "とまらずに すすもう", "#c9873a"); }
   },
+  /* ---- 2026-11-14 第14弾（アスレ 第3弾）：上昇気流・ワープ扉・ばね・伸びる橋 ---- */
+  updraft() {  // 上昇気流：風の 柱に 入ると ふわっと 上へ。柱の 上の はしで とまるので、前の 高い 足場へ 歩いて うつる
+    const d = Math.min(1, B.dy / 100);
+    const k = 1 + Math.round(d * 2);                 // 柱の 数（1〜3。あとの 柱は 穴の 上・むずかしいと 1レーンの はば）
+    const z0 = B.z, y0 = B.y;
+    fullBox(B.y - 0.6, B.y, B.z, B.z + 2.4, COL.updraft); B.z += 2.4;
+    let lane = 1;
+    for (let i = 0; i < k; i++) {
+      const narrow = i > 0 && d > 0.4;
+      if (narrow) lane = randInt(0, 2);
+      const cx = narrow ? LANE_X[lane] : 0, cw = narrow ? W - 0.1 : FULL - 1.2, clen = 2.6;
+      const rise = rand(3.0, 3.8) + d * 0.8;
+      if (i === 0) fullBox(B.y - 0.6, B.y, B.z, B.z + clen, COL.updraft);    // 1本目は 床の 上に 立つ 柱
+      const bottom = i === 0 ? B.y : B.y - 6;                                   // 2本目からは 穴の 上（おちても 風が ひろう）
+      addUpdraft(cx - cw / 2, cx + cw / 2, B.z, B.z + clen, bottom, B.y + rise + 1.5, i === 0);   // 上の はしは 高い 足場より 1.5m 上（ふわっと 止まるのは 0.6m ぐらい 上）
+      B.z += clen;
+      B.y += rise;
+      const plen = 3.4 - d * 0.4;
+      fullBox(i === 0 ? B.y - rise - 0.6 : B.y - 1.4, B.y, B.z, B.z + plen, COL.updraft);   // 高い 足場（1本目は かべ）
+      B.z += plen;
+    }
+    if (!B.seen.updraft) { B.seen.updraft = true; addSign(z0 + 0.6, y0, "🌪️ かぜの はしらに のろう", "ふわっと うえへ はこばれるよ", "#2fa8d8", 4.4); }
+  },
+  warp() {     // ワープ扉：かべの 扉に 入ると、同じ 色・もようの 扉から 出てくる（むこうの 足場へ）
+    const d = Math.min(1, B.dy / 100);
+    const k = 1 + Math.round(d * 1.5);               // 扉の 数（1〜3）
+    const z0 = B.z, y0 = B.y;
+    let exitAt = null;
+    for (let i = 0; i < k; i++) {
+      const plen = 6 + d * 2;
+      let pz = B.z + plen;
+      if (d > 0.45 && i > 0) {   // むずかしく なると 足場の とちゅうに すき間（ジャンプ）
+        const g = 1.4 + d * 0.8, a = 2.6;
+        fullBox(B.y - 0.6, B.y, B.z, B.z + a, COL.warp);
+        fullBox(B.y - 0.6, B.y, B.z + a + g, pz + g, COL.warp);
+        pz += g;
+      } else fullBox(B.y - 0.6, B.y, B.z, pz, COL.warp);
+      if (exitAt) warpDoor(exitAt.x, B.z + 0.35, B.y, exitAt.col, false);
+      const lane = d > 0.3 ? randInt(0, 2) : 1;
+      const col = WARP_COLS[(B.warpN = (B.warpN || 0) + 1) % WARP_COLS.length];
+      fullBox(B.y - 0.6, B.y + 6, pz, pz + 0.6, COL.warpWall);                // 扉の ある 高い かべ
+      warpDoor(LANE_X[lane], pz - 0.04, B.y, col, true);
+      const fromY = B.y;
+      B.z = pz + 0.6 + rand(3, 4.5);                                            // かべの むこうは 穴（とんでは いけない）
+      B.y += rand(0.4, 1.2) + d * 0.6;
+      const ex = d > 0.3 ? LANE_X[randInt(0, 2)] : 0;
+      zones.push({ kind: "warp", x: LANE_X[lane], z: pz, y: fromY, to: { x: ex, y: B.y, z: B.z + 1.3 }, col });
+      exitAt = { x: ex, col };
+    }
+    fullBox(B.y - 0.6, B.y, B.z, B.z + 3.5, COL.warp);
+    warpDoor(exitAt.x, B.z + 0.35, B.y, exitAt.col, false);
+    B.z += 3.5;
+    if (!B.seen.warp) { B.seen.warp = true; addSign(z0 + 0.6, y0, "🚪 ワープの とびら", "おなじ いろの とびらから でてくるよ", "#9b6bff", 4.4); }
+  },
+  spring() {   // ばね：のると 自動で ぽーんと はねる。つぎの ばねへ リズムよく。着地の 少し前に ジャンプで 大きく はねる
+    const d = Math.min(1, B.dy / 100);
+    const k = 4 + Math.round(d * 3);
+    const z0 = B.z, y0 = B.y;
+    fullBox(B.y - 0.6, B.y, B.z, B.z + 1.6, COL.spring); B.z += 1.6;           // 岸（歩いて おりると 1こ目の ばねに のる）
+    let y = B.y - 0.8, lane = 1, zc = B.z + 0.3 + 0.9;
+    const high = d > 0.6 ? k - 2 : -1;                                          // むずかしい 時：1か所 高い ばね（大ジャンプが いる）
+    for (let i = 0; i < k; i++) {
+      if (i > 0) {
+        // となりの レーンへ うつる 時は 少し 近く（ななめに とぶと 前へ 進む 速さが へるため）
+        const turn = d > 0.3 && i !== high;
+        if (turn) lane = Math.max(0, Math.min(2, lane + pick([-1, 1])));
+        zc += turn ? 3.5 : 4.4;
+        if (i === high) y += 1.6;
+      }
+      addSpring(LANE_X[lane], zc, y, i === high);
+    }
+    B.z = zc + 2.2; B.y = y + 0.8;
+    fullBox(B.y - 1.2, B.y, B.z, B.z + 4, COL.spring); B.z += 4;
+    if (!B.seen.spring) { B.seen.spring = true; addSign(z0 + 0.4, y0, "🌀 ばねで ぽんぽん！", "おちる まえに ジャンプで たかく とぶよ", "#ff8a1f", 4.4); }
+  },
+  bridge() {   // 伸びる橋：スイッチを ふんでいる 間だけ 橋が のびる。はなすと 少し まって ゆっくり もどる
+    const d = Math.min(1, B.dy / 100);
+    const k = 1 + Math.round(d * 1.2);
+    const z0 = B.z, y0 = B.y;
+    for (let i = 0; i < k; i++) {
+      const back = 1.6 + d * 1.6, plen = back + 2.6;
+      fullBox(B.y - 0.6, B.y, B.z, B.z + plen, COL.bridge);
+      const bl = d > 0.5 ? randInt(0, 2) : 1, bw = d > 0.5 ? W - 0.1 : W + 1.0;
+      const sl = d < 0.3 ? 1 : bl === 1 ? pick([0, 2]) : pick([1, bl]);       // スイッチは 橋の レーンか となり（遠すぎない）
+      const sx = LANE_X[sl] * 1.05, sz = B.z + plen - back;
+      const L = 4.6 + d * 1.6, ez = B.z + plen;
+      const deck = addBox(LANE_X[bl] - bw / 2, LANE_X[bl] + bw / 2, B.y - 0.35, B.y, ez, ez + L, COL.deck);
+      bridgeDeco(deck, ez, L, B.y);
+      const zone = { kind: "bridge", x: sx, z: sz, y: B.y, r: 0.85, s: deck, z0: ez, z1: ez + L, L, ext: 0, hold: 0,
+        grace: 1.6 - d * 0.8, vin: 0.9 + d * 0.6, cap: bridgeSwitch(sx, sz, B.y), was: false };
+      setBridge(zone);
+      zones.push(zone);
+      B.z = ez + L;
+    }
+    fullBox(B.y - 0.6, B.y, B.z, B.z + 3.2, COL.bridge); B.z += 3.2;
+    if (!B.seen.bridge) { B.seen.bridge = true; addSign(z0 + 0.6, y0, "🌉 スイッチで はしが のびる", "ふんでいる あいだ のびるよ", "#2f8fe0", 4.4); }
+  },
   goal() {     // ゴール：ひろい 台と アーチ・大きな ほし
     const len = 9;
     fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.goal);
@@ -466,6 +564,96 @@ const PARTS = {
     B.z += len;
   },
 };
+/* ---------- 第14弾の しかけの 見た目 ---------- */
+// 上昇気流：うすい 風の 柱・うずまく すじ・まう 葉っぱ。下に 送風口
+const leafMats = [0x7ed957, 0xc3e65a, 0xffd25a].map((c) => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
+const swirlMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, depthWrite: false, side: THREE.DoubleSide });
+function addUpdraft(x0, x1, z0, z1, y0, top, vent) {
+  const g = new THREE.Group(), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, rx = (x1 - x0) / 2, rz = (z1 - z0) / 2, h = top - y0;
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, h, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xbff0ff, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide }));
+  col.scale.set(rx, 1, rz); col.position.y = h / 2; g.add(col);
+  const parts = [];
+  for (let i = 0; i < 26; i++) {
+    const leaf = i % 3 === 0;
+    const m = new THREE.Mesh(leaf ? new THREE.PlaneGeometry(0.26, 0.16) : new THREE.PlaneGeometry(0.5, 0.05), leaf ? leafMats[i % 3] : swirlMat);
+    m.userData = { a: rand(0, 6.28), y: rand(0, h), r: rand(0.35, 0.95), w: rand(2.2, 3.4), v: rand(1.8, 3.0), leaf };
+    g.add(m); parts.push(m);
+  }
+  if (vent) { const ring = new THREE.Mesh(new THREE.TorusGeometry(1, 0.08, 6, 28), lambert(0x2fa8d8, 0.4)); ring.rotation.x = Math.PI / 2; ring.scale.set(rx * 0.9, rz * 0.9, 1); ring.position.y = 0.04; g.add(ring); }
+  g.position.set(cx, y0, cz); scene.add(g);
+  extras.push({ z: z1, g, update: (dt) => {
+    for (const m of parts) {
+      const u = m.userData; u.a += u.w * dt; u.y += u.v * dt; if (u.y > h) u.y -= h;
+      m.position.set(Math.cos(u.a) * rx * u.r, u.y, Math.sin(u.a) * rz * u.r);
+      m.rotation.set(u.leaf ? u.a * 1.7 : 0.35, -u.a + Math.PI / 2, u.leaf ? u.a : 0);
+    }
+  } });
+  zones.push({ kind: "updraft", x0, x1, z0, z1, y0, top });
+}
+// ワープ扉：色と もよう（★●▲♥）で 入口と 出口の 組が わかる
+const WARP_COLS = [{ c: 0xff5fa2, css: "#ff5fa2", mark: "★" }, { c: 0x3f9dff, css: "#3f9dff", mark: "●" }, { c: 0x2fbf7a, css: "#2fbf7a", mark: "▲" }, { c: 0xff9a2e, css: "#ff9a2e", mark: "♥" }];
+const swirlTex = canvasTex(128, 128, (x, w, h) => {
+  x.translate(w / 2, h / 2); x.strokeStyle = "rgba(255,255,255,.9)"; x.lineWidth = 7; x.lineCap = "round";
+  for (let k = 0; k < 3; k++) { x.beginPath(); for (let t = 0; t < 5.5; t += 0.1) { const r = t * 10.5, a = t * 1.9 + k * 2.09; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.stroke(); }
+});
+function warpDoor(x, z, y, col, entry) {
+  const g = new THREE.Group(), fm = lambert(col.c, 0.35);
+  for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.5, 0.22), fm); p.position.set(sx * 0.86, 1.25, 0); g.add(p); }
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.26, 0.24), fm); top.position.y = 2.55; g.add(top);
+  const portal = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2.3), new THREE.MeshBasicMaterial({ color: col.c, map: swirlTex, transparent: true, opacity: entry ? 0.95 : 0.55, side: THREE.DoubleSide, depthWrite: false }));
+  portal.position.y = 1.2; g.add(portal);
+  const tex = canvasTex(384, 128, (c, w, h) => {
+    c.fillStyle = "#fff"; c.beginPath(); c.roundRect(4, 4, w - 8, h - 8, 30); c.fill(); c.strokeStyle = col.css; c.lineWidth = 10; c.stroke();
+    c.fillStyle = col.css; c.textAlign = "center"; c.textBaseline = "middle";
+    const txt = entry ? `${col.mark} いりぐち` : `${col.mark} でぐち`;
+    let px = 66; c.font = `900 ${px}px "NorunMaru","Hiragino Maru Gothic ProN",sans-serif`;
+    while (px > 30 && c.measureText(txt).width > w - 40) { px -= 2; c.font = `900 ${px}px "NorunMaru","Hiragino Maru Gothic ProN",sans-serif`; }
+    c.fillText(txt, w / 2, h / 2 + 4);
+  });
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 0.7), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
+  plate.position.y = 3.2; g.add(plate);
+  g.rotation.y = Math.PI;   // カメラ（後ろ）の 方を むく
+  g.position.set(x, y, z); scene.add(g);
+  const mats = [];
+  if (!entry) g.traverse((o) => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.userData.o = o.material.opacity; mats.push(o.material); } });
+  extras.push({ z: z + 8, g, update: (dt) => {
+    portal.rotation.z -= dt * (entry ? 2.2 : 0.8);
+    // 出口の 扉は、出てきた あと（キャラが 前に いる 間）は うすく する（カメラの 前を ふさがない）
+    if (!entry) { const k = me.z > z - 0.3 && me.z < z + 7.5 ? 0.18 : 1; for (const m of mats) m.opacity = m.userData.o * k; }
+  } });
+}
+// ばね：赤い 台＋白い うずまき。はねると ぎゅっと ちぢむ
+function addSpring(x, zc, y, high) {
+  const s = addBox(x - 1.1, x + 1.1, y - 0.5, y, zc - 0.9, zc + 0.9, high ? 0xff6a4d : COL.spring, { spring: true });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.09, 8, 24), lambert(0xffffff, 0.5)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.03; s.g.add(ring);
+  const dot = new THREE.Mesh(new THREE.CircleGeometry(0.22, 16), new THREE.MeshBasicMaterial({ color: 0xffffff })); dot.rotation.x = -Math.PI / 2; dot.position.y = 0.035; s.g.add(dot);
+  for (let i = 0; i < 4; i++) { const c = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.07, 6, 18), lambert(0xb0b8c8, 0.3)); c.rotation.x = Math.PI / 2; c.position.y = -0.6 - i * 0.22; s.g.add(c); }
+  return s;
+}
+// 伸びる橋：板と 手すり。のびる 先は うすい 点線で 見せる
+function bridgeDeco(s, z0, L, y) {
+  for (const sx of [-1, 1]) { const r = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, L), lambert(0xfff3d6, 0.3)); r.position.set(sx * ((s.x1 - s.x0) / 2 - 0.05), 0.25, 0); s.g.add(r); }
+  for (let i = 0; i < Math.floor(L / 0.6); i++) { const p = new THREE.Mesh(new THREE.BoxGeometry(s.x1 - s.x0 - 0.2, 0.02, 0.06), lambert(0x9b6a3a)); p.position.set(0, 0.01, -L / 2 + 0.3 + i * 0.6); s.g.add(p); }
+  const ghost = new THREE.Mesh(new THREE.PlaneGeometry(s.x1 - s.x0, L), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide }));
+  ghost.rotation.x = -Math.PI / 2; ghost.position.set((s.x0 + s.x1) / 2, y - 0.3, z0 + L / 2); scene.add(ghost);
+  extras.push({ z: z0 + L, g: ghost });
+}
+function bridgeSwitch(x, z, y) {
+  const btn = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.8, 0.12, 24), lambert(0xffffff, 0.3));
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.18, 24), lambert(0x2f8fe0, 0.35));
+  base.position.y = 0.06; cap.position.y = 0.18;
+  const tex = canvasTex(128, 128, (c, w, h) => { c.fillStyle = "#fff"; c.font = `900 84px sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("↑", w / 2, h / 2 + 4); });
+  const mk = new THREE.Mesh(new THREE.CircleGeometry(0.4, 20), new THREE.MeshBasicMaterial({ map: tex, transparent: true })); mk.rotation.x = -Math.PI / 2; mk.rotation.z = Math.PI; mk.position.y = 0.1; cap.add(mk);
+  btn.add(base, cap); btn.position.set(x, y, z); scene.add(btn);
+  extras.push({ z, g: btn });
+  return cap;
+}
+function setBridge(z) {   // 橋の のびぐあい（ext）を 足場と 見た目に
+  const s = z.s, e = Math.max(0.001, z.ext);
+  s.z1 = s.z0 + e; s.off = z.ext < 0.05; s.g.visible = !s.off;
+  s.g.scale.z = e / z.L; s.g.position.z = s.z0 + e / 2;
+}
 /* くずれる 足場の しるし（ひび） */
 function crackMark(s) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(s.x1 - s.x0 - 0.2, s.z1 - s.z0 - 0.2), new THREE.MeshBasicMaterial({ map: crackTex, transparent: true, depthWrite: false }));
@@ -757,7 +945,7 @@ export function startTower(opts) {
   const course = opts.course ? ATHLE_COURSES.find((c) => c.id === opts.course) : null;   // opts.course：コースの id（なし＝エンドレス）
   Object.assign(B, { z: -4, y: 0, last: "", n: 0, mode: opts.mode || "athle", char: nr.cur ? nr.cur.id : "norun", dy: 0, course, seen: {}, goalZ: 0 });
   const asmr = B.mode === "asmr";
-  T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed, themeIdx: -1, floor: -1, goal: false, runT: 0, immune: 0, pct: 0 };
+  T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed, themeIdx: -1, floor: -1, goal: false, runT: 0, immune: 0, pct: 0, warpCool: 0 };
   if (asmr) ensureRooms(0); else { rest(9); if (course) buildCourse(course); }
   Object.assign(me, ME0, { x: 0, y: 0, z: asmr ? 4.2 : -2, wait: 0.9 });
   Object.assign(cam, { yaw: 0, pitch: 0.15, yawS: 0, pitchS: 0.15, idle: 99, fp: false, mode: "near" });
@@ -1052,6 +1240,18 @@ function loop() {
         if (z.t > 0.35) z.door.off = true;
       }
     }
+    if (z.kind === "bridge") {   // 伸びる橋：スイッチを ふんでいる 間 のびる → はなすと 少し まって ゆっくり もどる
+      const on = !!me.on && Math.abs(me.y - z.y) < 0.25 && Math.hypot(me.x - z.x, me.z - z.z) < z.r;
+      if (on) { if (!z.was && T.onBridge) T.onBridge(); z.ext = Math.min(z.L, z.ext + P.bridgeOut * dt); z.hold = z.grace; }
+      else if (z.hold > 0) z.hold -= dt;
+      else z.ext = Math.max(0, z.ext - z.vin * dt);
+      z.was = on;
+      z.cap.position.y = on ? 0.1 : 0.18;
+      z.cap.material.color.set(on ? 0x3cc98a : z.ext > 0.05 ? 0x8fd3ff : 0x2f8fe0);
+      const was = me.on === z.s;
+      setBridge(z);
+      if (was && z.s.off) me.on = null;
+    }
     if (z.kind === "wind") {
       z.fan.rotation.x += dt * 14;
       for (const m of z.streaks) {
@@ -1113,6 +1313,14 @@ function loop() {
   me.vy -= P.gravity * grav * (floating ? P.floatG : 1) * dt;
   if (floating) me.vy = Math.max(me.vy, -P.floatMaxFall);
   me.vy = Math.max(me.vy, -24);
+  // 上昇気流（第14弾）：柱の 中では 上へ 運ばれる。上の はし（top）に 近づくと ゆっくり、こえると 少し もどす
+  if (!asmr) for (const zn of zones) {
+    if (zn.kind !== "updraft" || me.x < zn.x0 || me.x > zn.x1 || me.z < zn.z0 || me.z > zn.z1 || me.y < zn.y0 - 0.5 || me.y > zn.top + 0.8) continue;
+    me.vy = damp(me.vy, P.updraftV * Math.max(-0.5, Math.min(1, (zn.top - me.y) / 1.4)), 9, dt);   // 上がる 速さ 約4m/秒・上の はしの 0.5m 下で ふわっと 止まる
+    me.airT = Math.max(me.airT, 0.2); me.updraft = 0.15;
+    break;
+  }
+  if (me.updraft > 0) me.updraft = Math.max(0, me.updraft - dt);
   let ny = me.y + me.vy * dt;
   // 頭を ぶつける（天井・上の 足場を 下から つきぬけない）
   if (me.vy > 0) {
@@ -1146,6 +1354,12 @@ function loop() {
       if (lp.wobble) sup.wob = 1;
     }
     if (sup.pad) { me.vy = P.padV; me.on = null; me.squash = 0.3; if (T.onPad) T.onPad(); }
+    else if (sup.spring) {   // ばね（第14弾）：自動で はねる。着地の 少し前に ジャンプを おしていたら 大きく
+      const big = me.jumpBuf > 0;
+      me.vy = big ? P.springBig : P.springV; me.jumpBuf = 0; me.on = null; me.airT = 1; me.squash = 0.32; me.hopFrom = null;
+      sup.boing = 0.3;
+      if (T.onPad) T.onPad(big);
+    }
     else if (wasAir && lp.bounce && me.jumpBuf > 0) {
       // ぷにぷに・スライム：着地の 前に ジャンプを おしていたら、いつも 同じ 高さの 大ジャンプ
       me.jumpBuf = 0; me.vy = capCeil(P.jumpV * lp.jump); me.on = null; me.hopFrom = null;
@@ -1187,6 +1401,17 @@ function loop() {
       break;
     }
   }
+  // ワープ扉（第14弾）：扉に 入ると 対の 扉の 前へ
+  if (T.warpCool > 0) T.warpCool -= dt;
+  else if (!asmr) for (const zn of zones) {
+    if (zn.kind !== "warp" || Math.abs(me.x - zn.x) > 0.8 || me.z < zn.z - 0.55 || me.z > zn.z + 0.3 || Math.abs(me.y - zn.y) > 1.3) continue;
+    Object.assign(me, { x: zn.to.x, y: zn.to.y, z: zn.to.z, vx: 0, vy: 0, vz: 2, on: null, squash: -0.3 });
+    T.camY = zn.to.y; T.warpCool = P.warpCool;
+    if (T.onWarp) T.onWarp(zn.col.mark);
+    break;
+  }
+  // ばねの ちぢみ
+  for (const sp of solids) if (sp.spring && sp.boing > 0) { sp.boing -= dt; sp.g.scale.y = 1 - Math.sin((0.3 - sp.boing) / 0.3 * Math.PI) * 0.35; if (sp.boing <= 0) sp.g.scale.y = 1; }
   // 溶岩：おちたら「あちち」→ 直前の はたから
   for (const zn of zones) if (zn.kind === "lava" && me.z > zn.z0 && me.z < zn.z1 && me.y < zn.y + 0.15) { if (T.onLava) T.onLava(); respawn(true); break; }
   // ゴール
