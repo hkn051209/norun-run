@@ -1,24 +1,24 @@
 /* =========================================================
-   操作（タブレット前提、パソコンでも 遊べる）
+   操作（タブレット前提、パソコンでも 遊べる）※ 基本は v1 と 同じ
    タッチ：
      - 画面の 左半分を さわる → その 場所に パッドが 出る（指を ずらした 向きと 量で 歩く）
      - 右半分を スワイプ → 見まわす
      - パッドの 指を おいた まま、べつの 指は どこを スワイプしても 見まわし
-       （見まわしの 指が 先なら、べつの 指は どこを さわっても パッド）
-     - ボタン（ジャンプ・こわす・おく・ホットバー・メニュー）の 上では パッドは 出ない
+     - ボタンの 上では パッドは 出ない
    パソコン：
      - WASD／矢印＝歩く、スペース＝ジャンプ、マウスドラッグ＝見まわす
-     - 左クリック＝こわす、右クリック＝おく、1〜9・ホイール＝ブロックを えらぶ
+     - 左クリック＝たたく、右クリック＝おく、1〜9・0・ホイール＝ブロックを えらぶ
+     - E＝その場の ボタン（ねる・つり）、C＝つくる、B＝おえかき、Q＝道具の 持ちかえ
    ========================================================= */
 import { CAM } from "./config.js";
 
 export class Input {
   constructor(canvas, els, handlers) {
     this.canvas = canvas; this.els = els; this.h = handlers;
-    this.padX = 0; this.padY = 0;         // パッド（-1〜1。上が -1）
+    this.padX = 0; this.padY = 0;
     this.keys = new Set();
     this.jumpBtn = false;
-    this.lookDX = 0; this.lookDY = 0;     // たまった スワイプ量（px）。main が 毎コマ 取り出す
+    this.lookDX = 0; this.lookDY = 0;
     this.touchMode = matchMedia("(pointer: coarse)").matches;
     this.mouse = { x: 0, y: 0, inside: false };
     this.pad = null; this.look = null; this.drag = null;
@@ -30,29 +30,37 @@ export class Input {
     c.addEventListener("pointerup", (e) => this.up(e));
     c.addEventListener("pointercancel", (e) => this.up(e));
     c.addEventListener("contextmenu", (e) => e.preventDefault());
-    c.addEventListener("wheel", (e) => { e.preventDefault(); this.h.cycle(e.deltaY > 0 ? 1 : -1); }, { passive: false });
+    c.addEventListener("wheel", (e) => { e.preventDefault(); if (this.enabled) this.h.cycle(e.deltaY > 0 ? 1 : -1); }, { passive: false });
     c.addEventListener("pointerleave", () => { this.mouse.inside = false; });
 
     addEventListener("keydown", (e) => {
-      if (!this.enabled || e.target.tagName === "TEXTAREA") return;
+      const tag = e.target && e.target.tagName;
+      if (!this.enabled || tag === "TEXTAREA" || tag === "INPUT") return;
       if (e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault();
       if (e.repeat) return;
       this.keys.add(e.code);
-      if (/^Digit[1-9]$/.test(e.code)) this.h.select(+e.code.slice(5) - 1);
+      if (/^Digit[0-9]$/.test(e.code)) this.h.select((+e.code.slice(5) + 9) % 10);
+      if (e.code === "KeyE") this.h.context();
+      if (e.code === "KeyC") this.h.craft();
+      if (e.code === "KeyB") this.h.paint();
+      if (e.code === "KeyQ") this.h.nextTool();
     });
     addEventListener("keyup", (e) => this.keys.delete(e.code));
     addEventListener("blur", () => this.releaseAll());
     document.addEventListener("visibilitychange", () => { if (document.hidden) this.releaseAll(); });
 
     this.hold(els.jump, (on) => { this.jumpBtn = on; });
-    this.repeat(els.brk, () => this.h.breakBlock());
+    this.repeat(els.brk, () => this.h.hit());
     this.repeat(els.put, () => this.h.placeBlock());
+    this.hold(els.ctx, (on) => { if (on) this.h.context(); });
   }
 
   releaseAll() {
     this.keys.clear(); this.jumpBtn = false;
     this.endPad(); this.look = null; this.drag = null;
-    for (const b of [this.els.jump, this.els.brk, this.els.put]) b.classList.remove("on");
+    for (const b of [this.els.jump, this.els.brk, this.els.put, this.els.ctx]) {
+      if (b._pid !== undefined) { b._pid = undefined; b.classList.remove("on"); if (b._off) b._off(); }
+    }
   }
 
   setTouchMode(on) {
@@ -63,9 +71,11 @@ export class Input {
 
   /* おして いる 間だけ on */
   hold(el, fn) {
+    el._off = () => fn(false);
     const off = (e) => { if (el._pid !== undefined && (!e || e.pointerId === el._pid)) { el._pid = undefined; el.classList.remove("on"); fn(false); } };
     el.addEventListener("pointerdown", (e) => {
       e.preventDefault(); this.setTouchMode(e.pointerType !== "mouse"); this.h.gesture();
+      if (!this.enabled) return;
       el._pid = e.pointerId; el.classList.add("on"); fn(true);
       try { el.setPointerCapture(e.pointerId); } catch (err) { /* 合成イベント */ }
     });
@@ -78,7 +88,7 @@ export class Input {
     let timer = 0;
     this.hold(el, (on) => {
       clearInterval(timer);
-      if (on) { fn(); timer = setInterval(fn, 280); }
+      if (on) { fn(); timer = setInterval(fn, 260); }
     });
   }
 
@@ -142,8 +152,7 @@ export class Input {
       const d = this.drag;
       if (d && d.id === e.pointerId) {
         this.drag = null;
-        // 動かさずに はなした ＝ クリック ＝ こわす
-        if (e.type === "pointerup" && d.moved <= 5 && performance.now() - d.t < 400) this.h.breakBlock();
+        if (this.enabled && e.type === "pointerup" && d.moved <= 5 && performance.now() - d.t < 400) this.h.hit();
       }
       return;
     }
@@ -151,7 +160,6 @@ export class Input {
     if (this.look && e.pointerId === this.look.id) this.look = null;
   }
 
-  /* 歩く 向き（x：右が＋、y：前が −）。長さは 1 まで */
   moveVec() {
     let x = this.padX, y = this.padY;
     const k = this.keys;
