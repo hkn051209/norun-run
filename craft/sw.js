@@ -5,7 +5,7 @@
      （ファイルを 直したら、次の 次の 起動で 新しく なる。すぐ 切りかえたい 時は CACHE の 数字を 上げる）
    - よその サーバー（共有の Firebase）への 通信には さわらない
    ========================================================= */
-const CACHE = "norun-craft-v2.0.0";
+const CACHE = "norun-craft-v3.0.0";
 const FILES = [
   "./",
   "index.html",
@@ -24,6 +24,7 @@ const FILES = [
   "src/share.js",
   "src/mobs.js",
   "src/art.js",
+  "src/nametag.js",
   "src/norun.js",
   "src/norun-model.js",
   "src/sfx.js",
