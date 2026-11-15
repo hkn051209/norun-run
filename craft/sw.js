@@ -3,8 +3,9 @@
    - さいしょの 読みこみで 下の ファイルを ぜんぶ ためる → 次からは オフラインでも 起動
    - ためた 物を すぐ 返し、うらで 新しい 物を 取りに 行って 入れかえる
      （ファイルを 直したら、次の 次の 起動で 新しく なる。すぐ 切りかえたい 時は CACHE の 数字を 上げる）
+   - よその サーバー（共有の Firebase）への 通信には さわらない
    ========================================================= */
-const CACHE = "norun-craft-v1.0.0";
+const CACHE = "norun-craft-v2.0.0";
 const FILES = [
   "./",
   "index.html",
@@ -12,12 +13,17 @@ const FILES = [
   "src/main.js",
   "src/config.js",
   "src/blocks.js",
+  "src/colors.js",
+  "src/items.js",
   "src/textures.js",
   "src/world.js",
   "src/mesher.js",
   "src/player.js",
   "src/input.js",
   "src/save.js",
+  "src/share.js",
+  "src/mobs.js",
+  "src/art.js",
   "src/norun.js",
   "src/norun-model.js",
   "src/sfx.js",
@@ -49,7 +55,6 @@ self.addEventListener("fetch", (e) => {
   if (url.origin !== location.origin) return;
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    // ?debug などが 付いて いても 同じ ファイルと して あつかう
     const hit = await cache.match(req, { ignoreSearch: true });
     const fresh = fetch(req).then((res) => {
       if (res && res.ok && res.type === "basic") cache.put(url.origin + url.pathname, res.clone()).catch(() => {});
