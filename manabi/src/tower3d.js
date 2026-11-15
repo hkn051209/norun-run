@@ -84,7 +84,7 @@ scene.add(farTower);
 const COL = { floor: 0x9be39b, stair: 0xffd86b, step: 0x8fd3ff, gap: 0xff9ec7, zig: 0xc7a8ff, mover: 0xffa64d, bar: 0x9be3d6, wall: 0x8fd3ff,
   vanish: 0xb6a4ff, conv: 0x8b9bb4, door: 0xff9e5e, wind: 0xa8e6ff, duck: 0xffcf66, wide: 0x9be3d6,
   rock: 0x6b5a66, laser: 0x9aa6c8, ice: 0xbfefff, crumble: 0xc9a27a, goal: 0xffe17a,
-  updraft: 0x9fe0c0, warp: 0xc9b3f0, warpWall: 0xe6d9ff, spring: 0xffb04d, bridge: 0x8fd3ff, deck: 0xd9a066 };
+  cloud: 0xffffff, cloudBase: 0xb9d4ff, updraft: 0x9fe0c0, warp: 0xc9b3f0, warpWall: 0xe6d9ff, spring: 0xffb04d, bridge: 0x8fd3ff, deck: 0xd9a066 };
 const topMats = new Map();
 function topMatOf(c) {   // 上の面は 部品の色を うすくした色
   if (!topMats.has(c)) {
@@ -192,6 +192,8 @@ function rest(len) {
   addFlag(B.z + 0.6, B.y);
   B.z += len;
 }
+/* むずかしさ（0〜1。第15弾：コース 9〜12 は 1 を こえる＝ dmax まで）。エンドレスと コース1〜8 は 今までどおり 1 で 頭うち */
+const dif = (cap = 9) => Math.min(B.dmax || 1, cap, B.dy / 100);
 const PARTS = {
   stairs() {   // かいだん：ジャンプなしで のぼれる
     const n = randInt(5, 7), rise = 0.4, dep = 1.3, y0 = B.y;
@@ -381,7 +383,7 @@ const PARTS = {
 
   /* ---- 2026-11-13 第12弾：コースの 新しい しかけ ---- */
   lava() {     // 溶岩：下が 溶岩の 区間を、足場（岩）を つたって わたる。むずかしく なると 小さく・はなれて・くずれる 岩や 動く 岩が まざる
-    const d = Math.min(1, B.dy / 100);
+    const d = dif();
     // 岩の おくゆき（すすむ 向き）は、走って とんだ ジャンプ（約4m）で とびこえて しまわない 長さに（第12弾・テストで 調整）
     const k = randInt(4, 5) + Math.round(d * 2), size = 2.4 - d * 0.6, deep = 3.4 - d * 0.6, gap0 = 1.0 + d * 0.8;
     const z0 = B.z, lavaY = B.y - P.lavaDrop;
@@ -409,8 +411,8 @@ const PARTS = {
     lavaPool(z0 + 1.0, B.z - 1.4, lavaY);
     if (!B.seen.lava) { B.seen.lava = true; addSign(z0 + 0.6, B.y, "🌋 ようがんに おちないで！", "いわを つたって わたろう", "#ff6a3d"); }
   },
-  laser() {    // むかってくる レーザー：前から 流れてくる 光の バー。ジャンプで よける（当たっても 少し もどるだけ）
-    const d = Math.min(1, B.dy / 100);
+  laser() {    // むかってくる レーザー：前から 流れてくる 光の バー。ジャンプで よける（第15弾から 当たると 旗に もどる）
+    const d = dif(1.1);   // 速さ・間かくは 1.1 で 頭うち（それより 上は 人の 反応で よけきれない）
     const len = 16 + Math.round(d * 4);
     fullBox(B.y - 0.6, B.y, B.z, B.z + len, COL.laser);
     const z0 = B.z, z1 = B.z + len;
@@ -426,7 +428,7 @@ const PARTS = {
     B.z = z1;
   },
   ice() {      // こおりの 床：すべって 止まりにくい。とちゅうで 道が ほそく なる
-    const d = Math.min(1, B.dy / 100);
+    const d = dif();
     const a = 4, nar = 4 + Math.round(d * 3), b = 3;
     fullBox(B.y - 0.6, B.y, B.z, B.z + a, COL.ice, { ice: true }); B.z += a;
     const l = randInt(0, 2);
@@ -437,7 +439,7 @@ const PARTS = {
     if (!B.seen.ice) { B.seen.ice = true; addSign(B.z - a - nar - b + 0.6, B.y, "🧊 つるつる こおり", "ゆっくり すすもう", "#4fb3ff"); }
   },
   crumble() {  // くずれる 足場：のって 少しすると ぐらぐら → 下へ 落ちる（しばらくして もどる）
-    const d = Math.min(1, B.dy / 100);
+    const d = dif();
     const k = randInt(4, 5) + Math.round(d);
     let l = randInt(0, 2);
     for (let i = 0; i < k; i++) {
@@ -452,7 +454,7 @@ const PARTS = {
   },
   /* ---- 2026-11-14 第14弾（アスレ 第3弾）：上昇気流・ワープ扉・ばね・伸びる橋 ---- */
   updraft() {  // 上昇気流：風の 柱に 入ると ふわっと 上へ。柱の 上の はしで とまるので、前の 高い 足場へ 歩いて うつる
-    const d = Math.min(1, B.dy / 100);
+    const d = dif();
     const k = 1 + Math.round(d * 2);                 // 柱の 数（1〜3。あとの 柱は 穴の 上・むずかしいと 1レーンの はば）
     const z0 = B.z, y0 = B.y;
     fullBox(B.y - 0.6, B.y, B.z, B.z + 2.4, COL.updraft); B.z += 2.4;
@@ -474,7 +476,7 @@ const PARTS = {
     if (!B.seen.updraft) { B.seen.updraft = true; addSign(z0 + 0.6, y0, "🌪️ かぜの はしらに のろう", "ふわっと うえへ はこばれるよ", "#2fa8d8", 4.4); }
   },
   warp() {     // ワープ扉：かべの 扉に 入ると、同じ 色・もようの 扉から 出てくる（むこうの 足場へ）
-    const d = Math.min(1, B.dy / 100);
+    const d = dif();
     const k = 1 + Math.round(d * 1.5);               // 扉の 数（1〜3）
     const z0 = B.z, y0 = B.y;
     let exitAt = null;
@@ -505,7 +507,7 @@ const PARTS = {
     if (!B.seen.warp) { B.seen.warp = true; addSign(z0 + 0.6, y0, "🚪 ワープの とびら", "おなじ いろの とびらから でてくるよ", "#9b6bff", 4.4); }
   },
   spring() {   // ばね：のると 自動で ぽーんと はねる。つぎの ばねへ リズムよく。着地の 少し前に ジャンプで 大きく はねる
-    const d = Math.min(1, B.dy / 100);
+    const d = dif();
     const k = 4 + Math.round(d * 3);
     const z0 = B.z, y0 = B.y;
     fullBox(B.y - 0.6, B.y, B.z, B.z + 1.6, COL.spring); B.z += 1.6;           // 岸（歩いて おりると 1こ目の ばねに のる）
@@ -526,7 +528,7 @@ const PARTS = {
     if (!B.seen.spring) { B.seen.spring = true; addSign(z0 + 0.4, y0, "🌀 ばねで ぽんぽん！", "おちる まえに ジャンプで たかく とぶよ", "#ff8a1f", 4.4); }
   },
   bridge() {   // 伸びる橋：スイッチを ふんでいる 間だけ 橋が のびる。はなすと 少し まって ゆっくり もどる
-    const d = Math.min(1, B.dy / 100);
+    const d = dif(1.1);
     const k = 1 + Math.round(d * 1.2);
     const z0 = B.z, y0 = B.y;
     for (let i = 0; i < k; i++) {
@@ -546,6 +548,32 @@ const PARTS = {
     }
     fullBox(B.y - 0.6, B.y, B.z, B.z + 3.2, COL.bridge); B.z += 3.2;
     if (!B.seen.bridge) { B.seen.bridge = true; addSign(z0 + 0.6, y0, "🌉 スイッチで はしが のびる", "ふんでいる あいだ のびるよ", "#2f8fe0", 4.4); }
+  },
+  /* ---- 2026-11-15 第15弾：しずむ くも ---- */
+  cloud() {    // しずむ くも：のって いる 間 ゆっくり しずみ、しずみきると しぼんで 消える（はなれると もとの 高さへ）
+    const d = dif();
+    const k = 4 + Math.round(d * 2);
+    const z0 = B.z, y0 = B.y;
+    fullBox(B.y - 0.6, B.y, B.z, B.z + 1.6, COL.cloudBase); B.z += 1.6;
+    let l = 1;
+    for (let i = 0; i < k; i++) {
+      B.z += rand(1.2, 1.4) + d * 0.7;
+      B.y += rand(0, 0.3);
+      const w = d > 0.5 ? 2.4 : 3.4;
+      const s = addBox(LANE_X[l] - w / 2, LANE_X[l] + w / 2, B.y - 0.5, B.y, B.z, B.z + 2.8, COL.cloud, { cloud: { y1: B.y, sink: 0, sp: 0.7 + d * 0.5, max: 1.6, offT: 0 } });
+      cloudPuffs(s, w);
+      B.z += 2.8;
+      if (d > 0.3) l = Math.max(0, Math.min(2, l + pick([-1, 1])));
+    }
+    B.z += rand(1.2, 1.4) + d * 0.5;
+    fullBox(B.y - 0.6, B.y, B.z, B.z + 3, COL.cloudBase); B.z += 3;
+    if (!B.seen.cloud) { B.seen.cloud = true; addSign(z0 + 0.4, y0, "☁️ しずむ くも", "とまらずに つぎへ ジャンプ！", "#7a9cff", 4.4); }
+  },
+  link() {     // コースの「つづけて」（plan の a+b）：旗なしで、とおい すき間を ジャンプで つなぐ
+    B.z += rand(2.3, 2.8);
+    B.y += rand(0, 0.3);
+    fullBox(B.y - 0.6, B.y, B.z, B.z + 2.6, COL.gap);
+    B.z += 2.6;
   },
   goal() {     // ゴール：ひろい 台と アーチ・大きな ほし
     const len = 9;
@@ -654,6 +682,17 @@ function setBridge(z) {   // 橋の のびぐあい（ext）を 足場と 見た
   s.z1 = s.z0 + e; s.off = z.ext < 0.05; s.g.visible = !s.off;
   s.g.scale.z = e / z.L; s.g.position.z = s.z0 + e / 2;
 }
+// しずむ くも：まるい ふくらみ。しずむ ほど 灰色っぽく
+function cloudPuffs(s, w) {
+  const m = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.25 });
+  s.cloud.mat = m;
+  s.g.children[0].material = m;
+  for (let i = 0; i < 5; i++) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(rand(0.45, 0.65), 12, 10), m);
+    b.position.set(rand(-w / 2 + 0.3, w / 2 - 0.3), -0.25 + rand(-0.05, 0.05), rand(-1.1, 1.1));
+    b.scale.y = 0.6; s.g.add(b);
+  }
+}
 /* くずれる 足場の しるし（ひび） */
 function crackMark(s) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(s.x1 - s.x0 - 0.2, s.z1 - s.z0 - 0.2), new THREE.MeshBasicMaterial({ map: crackTex, transparent: true, depthWrite: false }));
@@ -695,10 +734,15 @@ function buildCourse(c) {
   // コース1の さいしょの 看板：あたらしい 操作（さわった 所に パッド）の 説明（第13弾）
   if (c.id === "mori") addSign(3.2, 0, "👆 さわった ところに パッドが でるよ", "ジャンプは みぎしたの ボタン！", "#ff7eb6", 6.4);
   const plan = c.plan.filter((k) => k !== "S" || SKILL_PART[B.char]).map((k) => (k === "S" ? SKILL_PART[B.char] : k));
-  plan.forEach((name, i) => {
+  B.dmax = c.dmax || 1;   // 第15弾：コース 9〜12 は むずかしさ 1 を こえて よい
+  plan.forEach((entry, i) => {
     B.dy = c.dy0 + (c.dy1 - c.dy0) * (plan.length > 1 ? i / (plan.length - 1) : 0);
-    B.last = name;
-    PARTS[name]();
+    // 「a+b+c」は 旗なしで つづけて（あいだは とおい すき間の ジャンプ）。1つだけの 時は 今までと 同じ
+    entry.split("+").forEach((name, j) => {
+      if (j > 0) PARTS.link();
+      B.last = name;
+      PARTS[name]();
+    });
     rest(rand(3.2, 4.0));
     B.n++;
   });
@@ -943,7 +987,7 @@ export function startTower(opts) {
   stopTower();
   clearCourse();
   const course = opts.course ? ATHLE_COURSES.find((c) => c.id === opts.course) : null;   // opts.course：コースの id（なし＝エンドレス）
-  Object.assign(B, { z: -4, y: 0, last: "", n: 0, mode: opts.mode || "athle", char: nr.cur ? nr.cur.id : "norun", dy: 0, course, seen: {}, goalZ: 0 });
+  Object.assign(B, { z: -4, y: 0, last: "", n: 0, mode: opts.mode || "athle", char: nr.cur ? nr.cur.id : "norun", dy: 0, dmax: 1, course, seen: {}, goalZ: 0 });
   const asmr = B.mode === "asmr";
   T = { ...opts, best: 0, falls: 0, camY: 0, time: 0, raf: 0, cp: { z: -2, y: 0 }, cpN: 0, speed: P.speed, themeIdx: -1, floor: -1, goal: false, runT: 0, immune: 0, pct: 0, warpCool: 0 };
   if (asmr) ensureRooms(0); else { rest(9); if (course) buildCourse(course); }
@@ -1144,10 +1188,12 @@ function loop() {
     const s = solids[i];
     if (s.z1 < me.z - 18 && s.z1 < T.cp.z - 2) { disposeGroup(s.g); solids.splice(i, 1); }
   }
-  for (let i = bars.length - 1; i >= 0; i--) if (bars[i].cz < me.z - 18) { disposeGroup(bars[i].g); bars.splice(i, 1); }
-  for (let i = flags.length - 1; i >= 0; i--) if (flags[i].z < me.z - 18) { disposeGroup(flags[i].g); flags.splice(i, 1); }
-  for (let i = extras.length - 1; i >= 0; i--) if (extras[i].z < me.z - 20) { disposeGroup(extras[i].g); extras.splice(i, 1); }
-  for (let i = zones.length - 1; i >= 0; i--) if ((zones[i].z1 || zones[i].z) < me.z - 20) zones.splice(i, 1);
+  // 第15弾：旗（T.cp）より 先の ものは けさない（旗に もどった 時に 上昇気流・ワープ・バー・スイッチが なくならない ように）
+  const keepZ = asmr ? Infinity : T.cp.z - 2;   // ASMR は 今までどおり
+  for (let i = bars.length - 1; i >= 0; i--) if (bars[i].cz < me.z - 18 && bars[i].cz < keepZ) { disposeGroup(bars[i].g); bars.splice(i, 1); }
+  for (let i = flags.length - 1; i >= 0; i--) if (flags[i].z < me.z - 18 && flags[i].z < keepZ) { disposeGroup(flags[i].g); flags.splice(i, 1); }
+  for (let i = extras.length - 1; i >= 0; i--) if (extras[i].z < me.z - 20 && extras[i].z < keepZ) { disposeGroup(extras[i].g); extras.splice(i, 1); }
+  for (let i = zones.length - 1; i >= 0; i--) if ((zones[i].z1 || zones[i].z) < me.z - 20 && (zones[i].z1 || zones[i].z) < keepZ) zones.splice(i, 1);
 
   // しかけ：動く足場・消える足場・流れる床
   for (const s of solids) {
@@ -1173,6 +1219,17 @@ function loop() {
           else s.g.visible = v.t < P.vanishT * 0.45 || Math.floor(v.t * 14) % 2 === 0;   // ちかちか
           if (v.t > lim) { s.off = true; s.g.visible = !!v.crumble; v.t = -1; v.offT = v.crumble ? P.crumbleBack : P.vanishOff; v.fall = 0; if (me.on === s) me.on = null; if (v.crumble && T.onCrumble) T.onCrumble(); }
         }
+      }
+    }
+    if (s.cloud) {   // しずむ くも（第15弾）
+      const c = s.cloud;
+      if (s.off) { c.offT -= dt; if (c.offT <= 0) { s.off = false; s.g.visible = true; c.sink = 0; s.g.scale.setScalar(1); } }
+      else {
+        if (me.on === s) c.sink += c.sp * dt; else c.sink = Math.max(0, c.sink - 0.9 * dt);
+        if (c.sink > c.max) { s.off = true; s.g.visible = false; c.offT = 2.2; if (me.on === s) me.on = null; if (T.onCloud) T.onCloud(); }
+        s.y1 = c.y1 - c.sink; s.y0 = s.y1 - 0.5; s.g.position.y = s.y1;
+        const k = c.sink / c.max; c.mat.color.setRGB(1 - k * 0.35, 1 - k * 0.3, 1 - k * 0.2);
+        s.g.scale.set(1 - k * 0.15, 1, 1 - k * 0.1);
       }
     }
     if (s.conv && s.conv.tex) {
@@ -1377,27 +1434,28 @@ function loop() {
     if (T.onDrop) T.onDrop(k + 1, A.rooms[k].theme, k === 0 && me.y < 0.5);   // 1かいの 床まで 落ちたら さいしょから
   }
 
-  // 回るバー：当たったら 少し 後ろへ はねる（落ちない）
+  // 回るバー：当たったら 直前の 旗へ（第15弾）
+  if (T.immune > 0) T.immune -= dt;
   for (const b of bars) {
-    if (me.stun > 0 || me.y - b.y > 0.8 || me.y < b.y - 0.3) continue;
+    if (me.wait > 0 || T.immune > 0 || me.stun > 0 || me.y - b.y > 0.8 || me.y < b.y - 0.3) continue;
     const rx = me.x - b.cx, rz = me.z - b.cz;
     const dx = Math.cos(b.ang), dz = -Math.sin(b.ang);
     const along = rx * dx + rz * dz, across = Math.abs(-rx * dz + rz * dx);
     if (Math.abs(along) < b.half + 0.2 && across < 0.5) {
-      me.stun = 0.55; me.vy = 5; me.on = null; me.squash = -0.2; me.slideT = 0;
-      me.z = Math.max(b.cz - 5, me.z - 1.6);
-      if (T.onBump) T.onBump();
+      // 第15弾：当たったら 直前の 旗へ（溶岩と 同じ）。旗が まだ ない 時は スタート
+      if (T.onBump) T.onBump("bar");
+      respawn(true); T.immune = P.laserImmune;
+      break;
     }
   }
 
-  // レーザー：当たったら 回る バーと 同じ（少し 後ろへ はねる。落ちない）。当たった あと しばらくは 当たらない
-  if (T.immune > 0) T.immune -= dt;
-  if (!asmr && T.immune <= 0 && me.stun <= 0) for (const bm of beams) {
+  // レーザー：当たったら 直前の 旗へ（第15弾）。もどった あと しばらくは 当たらない
+  if (!asmr && me.wait <= 0 && T.immune <= 0 && me.stun <= 0) for (const bm of beams) {
     if (bm.z >= bm.sec.z1) continue;
     if (Math.abs(me.z - bm.z) < 0.4 && me.y < bm.y + P.laserH + 0.12 && me.y > bm.y - 0.6) {
-      me.stun = 0.55; me.vy = 5; me.on = null; me.squash = -0.2; me.slideT = 0;
-      me.z = Math.max(bm.sec.z0 - 1, me.z - 1.6); T.immune = P.laserImmune;
+      // 第15弾：当たったら 直前の 旗へ（溶岩と 同じ）。もどった あと しばらくは 当たらない
       if (T.onBump) T.onBump("laser");
+      respawn(true); T.immune = P.laserImmune;
       break;
     }
   }

@@ -432,7 +432,9 @@ async function startPlay(mode, course = null) {
       onPad: () => sfx.boing(),
       onWarp: (mark) => { sfx.streak(); pMsg(`${mark} ワープ！`, 800); },
       onBridge: () => { sfx.flag(); pMsg("はしが のびる！", 800); },
-      onBump: (kind) => { sfx.bump(); pMsg(kind === "laser" ? "レーザーに あたった！" : "バーに あたった！", 800); },
+      // 第15弾：バー・レーザーは 当たると 旗に もどる（溶岩と 同じ）
+      onBump: (kind) => { sfx.bump(); pMsg(kind === "laser" ? "レーザーに あたった！ 🚩はたに もどるよ" : "バーに あたった！ 🚩はたに もどるよ", 1300); },
+      onCloud: () => sfx.tap(),
     });
     if (course) { const cc = ATHLE_COURSES.find((x) => x.id === course); pMsg(`${cc.icon} ${cc.name} スタート！`, 1300); }
     else if (mode !== "asmr") pMsg(cdef.id === "norun" ? "のぼろう！" : `${cdef.name}に へんしん！`, 1000);

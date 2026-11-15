@@ -186,6 +186,20 @@ export const ATHLE_COURSES = [
   { id: "champ", icon: "🏆", name: "チャンピオン コース", sub: "ぜんぶ 入り 第2弾・いちばん 長い", dy0: 45, dy1: 100,
     sky: 0xffe0e8, floor: 0xffb3c8,
     plan: ["gaps", "spring", "lava", "updraft", "laser", "warp", "steps", "bridge", "ice", "S", "lava", "mover", "updraft", "crumble", "laser", "spring", "door", "warp", "bar", "conveyor", "bridge", "wind", "lava", "updraft", "vanish", "laser", "spring", "warp", "pad", "lava", "laser"] },
+  // ---- 第15弾（アスレ 第4弾）：コース 9〜12。むずかしさの 上限 100 を はずした（dmax＝その コースの むずかしさの 上） ----
+  // plan の「a+b」は 旗なしで つづけて（あいだは とおい すき間）。cloud＝しずむ くも（第15弾の 新しい しかけ）
+  { id: "sora",  icon: "☁️", name: "ふしぎな そら", sub: "かぜ・ワープ・ばね・はし・くもの くみあわせ", dy0: 70, dy1: 112, dmax: 1.12,
+    sky: 0xcfe8ff, floor: 0xbfd8ff,
+    plan: ["gaps", "updraft", "cloud", "warp", "spring+bridge", "S", "updraft+cloud", "warp", "bridge+spring", "updraft", "warp+cloud", "spring", "bridge+updraft", "warp", "cloud+spring"] },
+  { id: "magma", icon: "🔥", name: "マグマ ラボ", sub: "溶岩・レーザー・バーが ぎっしり", dy0: 75, dy1: 120, dmax: 1.2,
+    sky: 0xffd0c0, floor: 0xffa98a,
+    plan: ["gaps", "lava", "laser", "bar", "lava", "laser", "S", "lava+laser", "bar", "crumble", "lava", "laser+bar", "lava", "laser", "lava+laser", "bar", "lava", "laser+lava"] },
+  { id: "niji",  icon: "🌈", name: "とおい にじの みち", sub: "とおい すき間で つながる ながい れんぞく", dy0: 80, dy1: 125, dmax: 1.25,
+    sky: 0xf2dcff, floor: 0xe0c8ff,
+    plan: ["gaps", "steps+lava+spring", "zigzag+updraft+laser", "S", "crumble+bridge+cloud", "mover+warp+lava", "ice+spring+laser", "vanish+updraft+bar+cloud", "conveyor+bridge+lava+laser", "warp+spring+crumble+updraft"] },
+  { id: "densetsu", icon: "🐉", name: "でんせつの とう", sub: "ぜんぶ 入り・いちばん 長くて むずかしい", dy0: 85, dy1: 135, dmax: 1.35,
+    sky: 0xe8d6ff, floor: 0xcdb6f5,
+    plan: ["gaps", "spring", "lava", "updraft+cloud", "laser", "warp", "bar", "steps+bridge", "ice", "S", "lava+laser", "mover", "updraft", "crumble+cloud", "laser", "spring+warp", "door", "bar", "lava", "conveyor+bridge", "wind", "updraft+laser", "vanish", "cloud+spring", "lava+laser", "warp", "zigzag+bar", "bridge", "lava", "updraft+spring", "laser+lava", "cloud", "pad", "warp+bridge", "lava+laser", "bar", "spring+cloud", "laser"] },
 ];
 
 /* アスレで えらべる キャラ（変身）。unlock は あとで 条件を つける時に つかう（null＝はじめから）
