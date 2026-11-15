@@ -45,6 +45,12 @@ const grass = (x, y, r) => {
   if (n > 0.88) return [150, 214, 96];
   return shade(base, 0.95 + r() * 0.1);
 };
+const snow = (x, y, r) => {
+  const n = r();
+  if (n < 0.1) return [214, 228, 244];
+  if (n > 0.93) return [255, 255, 255];
+  return shade([240, 246, 252], 0.98 + r() * 0.02);
+};
 const plank = (x, y, r) => {
   const base = [204, 164, 104];
   const row = Math.floor(y / 4);
@@ -52,6 +58,15 @@ const plank = (x, y, r) => {
   if (x === (row % 2 === 0 ? 5 : 12)) return shade(base, 0.74);
   return shade(base, (row % 2 ? 0.96 : 1.03) * (0.97 + r() * 0.06));
 };
+const stone = (x, y, r) => {
+  const base = [142, 146, 152];
+  const crack = (x * 7 + y * 13) % 29 === 0 || ((x + y * 3) % 17 === 0 && r() < 0.6);
+  if (crack) return shade(base, 0.7);
+  const n = r();
+  return shade(base, n < 0.15 ? 0.88 : n > 0.85 ? 1.08 : 0.97 + r() * 0.06);
+};
+/* 16×16 の 文字絵：行ごとの 文字を 色に 置きかえる（"." は 下地の まま） */
+const stamp = (rows, pal, under) => (x, y, r) => { const ch = rows[y] ? rows[y][x] : "."; return ch && ch !== "." && pal[ch] ? pal[ch] : under(x, y, r); };
 
 export function makeAtlas() {
   const cv = document.createElement("canvas");
@@ -64,16 +79,12 @@ export function makeAtlas() {
   {
     const edge = []; const er = rng(33);
     for (let x = 0; x < TILE; x++) edge.push(3 + Math.floor(er() * 3));
-    const rg = rng(34), rd = rng(35);
+    const rg = rng(34), rd = rng(35), rs = rng(37);
     paint(img, T.GRASS_SIDE, 36, (x, y) => (y < edge[x] ? grass(x, y, rg) : dirt(x, y, rd)));
+    paint(img, T.SNOW_SIDE, 38, (x, y) => (y < edge[x] + 1 ? snow(x, y, rs) : dirt(x, y, rd)));
   }
-  paint(img, T.STONE, 44, (x, y, r) => {
-    const base = [142, 146, 152];
-    const crack = (x * 7 + y * 13) % 29 === 0 || ((x + y * 3) % 17 === 0 && r() < 0.6);
-    if (crack) return shade(base, 0.7);
-    const n = r();
-    return shade(base, n < 0.15 ? 0.88 : n > 0.85 ? 1.08 : 0.97 + r() * 0.06);
-  });
+  paint(img, T.SNOW, 39, snow);
+  paint(img, T.STONE, 44, stone);
   paint(img, T.SAND, 55, (x, y, r) => {
     const n = r();
     return shade([232, 214, 156], n < 0.1 ? 0.9 : n > 0.92 ? 1.06 : 0.98 + r() * 0.04);
@@ -113,23 +124,67 @@ export function makeAtlas() {
   });
   paint(img, T.ROCK, 143, (x, y, r) => (r() < 0.14 ? [120, 96, 150] : shade([70, 66, 86], 0.85 + r() * 0.3)));
 
-  // さぎょうだい：上は マス目の 板、横は 板＋道具の 絵
-  paint(img, T.BENCH_TOP, 154, (x, y, r) => {
-    const base = [222, 186, 126];
-    if (x === 0 || y === 0 || x === 15 || y === 15) return shade([150, 104, 60], 1);
-    if (x === 5 || x === 10 || y === 5 || y === 10) return shade(base, 0.72);
-    return shade(base, 0.97 + r() * 0.06);
-  });
-  paint(img, T.BENCH_SIDE, 165, (x, y, r) => {
-    if (y < 3) return shade([150, 104, 60], 0.95 + r() * 0.1);
-    const p = plank(x, y, r);
-    const saw = (y === 7 && x > 2 && x < 9) || (y === 8 && x > 2 && x < 9 && x % 2 === 0);
-    const ham = (x === 12 && y > 5 && y < 13) || (y === 6 && x > 9 && x < 15) || (y === 7 && x > 9 && x < 15);
-    if (saw) return [120, 130, 140];
-    if (ham) return (y < 8 ? [110, 116, 126] : [120, 84, 50]);
-    return p;
-  });
-  // ベッド：上は まくら＋ふとん、横は ふとん＋木の あし
+  /* さぎょうだい（v3 で 作り替え）
+     上：ふちの ある 台に 3×3 の マス目と、のこぎり・えんぴつ・じょうぎ
+     横：台の 板・ひきだし・かかって いる 道具（かなづち と のこぎり／ピッケル と スコップ） */
+  const benchPal = { o: [104, 68, 36], g: [150, 108, 62], s: [150, 158, 170], d: [96, 102, 114], h: [122, 82, 46], r: [232, 92, 80], y: [250, 206, 80], w: [246, 240, 226], k: [70, 60, 60], b: [86, 150, 220] };
+  const benchWood = (x, y, r) => shade([226, 190, 132], 0.96 + r() * 0.07);
+  paint(img, T.BENCH_TOP, 154, stamp([
+    "oooooooooooooooo",
+    "o..............o",
+    "o.ggggggggg..y.o",
+    "o.g..g..g.g..y.o",
+    "o.g..g..g.g..y.o",
+    "o.ggggggggg..y.o",
+    "o.g..g..g.g..k.o",
+    "o.g..g..g.g....o",
+    "o.ggggggggg.w..o",
+    "o.g..g..g.g.w..o",
+    "o.g..g..g.g.w..o",
+    "o.ggggggggg.w..o",
+    "o...........w..o",
+    "o.hhsssssss.w..o",
+    "o.hhs.s.s.s....o",
+    "oooooooooooooooo",
+  ], benchPal, benchWood));
+  const benchBody = (x, y, r) => (y < 3 ? shade([226, 190, 132], 0.95 + r() * 0.08) : y === 3 ? [104, 68, 36] : plank(x, y, r));
+  paint(img, T.BENCH_SIDE, 165, stamp([
+    "................",
+    "................",
+    "................",
+    "................",
+    "..k........k....",
+    "..dddd.....hh...",
+    "..dddd....hsssss",
+    "...h......hss.s.",
+    "...h......hs.s.s",
+    "...h......hh....",
+    "...h............",
+    "...h....oooooo..",
+    "........o....o..",
+    "........o.yy.o..",
+    "........oooooo..",
+    "................",
+  ], benchPal, benchBody));
+  paint(img, T.BENCH_SIDE2, 166, stamp([
+    "................",
+    "................",
+    "................",
+    "................",
+    "....k......k....",
+    ".sssssss...h....",
+    "s...h...s..h....",
+    "....h......h....",
+    "....h......h....",
+    "....h.....sss...",
+    "....h.....sss...",
+    "....h......s....",
+    "................",
+    ".oooooo.........",
+    ".o.yy.o.........",
+    ".oooooo.........",
+  ], benchPal, benchBody));
+
   paint(img, T.BED_TOP, 176, (x, y, r) => {
     if (y < 5) return (x > 2 && x < 13 && y > 0) ? shade([250, 250, 255], 0.96 + r() * 0.04) : [232, 226, 240];
     if (y === 5) return [150, 80, 170];
@@ -142,7 +197,6 @@ export function makeAtlas() {
     if (y > 11 && x > 3 && x < 12) return shade([110, 76, 46], 0.9);
     return shade([170, 126, 78], 0.94 + r() * 0.1);
   });
-  // おはな（ばってんに 立てて 表示。まわりは すきとおる）
   paint(img, T.FLOWER, 198, (x, y) => {
     const dx = x - 7.5, dy = y - 5;
     const d = Math.hypot(dx, dy);
@@ -152,13 +206,55 @@ export function makeAtlas() {
     if (y > 10 && y < 14 && ((x > 3 && x < 7 && x + y === 17) || (x > 8 && x < 12 && y - x === 2) || (x === 5 && y === 12) || (x === 10 && y === 12))) return [90, 180, 80];
     return [0, 0, 0, 0];
   });
-  // いろブロック：白い 絵に、あとで 色を かける（mesher が 色を のせる）
+  // いろブロック：白い 絵に、あとで 色を かける
   paint(img, T.COLOR, 209, (x, y, r) => {
     if (x === 0 || y === 0) return [255, 255, 255];
     if (x === 15 || y === 15) return [196, 196, 196];
-    const dot = (x % 5 === 2 && y % 5 === 2);
-    return dot ? [255, 255, 255] : shade([232, 232, 232], 0.98 + r() * 0.03);
+    return (x % 5 === 2 && y % 5 === 2) ? [255, 255, 255] : shade([232, 232, 232], 0.98 + r() * 0.03);
   });
+  // レア色（きん・ぎん）：金属の つや（ななめの 光の すじ）
+  paint(img, T.METAL, 210, (x, y, r) => {
+    if (x === 0 || y === 0) return [255, 255, 255];
+    if (x === 15 || y === 15) return [150, 150, 150];
+    const d = (x + y) % 16;
+    if (d === 5 || d === 6) return [255, 255, 255];
+    if (d === 7 || d === 11) return [236, 236, 236];
+    return shade([200, 200, 200], 0.94 + ((x * 3 + y) % 4) * 0.02 + r() * 0.03);
+  });
+  paint(img, T.ICE, 220, (x, y, r) => {
+    const line = (x + y * 2) % 11 === 0 || (x * 2 - y + 32) % 13 === 0;
+    if (line) return [236, 248, 255];
+    return shade([168, 214, 244], 0.96 + r() * 0.07);
+  });
+  // 鉱石：石の 中に 粒
+  const ore = (pts, col, hi) => (x, y, r) => { for (const [px, py, s] of pts) { const d = Math.max(Math.abs(x - px), Math.abs(y - py)); if (d < s) return d === 0 ? hi : col; } return stone(x, y, r); };
+  paint(img, T.COAL, 231, ore([[4, 4, 2], [11, 3, 2], [7, 9, 2], [12, 12, 2], [3, 12, 2]], [44, 42, 52], [78, 74, 92]));
+  paint(img, T.STAR, 242, ore([[4, 4, 2], [11, 3, 2], [7, 9, 2], [12, 12, 2], [3, 12, 2]], [120, 220, 255], [255, 252, 190]));
+  // あかりけっしょう：光る 結晶の かたまり
+  paint(img, T.LAMP, 253, (x, y, r) => {
+    const facet = (x + y) % 6 < 2 || (x - y + 16) % 7 === 0;
+    if (x === 0 || y === 0 || x === 15 || y === 15) return [255, 214, 120];
+    return facet ? [255, 255, 236] : shade([255, 236, 150], 0.96 + r() * 0.06);
+  });
+  // ゆきだるま（ばってんに 立てて 表示）
+  paint(img, T.SNOWMAN, 264, stamp([
+    "................",
+    "......kkkk......",
+    "......kkkk......",
+    ".....kkkkkk.....",
+    ".....wwwwww.....",
+    "....wwkwwkww....",
+    "....wwwoowww....",
+    "....wwwwwwww....",
+    ".....rrrrrr.....",
+    "....wwwwwwww....",
+    "...wwwwbwwwww...",
+    "...wwwwwwwwww...",
+    "...wwwwbwwwww...",
+    "...wwwwwwwwww...",
+    "....wwwwwwww....",
+    ".....wwwwww.....",
+  ], { k: [50, 28, 76], w: [246, 250, 255], o: [255, 150, 60], r: [232, 80, 90], b: [70, 70, 90] }, () => [0, 0, 0, 0]));
 
   ctx.putImageData(img, 0, 0);
   return cv;
@@ -176,7 +272,7 @@ export function tileIcon(atlas, tile, size = 32, tint = null) {
   return cv;
 }
 
-/* ヒビ：4段階を 横に ならべた 絵（64×16）。段階が 進むほど 線が ふえる */
+/* ヒビ：4段階を 横に ならべた 絵（64×16） */
 export function makeCracks() {
   const cv = document.createElement("canvas");
   cv.width = TILE * 4; cv.height = TILE;
@@ -200,27 +296,31 @@ export function makeCracks() {
   return cv;
 }
 
-/* 道具・持ち物の アイコン（64×64）。tier：1＝木、2＝石 */
+/* 道具・持ち物の アイコン（64×64）。tier：1＝木、2＝石、3＝ほし */
 export function drawIcon(kind, tier = 1) {
   const cv = document.createElement("canvas");
   cv.width = cv.height = 64;
   const c = cv.getContext("2d");
   c.lineCap = "round"; c.lineJoin = "round";
   const wood = "#9a6a3a", woodD = "#6e4826";
-  const head = tier === 2 ? "#9aa0aa" : "#c79a5c", headD = tier === 2 ? "#6c727c" : "#8f6a38";
+  const head = tier === 3 ? "#8fe6ff" : tier === 2 ? "#9aa0aa" : "#c79a5c", headD = tier === 3 ? "#3a9ad0" : tier === 2 ? "#6c727c" : "#8f6a38";
   const line = (x0, y0, x1, y1, w, col) => { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); };
   const handle = () => { line(13, 53, 42, 22, 9, woodD); line(13, 53, 42, 22, 5, wood); };
+  const sparkle = () => { if (tier !== 3) return; c.fillStyle = "#fffbd0"; for (const [x, y] of [[50, 14], [40, 12], [56, 28]]) { c.beginPath(); c.arc(x, y, 2.2, 0, Math.PI * 2); c.fill(); } };
   if (kind === "pick") {
     handle();
     for (const [w, col] of [[11, headD], [6, head]]) { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(18, 14); c.quadraticCurveTo(48, 8, 54, 42); c.stroke(); }
+    sparkle();
   } else if (kind === "axe") {
     handle();
     c.fillStyle = headD; c.beginPath(); c.moveTo(30, 12); c.lineTo(52, 8); c.quadraticCurveTo(62, 22, 54, 36); c.lineTo(36, 30); c.closePath(); c.fill();
     c.fillStyle = head; c.beginPath(); c.moveTo(34, 15); c.lineTo(50, 12); c.quadraticCurveTo(56, 22, 51, 31); c.lineTo(39, 27); c.closePath(); c.fill();
+    sparkle();
   } else if (kind === "shovel") {
     line(12, 54, 38, 26, 9, woodD); line(12, 54, 38, 26, 5, wood);
     c.fillStyle = headD; c.beginPath(); c.moveTo(34, 20); c.lineTo(48, 8); c.quadraticCurveTo(62, 10, 58, 22); c.lineTo(46, 34); c.closePath(); c.fill();
     c.fillStyle = head; c.beginPath(); c.moveTo(38, 21); c.lineTo(49, 12); c.quadraticCurveTo(57, 13, 55, 21); c.lineTo(46, 30); c.closePath(); c.fill();
+    sparkle();
   } else if (kind === "rod") {
     line(8, 56, 52, 8, 6, woodD); line(8, 56, 52, 8, 3, wood);
     line(52, 8, 52, 40, 1.5, "#e8eef4");
@@ -234,8 +334,15 @@ export function drawIcon(kind, tier = 1) {
     c.fillStyle = "#bfe4ff"; c.beginPath(); c.ellipse(28, 37, 14, 5, 0, 0, Math.PI * 2); c.fill();
     c.fillStyle = "#fff"; c.beginPath(); c.arc(17, 29, 4, 0, Math.PI * 2); c.fill();
     c.fillStyle = "#223"; c.beginPath(); c.arc(16, 29, 2, 0, Math.PI * 2); c.fill();
-  } else if (kind === "heart") {
-    c.fillStyle = "#ff5c7a"; c.beginPath(); c.moveTo(32, 54); c.bezierCurveTo(4, 34, 10, 10, 32, 22); c.bezierCurveTo(54, 10, 60, 34, 32, 54); c.fill();
+  } else if (kind === "berry") {
+    line(32, 22, 36, 8, 4, "#5a8a3a");
+    c.fillStyle = "#58b04a"; c.beginPath(); c.ellipse(44, 12, 9, 5, -0.5, 0, Math.PI * 2); c.fill();
+    for (const [x, y, col] of [[22, 38, "#d8344f"], [42, 40, "#e8485f"], [32, 30, "#f0607a"]]) { c.fillStyle = col; c.beginPath(); c.arc(x, y, 12, 0, Math.PI * 2); c.fill(); c.fillStyle = "rgba(255,255,255,.7)"; c.beginPath(); c.arc(x - 4, y - 4, 3, 0, Math.PI * 2); c.fill(); }
+  } else if (kind === "cookie") {
+    c.fillStyle = "#c98a48";
+    c.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 13 : 27; c.lineTo(32 + Math.cos(a) * r, 34 + Math.sin(a) * r); } c.closePath(); c.fill();
+    c.strokeStyle = "#8f5a26"; c.lineWidth = 3; c.stroke();
+    c.fillStyle = "#6a3c1a"; for (const [x, y] of [[32, 26], [25, 38], [40, 38], [32, 34]]) { c.beginPath(); c.arc(x, y, 2.6, 0, Math.PI * 2); c.fill(); }
   } else if (kind === "hand") {
     c.fillStyle = "#fff"; c.strokeStyle = "#5a4a6a"; c.lineWidth = 3;
     c.beginPath(); c.ellipse(32, 36, 17, 15, 0, 0, Math.PI * 2); c.fill(); c.stroke();

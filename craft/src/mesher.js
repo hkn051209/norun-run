@@ -1,8 +1,10 @@
 /* =========================================================
    ブロックの 集まりを 描画用の 形（メッシュ）に する
    - 16×16 の 柱（チャンク）ごとに 1つ。外から 見える 面だけ 作る
-   - 不透明＋ガラス＋おはな（ぬき）で 1つ、水（半とうめい）で 1つ
-   - いろブロックは 白い 絵に 頂点の 色を かけて 色を 出す
+   - 不透明＋ガラス＋おはな等（ぬき）で 1つ、水（半とうめい）で 1つ
+   - 頂点ごとに 持たせる 物：
+       color＝面の 向きの 明るさ × いろブロックの 色
+       light＝(空の 光 0〜1, あかりの 光 0〜1)。昼夜・地下の 明るさは 描く 時に シェーダーで 決める
    ========================================================= */
 import * as THREE from "three";
 import { WORLD } from "./config.js";
@@ -15,10 +17,9 @@ const FACES = [
   { d: [-1, 0, 0], c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], s: 0.82, k: "side" },
   { d: [0, 1, 0], c: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], s: 1.0, k: "top" },
   { d: [0, -1, 0], c: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], s: 0.55, k: "bottom" },
-  { d: [0, 0, 1], c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], s: 0.7, k: "side" },
-  { d: [0, 0, -1], c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], s: 0.7, k: "side" },
+  { d: [0, 0, 1], c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], s: 0.7, k: "side2" },
+  { d: [0, 0, -1], c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], s: 0.7, k: "side2" },
 ];
-/* おはな：ばってんの 2まい（表と 裏） */
 const A = 0.14, Z = 0.86;
 const CROSS = [
   [[A, 0, A], [Z, 0, Z], [Z, 1, Z], [A, 1, A]], [[Z, 0, Z], [A, 0, A], [A, 1, A], [Z, 1, Z]],
@@ -28,17 +29,18 @@ const UV = [[0, 0], [1, 0], [1, 1], [0, 1]];
 const E = 0.002;
 const WATER_TOP = 0.86;
 const WHITE = [1, 1, 1];
-const TINT = COLORS.map((c) => { const k = new THREE.Color(c.hex); return [k.r, k.g, k.b]; });   // 計算用（リニア）の 色
+const TINT = COLORS.map((c) => { const k = new THREE.Color(c.hex); return [k.r, k.g, k.b]; });
 
 class Buf {
-  constructor() { this.p = []; this.c = []; this.u = []; this.i = []; this.n = 0; }
-  quad(x, y, z, corners, s, tile, topY, tint) {
+  constructor() { this.p = []; this.c = []; this.u = []; this.l = []; this.i = []; this.n = 0; }
+  quad(x, y, z, corners, s, tile, topY, tint, sky, lamp) {
     const tu = tile % GRID, tv = Math.floor(tile / GRID);
     for (let k = 0; k < 4; k++) {
       const c = corners[k];
       this.p.push(x + c[0], y + (c[1] ? topY : 0), z + c[2]);
       this.c.push(s * tint[0], s * tint[1], s * tint[2]);
       this.u.push((tu + (UV[k][0] ? 1 - E : E)) / GRID, 1 - (tv + (UV[k][1] ? E : 1 - E)) / GRID);
+      this.l.push(sky, lamp);
     }
     const n = this.n;
     this.i.push(n, n + 1, n + 2, n, n + 2, n + 3);
@@ -50,6 +52,7 @@ class Buf {
     g.setAttribute("position", new THREE.Float32BufferAttribute(this.p, 3));
     g.setAttribute("color", new THREE.Float32BufferAttribute(this.c, 3));
     g.setAttribute("uv", new THREE.Float32BufferAttribute(this.u, 2));
+    g.setAttribute("light", new THREE.Float32BufferAttribute(this.l, 2));
     g.setIndex(this.i);
     g.computeBoundingSphere();
     return g;
@@ -57,21 +60,33 @@ class Buf {
 }
 
 export function buildChunk(world, cx, cz) {
-  const S = WORLD.chunk;
+  const S = WORLD.chunk, x0 = cx * S, z0 = cz * S;
   const solidBuf = new Buf(), waterBuf = new Buf();
-  for (let y = 0; y < WORLD.sy; y++) for (let z = cz * S; z < cz * S + S; z++) for (let x = cx * S; x < cx * S + S; x++) {
-    const id = world.get(x, y, z);
+  const lamps = world.lightsNear(x0, z0, x0 + S - 1, z0 + S - 1);
+  const data = world.data, SX = WORLD.sx, SZ = WORLD.sz;
+  for (let y = 0; y < WORLD.sy; y++) for (let z = z0; z < z0 + S; z++) for (let x = x0; x < x0 + S; x++) {
+    const id = data[x + SX * (z + SZ * y)];
+    if (!id) continue;
     const def = BLOCKS[id];
     if (!def) continue;
-    if (def.cross) { for (const q of CROSS) solidBuf.quad(x, y, z, q, 1, def.side, 0.9, WHITE); continue; }
+    const glow = def.glow || 0;
+    if (def.cross) {
+      const sky = world.skyAt(x, y, z), lamp = Math.max(glow, lamps.length ? world.lampAt(x + 0.5, y + 0.5, z + 0.5, lamps) : 0);
+      for (const q of CROSS) solidBuf.quad(x, y, z, q, 1, def.side, id === B.FLOWER ? 0.9 : 1, WHITE, sky, lamp);
+      continue;
+    }
     const water = id === B.WATER;
     const topY = water && world.get(x, y + 1, z) !== B.WATER ? WATER_TOP : 1;
     const tint = def.color !== undefined ? TINT[def.color] : WHITE;
     for (const f of FACES) {
-      const nb = world.get(x + f.d[0], y + f.d[1], z + f.d[2]);
+      const ax = x + f.d[0], ay = y + f.d[1], az = z + f.d[2];
+      const nb = world.get(ax, ay, az);
       if (isOpaque(nb)) continue;
-      if (nb === id) continue;      // ガラス同士・水同士の 間
-      (water ? waterBuf : solidBuf).quad(x, y, z, f.c, f.s, def[f.k], topY, tint);
+      if (nb === id) continue;
+      // 面が 向いて いる 先の マスの 明るさ
+      const sky = world.skyAt(ax, ay, az);
+      const lamp = Math.max(glow, lamps.length ? world.lampAt(ax + 0.5, ay + 0.5, az + 0.5, lamps) : 0);
+      (water ? waterBuf : solidBuf).quad(x, y, z, f.c, f.s, f.k === "side2" ? (def.side2 !== undefined ? def.side2 : def.side) : def[f.k], topY, tint, sky, lamp);
     }
   }
   return { solid: solidBuf.geometry(), water: waterBuf.geometry() };

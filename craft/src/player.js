@@ -20,6 +20,7 @@ export class Player {
     this.jumped = false;
     this.speed = PLAYER.speed;   // 歩く 速さ（敵は 別の 値）
     this.jumpV = PLAYER.jumpV;
+    this.fly = false;            // クリエイティブの 空を とぶ（重力なし）
   }
   setSize(w, h) { this.w = w; this.h = h; }
   place(p) { this.x = p.x; this.y = p.y; this.z = p.z; this.vx = this.vy = this.vz = 0; this.stepVis = 0; }
@@ -69,7 +70,7 @@ export class Player {
     this.vz += (wishZ * sp - this.vz) * k;
 
     this.jumped = false;
-    if (jump) {
+    if (jump && !this.fly) {
       if (this.inWater) this.vy = Math.max(this.vy, 6);          // 水の 中は およいで 上がる
       else if (this.onGround) { this.vy = this.jumpV; this.onGround = false; this.jumped = true; }
     }
@@ -78,7 +79,8 @@ export class Player {
     this.moveH(0, this.vx * dt, canStep);
     this.moveH(2, this.vz * dt, canStep);
 
-    if (this.inWater) { this.vy -= 7 * dt; if (this.vy < -2.5) this.vy = -2.5; }
+    if (this.fly) { this.vy = jump ? 6.5 : 0; if (this.onGround && !jump) this.fly = false; }
+    else if (this.inWater) { this.vy -= 7 * dt; if (this.vy < -2.5) this.vy = -2.5; }
     else { this.vy -= PLAYER.gravity * dt; if (this.vy < -PLAYER.maxFall) this.vy = -PLAYER.maxFall; }
     const ny = this.y + this.vy * dt;
     const wasGround = this.onGround;
