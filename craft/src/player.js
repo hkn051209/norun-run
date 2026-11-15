@@ -18,6 +18,8 @@ export class Player {
     this.stepVis = 0;   // 段を 乗りこえた 時の 見た目の なめらかさ用（0 へ もどる）
     this.landT = 0;     // 着地の ぺちゃんこ（1 → 0）
     this.jumped = false;
+    this.speed = PLAYER.speed;   // 歩く 速さ（敵は 別の 値）
+    this.jumpV = PLAYER.jumpV;
   }
   setSize(w, h) { this.w = w; this.h = h; }
   place(p) { this.x = p.x; this.y = p.y; this.z = p.z; this.vx = this.vy = this.vz = 0; this.stepVis = 0; }
@@ -61,7 +63,7 @@ export class Player {
     this.inWater = w.get(Math.floor(this.x), Math.floor(this.y + 0.3), Math.floor(this.z)) === B.WATER;
     this.waterT = this.inWater ? 0.35 : Math.max(0, this.waterT - dt);
 
-    const sp = PLAYER.speed * (this.inWater ? 0.6 : 1);
+    const sp = this.speed * (this.inWater ? 0.6 : 1);
     const k = Math.min(1, dt * (this.onGround ? 14 : 6));
     this.vx += (wishX * sp - this.vx) * k;
     this.vz += (wishZ * sp - this.vz) * k;
@@ -69,7 +71,7 @@ export class Player {
     this.jumped = false;
     if (jump) {
       if (this.inWater) this.vy = Math.max(this.vy, 6);          // 水の 中は およいで 上がる
-      else if (this.onGround) { this.vy = PLAYER.jumpV; this.onGround = false; this.jumped = true; }
+      else if (this.onGround) { this.vy = this.jumpV; this.onGround = false; this.jumped = true; }
     }
 
     const canStep = (this.onGround || this.waterT > 0) && this.vy <= 6.01;

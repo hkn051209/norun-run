@@ -4,7 +4,7 @@
      だから セーブは「seed ＋ 変えた ブロックだけ」で すむ。
    ========================================================= */
 import { WORLD } from "./config.js";
-import { B, BLOCK_COUNT, isSolid } from "./blocks.js";
+import { B, BLOCKS, BLOCK_COUNT, isSolid } from "./blocks.js";
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -99,6 +99,16 @@ export function generate(seed) {
     }
     for (let dy = 0; dy < th; dy++) d[idx(x, h + dy, z)] = B.LOG;
   }
+
+  // おはな（つむと 色が 見つかる ことが ある）
+  let flowers = 0;
+  for (let k = 0; k < 200 && flowers < 12; k++) {
+    const x = 2 + Math.floor(rnd() * (sx - 4)), z = 2 + Math.floor(rnd() * (sz - 4));
+    const h = H[x + z * sx];
+    if (d[idx(x, h - 1, z)] !== B.GRASS || d[idx(x, h, z)] !== B.AIR) continue;
+    if (Math.hypot(x + 0.5 - cx, z + 0.5 - cz) < 3) continue;
+    d[idx(x, h, z)] = B.FLOWER; flowers++;
+  }
   return d;
 }
 
@@ -132,11 +142,15 @@ export class World {
   applyChanges(arr) {
     for (let k = 0; k + 1 < arr.length; k += 2) {
       const i = arr[k] | 0, id = arr[k + 1] | 0;
-      if (i < 0 || i >= this.data.length || id < 0 || id >= BLOCK_COUNT) continue;
+      if (i < 0 || i >= this.data.length || id < 0 || id >= BLOCK_COUNT || (id !== 0 && !BLOCKS[id])) continue;
       this.data[i] = id;
       if (this.base[i] === id) this.changes.delete(i); else this.changes.set(i, id);
     }
   }
+  /* その ブロックが いくつ あるか */
+  count(id) { let n = 0; const d = this.data; for (let i = 0; i < d.length; i++) if (d[i] === id) n++; return n; }
+  /* (x, z) の いちばん 上の つまった ブロックの y（なければ -1） */
+  topSolid(x, z) { for (let y = WORLD.sy - 1; y >= 0; y--) if (this.solid(x, y, z)) return y; return -1; }
   /* スタートの 場所（まんなかの 地面の 上） */
   spawn() {
     const x = Math.floor(WORLD.sx / 2), z = Math.floor(WORLD.sz / 2);
@@ -164,7 +178,7 @@ export function raycast(world, ox, oy, oz, dx, dy, dz, maxD, hit) {
   let nx = 0, ny = 0, nz = 0, t = 0;
   for (let n = 0; n < 256 && t <= maxD; n++) {
     const id = world.get(x, y, z);
-    if (hit(id) && world.inside(x, y, z)) return { x, y, z, nx, ny, nz, t, id };
+    if (n > 0 && hit(id) && world.inside(x, y, z)) return { x, y, z, nx, ny, nz, t, id };   // 出発点の マス（カメラが 葉の 中に 入った 時など）は 数えない
     if (tmx <= tmy && tmx <= tmz) { t = tmx; tmx += tdx; x += stx; nx = -stx; ny = 0; nz = 0; }
     else if (tmy <= tmz) { t = tmy; tmy += tdy; y += sty; nx = 0; ny = -sty; nz = 0; }
     else { t = tmz; tmz += tdz; z += stz; nx = 0; ny = 0; nz = -stz; }
