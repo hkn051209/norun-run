@@ -11,7 +11,7 @@
 
   /* ---------- ほぞん ---------- */
   function newPlayer(i) {
-    return { name: D.NAMES[i], face: D.FACES[i], color: D.COLORS[i], cover: D.COVERS[i].id, tickets: 0, inv: {}, pages: D.PAGES.map(function () { return []; }) };
+    return { name: D.NAMES[i], face: D.FACES[i], color: D.COLORS[i], cover: D.COVERS[i].id, tickets: 0, inv: {}, pages: D.PAGES.map(function () { return []; }), rewards: [], rewardView: 'order' };
   }
   function fresh() { return { v: 1, pass: '1234', muted: false, players: [0, 1, 2, 3].map(newPlayer), history: [] }; }
   function load() {
@@ -74,17 +74,17 @@
     var x = parseKey(k), d = x.d, a = d && window.SealAssets.get(d.id);
     if (!d || !a) return '<div class="stk tex-normal"></div>';
     var tex = x.tex, art = '<img class="art" src="' + a.art + '" alt="' + esc(d.n) + '" draggable="false">';
-    var h = '<div class="stk tex-' + tex + '" data-k="' + esc(k) + '">';
+    var h = '<div class="stk tex-' + tex + (d.reward ? ' reward' : '') + (a.placeholder ? ' is-ph' : '') + '" data-k="' + esc(k) + '">';
+    var rim = tex === 'puffy' ? a.thick : a.thin, m = ' style="--m:url(\'' + (tex === 'water' ? a.thick : rim) + '\')"';
     if (tex === 'water') {
       h += '<div class="dome" style="--h:' + d.h + '"><i class="liquid"></i>' + art + glitterHTML() + '<i class="shine"></i><i class="rimlight"></i></div>';
     } else {
-      var rim = tex === 'puffy' ? a.thick : a.thin;
       h += '<img class="lay rim" src="' + rim + '" alt="" draggable="false">' + art;
-      if (tex === 'puffy') {
-        var m = ' style="--m:url(\'' + rim + '\')"';
-        h += '<i class="lay shade"' + m + '></i><i class="lay gloss"' + m + '></i><i class="lay spec"' + m + '></i>';
-      }
+      if (tex === 'puffy') h += '<i class="lay shade"' + m + '></i><i class="lay gloss"' + m + '></i><i class="lay spec"' + m + '></i>';
     }
+    // ごほうび：きんいろの フチが ひかる ＋ キラキラ
+    if (d.reward) h += (tex === 'water' ? '' : '<i class="lay shimmer"' + m + '></i>') + '<i class="tw a">✦</i><i class="tw b">✧</i><i class="tw c">✦</i>';
+    if (a.placeholder) h += '<i class="ph-tag">かり</i>';
     return h + '</div>';
   }
   function sheetIcon(sh) { var a = window.SealAssets.get(sh.items[0].id); return '<img class="tab-ico" src="' + (a ? a.art : '') + '" alt="">'; }
@@ -153,7 +153,7 @@
     $$('.pcard', el).forEach(function (b) {
       b.onclick = function () {
         cur = +b.dataset.i; bookOpen = false; pageIdx = 0; choice = null; tr = { step: 'who' };
-        Snd.pop(); go('book');
+        Snd.pop(); go('book'); setTimeout(checkRewards, 250);
       };
     });
     $('#lockCorner').onclick = openParent;
@@ -161,21 +161,42 @@
 
   /* ---------- 2. シールちょう ---------- */
   var bookOpen = false, pageIdx = 0, choice = null, selUid = null, flipping = false, opening = false;
+  function isRewardPage(i) { return !!D.PAGES[i === undefined ? pageIdx : i].reward; }
+  function isRewardKey(k) { var d = parseKey(k).d; return !!(d && d.reward); }
+  function boardMode() { return isRewardPage() && P().rewardView !== 'free'; }
+  function md(t) { var d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate(); }
+  function reasonOf(id) { return D.REASONS.filter(function (r) { return r.id === id; })[0] || D.REASONS[D.REASONS.length - 1]; }
+  function reasonChip(id) { var r = reasonOf(id); return '<span class="rchip" style="--rc:' + r.color + '"><i>' + r.icon + '</i><b>' + r.name + '</b></span>'; }
 
   function coverHTML(p) {
     return '<div class="cover" id="cover"><div class="cover-insert"></div><div class="cover-gloss"></div>' +
       '<div class="cover-label"><span class="cl-face">' + p.face + '</span><span class="cl-name">' + esc(p.name) + ' の</span><b>シールちょう</b></div></div>';
   }
+  // ごほうびページ：もらった じゅんに ならべる
+  function rewardBoard(p) {
+    var list = p.rewards.filter(function (r) { return r.seen && validKey(r.key); });
+    var show = list.slice(-20);
+    return '<div class="rb"><div class="rb-title">🏆 もらった じゅん</div>' +
+      (show.length ? '<div class="rb-grid">' + show.map(function (r) {
+        return '<div class="rb-cell"><div class="rb-stk">' + stkHTML(r.key) + '</div><span class="rb-date">' + md(r.t) + '</span>' + reasonChip(r.reason) + '</div>';
+      }).join('') + '</div>' : '<div class="rb-empty">まだ ないよ<br>おてつだい や がんばった ときに<br>おうちの ひとから もらえるよ</div>') +
+      (list.length > 20 ? '<div class="rb-more">ほか ' + (list.length - 20) + 'まい（ほごしゃ モードで ぜんぶ みられます）</div>' : '') + '</div>';
+  }
   function pageInner(idx) {
     var pg = D.PAGES[idx], p = P();
     var h = '<div class="page-label">' + pg.icon + ' ' + pg.name + '</div><div class="holes"></div>';
+    if (pg.reward && p.rewardView !== 'free') return h + rewardBoard(p);
     p.pages[idx].forEach(function (it) {
       if (!validKey(it.key)) return;
       h += '<div class="placed' + (it.uid === selUid ? ' sel' : '') + '" data-uid="' + it.uid + '" style="left:' + it.x + '%;top:' + it.y + '%;--s:' + it.s + ';--r:' + it.r + 'deg">' + stkHTML(it.key) + '</div>';
     });
     return h;
   }
-  function fillPage(el, idx) { el.className = 'page bg-' + D.PAGES[idx].id; el.innerHTML = pageInner(idx); }
+  function fillPage(el, idx) {
+    var pg = D.PAGES[idx];
+    el.className = 'page bg-' + pg.id + (pg.reward && P().rewardView !== 'free' ? ' board' : '');
+    el.innerHTML = pageInner(idx);
+  }
 
   R.book = function () {
     var p = P(), el = $('#scr-book');
@@ -201,6 +222,7 @@
     var pw = Math.floor(Math.min((W - 16) / 1.34, (H - 10) / 1.43));
     b.style.setProperty('--pw', Math.max(150, pw) + 'px');
   }
+  function pagePW() { var b = $('#binder'); return b ? parseFloat(b.style.getPropertyValue('--pw')) || 300 : 0; }
 
   function rControls() {
     var c = $('#controls'); if (!c) return;
@@ -214,33 +236,46 @@
         '<button class="big warn" data-ed="peel">🩹<span>はがす</span></button><button class="big pri" data-ed="done">✔<span>おわり</span></button></div>';
       $$('[data-ed]', c).forEach(function (b) { b.onclick = function () { editSel(b.dataset.ed); }; });
     } else {
-      var pg = D.PAGES[pageIdx];
+      var pg = D.PAGES[pageIdx], free = P().rewardView === 'free';
       c.innerHTML = '<button class="big" id="prevBtn"' + (pageIdx === 0 ? ' disabled' : '') + '>◀ まえ</button>' +
         '<div class="pageno" id="pageNo"><b>' + (pageIdx + 1) + '</b> / ' + D.PAGES.length + '<span>' + pg.name + '</span></div>' +
         '<button class="big" id="nextBtn"' + (pageIdx === D.PAGES.length - 1 ? ' disabled' : '') + '>つぎ ▶</button>' +
+        (pg.reward ? '<div class="seg" id="rvSeg"><button class="mid' + (free ? '' : ' on') + '" data-v="order">🏆 ならべる</button><button class="mid' + (free ? ' on' : '') + '" data-v="free">✋ はる</button></div>' : '') +
         '<button class="mid" id="closeBtn">とじる</button>';
       $('#prevBtn').onclick = function () { flip(-1); };
       $('#nextBtn').onclick = function () { flip(1); };
       $('#closeBtn').onclick = closeBook;
+      $$('#rvSeg button').forEach(function (b) {
+        b.onclick = function () { P().rewardView = b.dataset.v; save(); Snd.tap(); fillPage($('#page'), pageIdx); rControls(); rTray(); };
+      });
     }
   }
 
+  function trayKeys(p) {
+    var list = invList(p);
+    if (isRewardPage()) return boardMode() ? [] : list.filter(isRewardKey);
+    return list;
+  }
   function rTray() {
     var t = $('#tray'); if (!t) return;
-    var p = P(), list = invList(p);
-    if (choice && !(p.inv[choice] > 0)) choice = null;
-    t.innerHTML = '<div class="tray-head">🎒 はる シール<small>' + (choice ? 'ページを タップして はってね' : 'シールを えらんでね') + '</small></div>' +
+    var p = P(), list = trayKeys(p);
+    if (choice && (!(p.inv[choice] > 0) || list.indexOf(choice) < 0)) choice = null;
+    var empty = boardMode() ? 'ここは ならべる ページ<br>「✋ はる」に すると<br>ごほうびシールを はれるよ' :
+      isRewardPage() ? 'ごほうびシールが ないよ<br>おうちの ひとから<br>もらえるよ' : 'シールが ないよ<br>📄シールシート や<br>🎰ガチャ で もらおう';
+    t.innerHTML = '<div class="tray-head">🎒 はる シール<small>' + (choice ? 'ページを タップして はってね' : 'ゆびで ページまで ひっぱってね') + '</small></div>' +
       (list.length ? '<div class="tray-list">' + list.map(function (k) {
         return '<button class="tray-item' + (k === choice ? ' on' : '') + '" data-k="' + esc(k) + '">' + stkHTML(k) + '<span class="cnt">' + p.inv[k] + '</span></button>';
-      }).join('') + '</div>' : '<div class="tray-empty">シールが ないよ<br>📄シールシート や<br>🎰ガチャ で もらおう</div>');
+      }).join('') + '</div>' : '<div class="tray-empty">' + empty + '</div>');
     $$('.tray-item', t).forEach(function (b) {
+      b.addEventListener('pointerdown', function (e) { beginSourceDrag(e, b.dataset.k, b, trayAxis()); });
       b.onclick = function () {
-        if (!bookOpen) return;
+        if (Date.now() < suppressClick || !bookOpen) return;
         choice = (choice === b.dataset.k) ? null : b.dataset.k;
         selUid = null; markSel(); rControls(); rTray(); Snd.tap();
       };
     });
   }
+  function trayAxis() { return window.matchMedia('(orientation: portrait)').matches ? 'x' : 'y'; }
 
   function openBook() {
     if (bookOpen || opening) return;
@@ -297,40 +332,144 @@
     }
     fl.addEventListener('animationend', done);
     setTimeout(done, 900);
-    rControls();
+    rControls(); rTray();
   }
 
   function itemByUid(u) { var arr = P().pages[pageIdx]; for (var i = 0; i < arr.length; i++) if (arr[i].uid === u) return arr[i]; return null; }
   function markSel() { $$('#page .placed').forEach(function (e) { e.classList.toggle('sel', e.dataset.uid === selUid); }); }
   function select(u) { selUid = u; choice = null; markSel(); rControls(); rTray(); }
 
+  function peelItem(it, el) {
+    var p = P(), arr = p.pages[pageIdx], i = arr.indexOf(it);
+    if (i < 0) return;
+    arr.splice(i, 1);
+    invAdd(p, it.key, 1); save(); Snd.peel();
+    toast(stkName(it.key) + ' を もちものに もどしたよ');
+    if (selUid === it.uid) selUid = null;
+    if (el) { el.classList.add('peeling'); setTimeout(function () { var pg = $('#page'); if (pg) fillPage(pg, pageIdx); }, 350); }
+    else fillPage($('#page'), pageIdx);
+    rControls(); rTray();
+  }
+
   function editSel(a) {
-    var p = P(), it = itemByUid(selUid);
+    var it = itemByUid(selUid);
     if (a === 'done' || !it) { selUid = null; markSel(); rControls(); return; }
     var el = $('#page .placed[data-uid="' + selUid + '"]');
     if (a === 'big') it.s = Math.min(2.6, +(it.s + 0.2).toFixed(2));
     if (a === 'small') it.s = Math.max(0.4, +(it.s - 0.2).toFixed(2));
     if (a === 'rl') it.r = (it.r - 15) % 360;
     if (a === 'rr') it.r = (it.r + 15) % 360;
-    if (a === 'peel') {
-      var arr = p.pages[pageIdx]; arr.splice(arr.indexOf(it), 1);
-      invAdd(p, it.key, 1); save(); Snd.peel();
-      toast(stkName(it.key) + ' を もちものに もどしたよ');
-      selUid = null;
-      if (el) { el.classList.add('peeling'); setTimeout(function () { fillPage($('#page'), pageIdx); }, 350); }
-      rControls(); rTray(); return;
-    }
+    if (a === 'peel') { peelItem(it, el); return; }
     save(); Snd.tap();
     if (el) { el.style.setProperty('--s', it.s); el.style.setProperty('--r', it.r + 'deg'); }
   }
 
+  /* ドラッグの かげ（ゆびに くっついて うごく シール） */
+  var ghost = null;
+  function ghostSize(scale) { var pw = pagePW(); return (pw ? pw * 0.2 : 110) * (scale || 1); }
+  function makeGhost(k, scale, cls) {
+    dropGhost();
+    var size = ghostSize(scale);
+    ghost = document.createElement('div');
+    ghost.className = 'ghost ' + (cls || '');
+    ghost.style.fontSize = size + 'px';
+    ghost.innerHTML = stkHTML(k) + (cls === 'peel' ? '<span class="ghost-tag">はがす</span>' : '');
+    ghost._s = size;
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+  function moveGhost(x, y) { if (ghost) ghost.style.transform = 'translate3d(' + (x - ghost._s / 2) + 'px,' + (y - ghost._s / 2) + 'px,0)'; }
+  function dropGhost(anim) {
+    if (!ghost) return;
+    var g = ghost; ghost = null;
+    if (anim) { g.classList.add(anim); setTimeout(function () { g.remove(); }, 260); } else g.remove();
+  }
+  function inPage(x, y) {
+    var pg = $('#page'); if (!pg || !bookOpen || scr !== 'book') return false;
+    var r = pg.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+  function canDrop(k) {
+    if (!isRewardPage()) return true;
+    if (boardMode()) return false;
+    return isRewardKey(k);
+  }
+  function dropNG(k) {
+    if (boardMode()) toast('「✋ はる」に すると はれるよ');
+    else toast('ここは ごほうびシール だけ はれるよ');
+    Snd.ng();
+  }
+
+  /* もちもの（トレイ・もちものシート）から ドラッグで はる */
+  var sdrag = null, suppressClick = 0;
+  function beginSourceDrag(e, k, el, axis) {
+    if (sdrag || drag || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    sdrag = { id: e.pointerId, k: k, el: el, x0: e.clientX, y0: e.clientY, axis: axis, type: e.pointerType, active: false };
+    if (e.pointerType !== 'mouse') sdrag.timer = setTimeout(function () { if (sdrag && !sdrag.active) activateSource(sdrag.x0, sdrag.y0); }, 280);
+    document.addEventListener('pointermove', sMove, true);
+    document.addEventListener('pointerup', sUp, true);
+    document.addEventListener('pointercancel', sCancel, true);
+  }
+  function activateSource(x, y) {
+    var d = sdrag; if (!d) return;
+    clearTimeout(d.timer);
+    d.active = true; suppressClick = Date.now() + 100000;
+    if (d.el) d.el.classList.add('lifted');
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch (er) {} }
+    if (scr !== 'book') { choice = null; bookOpen = true; go('book'); }
+    else if (!bookOpen && !opening) { bookOpen = true; R.book(); }
+    choice = null; selUid = null; markSel(); rControls();
+    makeGhost(d.k, 1.15, 'lift');
+    moveGhost(x, y); Snd.tap();
+  }
+  function sMove(e) {
+    var d = sdrag; if (!d || e.pointerId !== d.id) return;
+    var dx = e.clientX - d.x0, dy = e.clientY - d.y0, dist = Math.hypot(dx, dy);
+    if (!d.active) {
+      if (d.type === 'mouse') { if (dist > 6) activateSource(e.clientX, e.clientY); }
+      else if (dist > 10) {
+        var across = d.axis === 'x' ? Math.abs(dy) > Math.abs(dx) : Math.abs(dx) > Math.abs(dy);
+        if (across) activateSource(e.clientX, e.clientY); else { sEnd(); return; }
+      }
+      if (!d.active) return;
+    }
+    moveGhost(e.clientX, e.clientY);
+    var over = inPage(e.clientX, e.clientY), ok = over && canDrop(d.k);
+    if (ghost) { ghost.classList.toggle('over', ok); ghost.classList.toggle('ng', over && !ok); }
+    var pg = $('#page'); if (pg) pg.classList.toggle('drop-ok', ok);
+    e.preventDefault();
+  }
+  function sUp(e) {
+    var d = sdrag; if (!d || e.pointerId !== d.id) return;
+    if (d.active) {
+      suppressClick = Date.now() + 400;
+      var over = inPage(e.clientX, e.clientY);
+      if (over && canDrop(d.k)) { dropGhost(); placeAt(e.clientX, e.clientY, d.k); }
+      else { if (over) dropNG(d.k); dropGhost('back'); }
+    }
+    sEnd();
+  }
+  function sCancel(e) { var d = sdrag; if (!d || e.pointerId !== d.id) return; if (d.active) dropGhost('back'); sEnd(); }
+  function sEnd() {
+    var d = sdrag; sdrag = null;
+    if (d) { clearTimeout(d.timer); if (d.el) d.el.classList.remove('lifted'); }
+    if (!d || !d.active) suppressClick = 0;
+    var pg = $('#page'); if (pg) pg.classList.remove('drop-ok');
+    document.removeEventListener('pointermove', sMove, true);
+    document.removeEventListener('pointerup', sUp, true);
+    document.removeEventListener('pointercancel', sCancel, true);
+  }
+  // ドラッグちゅうは がめんを スクロールさせない
+  document.addEventListener('touchmove', function (e) { if ((sdrag && sdrag.active) || (drag && drag.uid)) e.preventDefault(); }, { passive: false });
+
+  /* ページの うえの そうさ（はった シールを うごかす・めくる・タップで はる） */
   var drag = null;
   function onDown(e) {
-    if (!bookOpen || flipping || drag) return;
+    if (!bookOpen || flipping || drag || sdrag) return;
     var page = $('#page');
     var pl = choice ? null : e.target.closest('.placed');
     try { page.setPointerCapture(e.pointerId); } catch (er) {}
-    drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, uid: pl ? pl.dataset.uid : null, el: pl, moved: false };
+    drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, uid: pl ? pl.dataset.uid : null, el: pl, moved: false, out: false };
     if (pl) {
       var it = itemByUid(pl.dataset.uid), r = page.getBoundingClientRect();
       drag.ox = it.x - (e.clientX - r.left) / r.width * 100;
@@ -339,20 +478,26 @@
     }
     page.onpointermove = onMove;
     page.onpointerup = onUp;
-    page.onpointercancel = function () { drag = null; };
+    page.onpointercancel = function () { if (drag && drag.out) { dropGhost(); if (drag.el) drag.el.style.visibility = ''; } drag = null; };
     e.preventDefault();
   }
   function onMove(e) {
     if (!drag || e.pointerId !== drag.id) return;
     var dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
     if (!drag.moved && Math.hypot(dx, dy) > 8) drag.moved = true;
-    if (drag.uid && drag.moved) {
-      var it = itemByUid(drag.uid), r = $('#page').getBoundingClientRect();
-      if (!it) return;
+    if (!(drag.uid && drag.moved)) return;
+    var it = itemByUid(drag.uid); if (!it) return;
+    if (inPage(e.clientX, e.clientY)) {
+      if (drag.out) { drag.out = false; dropGhost(); drag.el.style.visibility = ''; }
+      var r = $('#page').getBoundingClientRect();
       it.x = +clamp((e.clientX - r.left) / r.width * 100 + drag.ox, 0, 100).toFixed(2);
       it.y = +clamp((e.clientY - r.top) / r.height * 100 + drag.oy, 0, 100).toFixed(2);
       drag.el.style.left = it.x + '%'; drag.el.style.top = it.y + '%';
       drag.el.classList.add('dragging');
+    } else {
+      // ちょうの そとへ → はがれそう
+      if (!drag.out) { drag.out = true; drag.el.style.visibility = 'hidden'; makeGhost(it.key, it.s * 1.1, 'peel'); }
+      moveGhost(e.clientX, e.clientY);
     }
   }
   function onUp(e) {
@@ -361,23 +506,26 @@
     var dx = e.clientX - d.x0, dy = e.clientY - d.y0;
     if (d.uid) {
       if (d.el) d.el.classList.remove('dragging');
+      var it = itemByUid(d.uid);
+      if (d.out && it) { dropGhost('poof'); peelItem(it, null); return; }
       if (d.moved) { save(); Snd.pop(); }
       else tapEffect(d.el && d.el.querySelector('.stk'));
       return;
     }
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) { flip(dx < 0 ? 1 : -1); return; }
     if (Math.hypot(dx, dy) < 14) {
-      if (choice) placeAt(e.clientX, e.clientY);
+      if (choice) placeAt(e.clientX, e.clientY, choice);
       else if (selUid) { selUid = null; markSel(); rControls(); }
     }
   }
-  function placeAt(cx, cy) {
+  function placeAt(cx, cy, k) {
     var p = P();
-    if (!choice || !(p.inv[choice] > 0)) { choice = null; rTray(); return; }
+    if (!k || !(p.inv[k] > 0)) { choice = null; rTray(); return false; }
+    if (!canDrop(k)) { dropNG(k); return false; }
     var r = $('#page').getBoundingClientRect();
-    var it = { uid: uid(), key: choice, x: +clamp((cx - r.left) / r.width * 100, 3, 97).toFixed(2), y: +clamp((cy - r.top) / r.height * 100, 3, 97).toFixed(2), s: 1, r: 0 };
+    var it = { uid: uid(), key: k, x: +clamp((cx - r.left) / r.width * 100, 3, 97).toFixed(2), y: +clamp((cy - r.top) / r.height * 100, 3, 97).toFixed(2), s: 1, r: 0 };
     p.pages[pageIdx].push(it);
-    invAdd(p, choice, -1);
+    invAdd(p, k, -1);
     choice = null;
     save(); Snd.pop();
     selUid = it.uid;
@@ -385,6 +533,7 @@
     var el = $('#page .placed[data-uid="' + it.uid + '"]');
     if (el) el.classList.add('stuck');
     rControls(); rTray();
+    return true;
   }
 
   /* ---------- 3. もちもの ---------- */
@@ -393,13 +542,15 @@
     if (choice && !(p.inv[choice] > 0)) choice = null;
     el.innerHTML = '<div class="paper"><h2>🎒 ' + esc(p.name) + ' の もちもの</h2>' +
       '<p class="sub">もっている シール <b>' + invTotal(p) + '</b>まい ・ ちょうに はった シール <b>' + placedTotal(p) + '</b>まい</p>' +
-      (list.length ? '<div class="inv-grid">' + list.map(function (k) {
+      (list.length ? '<p class="hint">👆 シールを ゆびで おさえて うごかすと、ちょうに はれるよ</p><div class="inv-grid">' + list.map(function (k) {
         return '<button class="inv-item' + (k === choice ? ' on' : '') + '" data-k="' + esc(k) + '"><div class="ii">' + stkHTML(k) + '</div>' +
           '<span class="cnt">×' + p.inv[k] + '</span><span class="nm">' + esc(stkName(k)) + '</span>' + texLabel(k) + '</button>';
       }).join('') + '</div>' : '<div class="empty">まだ シールが ないよ<br>📄 シールシート や 🎰 ガチャ で あつめよう！</div>') +
       '</div><div class="bottom-bar"><button class="big pri" id="useBtn"' + (choice ? '' : ' disabled') + '>📖 ちょうに はる</button></div>';
     $$('.inv-item', el).forEach(function (b) {
+      b.addEventListener('pointerdown', function (e) { beginSourceDrag(e, b.dataset.k, b, 'y'); });
       b.onclick = function () {
+        if (Date.now() < suppressClick) return;
         if (choice === b.dataset.k) tapEffect(b.querySelector('.stk'));
         choice = b.dataset.k; Snd.tap();
         $$('.inv-item', el).forEach(function (x) { x.classList.toggle('on', x === b); });
@@ -408,7 +559,9 @@
     });
     $('#useBtn').onclick = function () {
       if (!choice) return;
-      var c = choice; go('book'); choice = c;
+      var c = choice;
+      if (isRewardPage() && !isRewardKey(c)) pageIdx = 0;
+      go('book'); choice = c;
       if (!bookOpen) { openBook(); } else rTray();
       setTimeout(rTray, 1450);
     };
@@ -416,24 +569,30 @@
 
   /* ---------- 4. シールシート ---------- */
   var sheetIdx = 0;
-  function sheetTabs(idx, id) {
-    return '<div class="tabs" id="' + id + '">' + D.SHEETS.map(function (s, i) {
+  function normalSheets() { return D.SHEETS.filter(function (s) { return !s.reward; }); }
+  function rewardSheet() { return D.SHEETS.filter(function (s) { return s.reward; })[0]; }
+  function sheetTabs(idx, id, list) {
+    return '<div class="tabs" id="' + id + '">' + (list || D.SHEETS).map(function (s, i) {
       return '<button class="tab' + (i === idx ? ' on' : '') + '" data-i="' + i + '">' + sheetIcon(s) + '<span>' + s.name + '</span></button>';
     }).join('') + '</div>';
   }
   R.sheets = function () {
     var el = $('#scr-sheets'), sh = D.SHEETS[sheetIdx];
+    if (!sh) { sheetIdx = 0; sh = D.SHEETS[0]; }
     el.innerHTML = sheetTabs(sheetIdx, 'sheetTabs') +
-      '<div class="sheet-scroll"><div class="lace lace-' + sh.id + '"><div class="sheet sheet-' + sh.id + '">' +
+      '<div class="sheet-scroll"><div class="lace lace-' + sh.id + (sh.reward ? ' lace-reward' : '') + '"><div class="sheet sheet-' + sh.id + '">' +
       '<div class="sheet-title">' + sheetIcon(sh) + ' ' + sh.name + ' シール</div>' +
       '<div class="sheet-grid' + (sh.norun ? ' many' : '') + '">' + sh.items.map(function (it) {
         var k = keyOf(it.id, it.tex);
         return '<button class="sheet-item" data-k="' + k + '">' + stkHTML(k) + '</button>';
-      }).join('') + '</div><div class="sheet-foot">すきな シールを タップすると もちものに はいるよ</div></div></div></div>';
+      }).join('') + '</div><div class="sheet-foot">' + (sh.reward ? '🏆 ごほうびシールは おうちの ひとから もらえる とくべつな シールだよ' : 'すきな シールを タップすると もちものに はいるよ') +
+      (sh.items.some(function (it) { var a = window.SealAssets.get(it.id); return a && a.placeholder; }) ? '<br><small>「かり」の シールは、ほんものの え が とどくまでの かりの え です</small>' : '') +
+      '</div></div></div></div>';
     $$('.tab', $('#sheetTabs')).forEach(function (b) { b.onclick = function () { sheetIdx = +b.dataset.i; Snd.tap(); R.sheets(); }; });
     $$('.sheet-item', el).forEach(function (b) {
       b.onclick = function () {
         var p = P(), k = b.dataset.k;
+        if (sh.reward) { tapEffect(b.querySelector('.stk')); toast('ごほうびシールは おうちの ひとから もらえるよ'); return; }
         invAdd(p, k, 1); save(); Snd.get();
         tapEffect(b.querySelector('.stk'));
         flyTo(b, $('#nav [data-go="inv"]'));
@@ -455,7 +614,7 @@
   /* ---------- 5. ガチャ ---------- */
   var spinning = false;
   function rollGacha() {
-    var sh = D.SHEETS[Math.floor(Math.random() * D.SHEETS.length)];
+    var ns = normalSheets(), sh = ns[Math.floor(Math.random() * ns.length)];
     var it = sh.items[Math.floor(Math.random() * sh.items.length)];
     var r = Math.random(), tex = r < 0.3 ? 'puffy' : r < 0.55 ? 'water' : 'normal';
     return keyOf(it.id, tex);
@@ -598,12 +757,12 @@
   }
   function openParent() {
     pinPad('🔒 ほごしゃ モード', 'パスワード（4けた）を いれてください', function (code) {
-      if (code === S.pass) { pp = { i: cur === null ? 0 : cur, view: 'main', sheet: 0, tex: 'normal' }; showParent(); return true; }
+      if (code === S.pass) { pp = { i: cur === null ? 0 : cur, view: 'main', sheet: 0, tex: 'normal', rk: null, reason: null }; showParent(); return true; }
       Snd.ng(); return false;
     });
   }
-  var pp = { i: 0, view: 'main', sheet: 0, tex: 'normal' };
-  function closeParent() { var m = $('#modal'); m.classList.add('hidden'); m.innerHTML = ''; rerender(); }
+  var pp = { i: 0, view: 'main', sheet: 0, tex: 'normal', rk: null, reason: null };
+  function closeParent() { var m = $('#modal'); m.classList.add('hidden'); m.innerHTML = ''; rerender(); setTimeout(checkRewards, 300); }
   function showParent() {
     var m = $('#modal'), q = S.players[pp.i];
     m.classList.remove('hidden');
@@ -612,19 +771,31 @@
         return '<button class="pp-tab' + (i === pp.i ? ' on' : '') + '" data-i="' + i + '" style="--c:' + x.color + '">' + x.face + ' ' + esc(x.name) + '</button>';
       }).join('') + '</div>';
     if (pp.view === 'main') {
-      h += '<div class="pp-grid">' +
+      var rs = rewardSheet();
+      h += '<div class="pp-reward"><h3>🏆 ごほうびシールを あげる</h3>' +
+        '<div class="ppr-step"><span class="ppr-no">1</span><b>あげる こ</b>' + who(pp.i) + '<small>（うえで えらべます）</small></div>' +
+        '<div class="ppr-step"><span class="ppr-no">2</span><b>シール</b></div><div class="ppr-stks">' + (rs ? rs.items.map(function (it) {
+          var k = keyOf(it.id, it.tex);
+          return '<button class="ppr-stk' + (pp.rk === k ? ' on' : '') + '" data-rk="' + k + '">' + stkHTML(k) + '</button>';
+        }).join('') : '') + '</div>' +
+        '<div class="ppr-step"><span class="ppr-no">3</span><b>りゆう</b></div><div class="ppr-reasons">' + D.REASONS.map(function (r) {
+          return '<button class="ppr-reason' + (pp.reason === r.id ? ' on' : '') + '" data-rs="' + r.id + '" style="--rc:' + r.color + '"><i>' + r.icon + '</i><b>' + r.name + '</b></button>';
+        }).join('') + '</div>' +
+        '<div class="ppr-go"><button class="big pri huge" id="ppRewardGo"' + (pp.rk && pp.reason ? '' : ' disabled') + '>🎁 ' + esc(q.name) + ' に あげる</button>' +
+        '<small>つぎに ' + esc(q.name) + ' で ひらいた ときに、おいわいの えんしゅつと いっしょに とどきます</small></div></div>' +
+        '<div class="pp-grid">' +
         '<div class="pp-card"><h3>🎫 ガチャけんを あげる</h3><p>いま <b id="ppT">' + q.tickets + '</b> まい</p><div class="row"><button class="big pri" data-t="1">＋1</button><button class="big pri" data-t="5">＋5</button></div></div>' +
         '<div class="pp-card"><h3>🎁 シールを あげる</h3><p>ぜんぶの シートから えらべます</p><button class="big pri" id="ppGive">シールを えらぶ</button></div>' +
         '<div class="pp-card"><h3>✏️ なまえ と かお</h3><div class="row"><input id="ppName" maxlength="10" value="' + esc(q.name) + '"><button class="big" id="ppNameBtn">かえる</button></div>' +
         '<div class="faces">' + D.FACES.map(function (f) { return '<button class="facebtn' + (f === q.face ? ' on' : '') + '" data-f="' + f + '">' + f + '</button>'; }).join('') + '</div></div>' +
-        '<div class="pp-card"><h3>🗑 データを リセット</h3><p>シール・はったもの・けん・ちょうの しゅるいを さいしょに もどします（なまえ と かお は のこります）</p><button class="big danger" id="ppReset">リセット</button></div>' +
+        '<div class="pp-card"><h3>🗑 データを リセット</h3><p>シール・はったもの・けん・ちょうの しゅるい・ごほうびの りれきを さいしょに もどします（なまえ と かお は のこります）</p><button class="big danger" id="ppReset">リセット</button></div>' +
         '<div class="pp-card"><h3>🖼 シールの え</h3><p>ほんばんの PNG：<b id="ppReal">' + (window.SealAssets.total() - window.SealAssets.placeholderCount()) + '</b>まい ／ かりの えもじ：<b id="ppPh">' + window.SealAssets.placeholderCount() + '</b>まい</p><p>PNG の おきかたは README を みてください</p></div>' +
         '<div class="pp-card"><h3>🔑 パスワードを かえる</h3><p>4けたの すうじ</p><button class="big" id="ppPass">かえる</button></div>' +
-        '</div>';
+        '</div>' + rewardHistoryHTML();
     } else {
-      var sh = D.SHEETS[pp.sheet];
+      var ns = normalSheets(), sh = ns[pp.sheet] || ns[0];
       h += '<div class="pp-give"><div class="row"><button class="mid back" id="ppBack">◀ もどる</button><b>' + esc(q.name) + ' に あげる シールを タップ</b></div>' +
-        sheetTabs(pp.sheet, 'ppSheetTabs') +
+        sheetTabs(pp.sheet, 'ppSheetTabs', ns) +
         '<div class="row texrow">しつかん：' + ['normal', 'puffy', 'water'].map(function (t) { return '<button class="mid texbtn' + (pp.tex === t ? ' on' : '') + '" data-tex="' + t + '">' + D.TEX_NAME[t] + '</button>'; }).join('') + '</div>' +
         '<div class="sheet-grid' + (sh.norun ? ' many' : '') + ' pp-sheet">' + sh.items.map(function (it) {
           var k = keyOf(it.id, pp.tex);
@@ -667,11 +838,57 @@
       }, showParent);
     };
     if ($('#ppBack')) $('#ppBack').onclick = function () { pp.view = 'main'; showParent(); };
+    $$('.ppr-stk', m).forEach(function (b) { b.onclick = function () { pp.rk = b.dataset.rk; Snd.tap(); showParent(); }; });
+    $$('.ppr-reason', m).forEach(function (b) { b.onclick = function () { pp.reason = b.dataset.rs; Snd.tap(); showParent(); }; });
+    if ($('#ppRewardGo')) $('#ppRewardGo').onclick = function () {
+      if (!pp.rk || !pp.reason) return;
+      q.rewards.push({ t: Date.now(), key: pp.rk, reason: pp.reason, seen: false });
+      save(); Snd.win();
+      toast('🏆 ' + esc(q.name) + ' に ごほうびを おくったよ');
+      pp.rk = null; pp.reason = null; showParent();
+    };
     $$('#ppSheetTabs .tab').forEach(function (b) { b.onclick = function () { pp.sheet = +b.dataset.i; showParent(); }; });
     $$('.texbtn', m).forEach(function (b) { b.onclick = function () { pp.tex = b.dataset.tex; showParent(); }; });
     $$('.pp-sheet .sheet-item', m).forEach(function (b) {
       b.onclick = function () { invAdd(q, b.dataset.k, 1); save(); Snd.get(); tapEffect(b.querySelector('.stk')); toast(esc(q.name) + ' に ' + esc(stkName(b.dataset.k)) + ' を あげたよ'); };
     });
+  }
+
+  function rewardHistoryHTML() {
+    var all = [];
+    S.players.forEach(function (x, i) { x.rewards.forEach(function (r) { all.push({ i: i, r: r }); }); });
+    all.sort(function (a, b) { return b.r.t - a.r.t; });
+    return '<div class="pp-card pp-hist"><h3>📜 ごほうびの りれき</h3>' + (all.length ? '<ul class="hist">' + all.slice(0, 80).map(function (x) {
+      return '<li><span class="ht">' + fmtTime(x.r.t) + '</span>' + who(x.i) + '<span class="hs">' + (validKey(x.r.key) ? stkHTML(x.r.key) : '') + '</span>' + esc(stkName(x.r.key)) + ' ' + reasonChip(x.r.reason) +
+        '<span class="hstate' + (x.r.seen ? ' got' : '') + '">' + (x.r.seen ? 'とどいた' : 'まだ ひらいていない') + '</span></li>';
+    }).join('') + '</ul>' : '<p>まだ ありません</p>') + '</div>';
+  }
+
+  /* ---------- 8. ごほうび の うけとり ---------- */
+  var celebrating = false;
+  function checkRewards() {
+    if (cur === null || celebrating || scr === 'players') return;
+    var p = P(), r = p.rewards.filter(function (x) { return !x.seen && validKey(x.key); })[0];
+    if (!r) return;
+    celebrating = true;
+    var ov = $('#celebrate'), conf = '';
+    var cols = ['#ffd84d', '#ff8fb8', '#8fd7ff', '#b9e8a6', '#d6c2ff', '#fff'];
+    for (var i = 0; i < 36; i++) conf += '<i class="cf" style="--x:' + (Math.random() * 100).toFixed(1) + '%;--d:' + (Math.random() * 1.2).toFixed(2) + 's;--c:' + cols[i % cols.length] + ';--r:' + Math.floor(Math.random() * 360) + 'deg;--t:' + (2.2 + Math.random() * 1.6).toFixed(2) + 's"></i>';
+    ov.innerHTML = '<div class="cel-rays"></div>' + conf + '<div class="cel-inner"><div class="cel-title">ごほうびシールを もらったよ！</div>' +
+      '<div class="cel-stk">' + stkHTML(r.key) + '<i class="tw a">✦</i><i class="tw b">✦</i><i class="tw c">✧</i><i class="tw d">✦</i></div>' +
+      '<div class="cel-name">' + esc(stkName(r.key)) + '</div><div class="cel-why">' + reasonChip(r.reason) + '</div>' +
+      '<button class="big pri huge" id="celOk">やったー！</button></div>';
+    ov.classList.remove('hidden');
+    Snd.fanfare();
+    $('.cel-stk .stk', ov).addEventListener('click', function (e) { tapEffect(e.currentTarget); });
+    $('#celOk').onclick = function () {
+      r.seen = true; r.got = Date.now();
+      invAdd(p, r.key, 1); save(); Snd.get();
+      ov.classList.add('hidden'); ov.innerHTML = ''; celebrating = false;
+      toast('🏆 ' + esc(stkName(r.key)) + ' が もちものに はいったよ');
+      rerender();
+      setTimeout(checkRewards, 400);
+    };
   }
 
   /* ---------- きどう ---------- */
@@ -697,6 +914,6 @@
     }
   }
   // テストよう（がめんの そうさには つかわない）
-  window.__seal = { state: function () { return S; }, key: KEY, ready: function () { return ready; } };
+  window.__seal = { state: function () { return S; }, key: KEY, ready: function () { return ready; }, roll: function () { return rollGacha(); } };
   init();
 })();

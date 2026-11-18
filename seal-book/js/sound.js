@@ -63,6 +63,12 @@ window.Snd = (function () {
   o.snap = function () { play('snap', function () { noise(0.03, 4200, 2600, 0.06, 0, 3); tone(320, 200, 0.05, 'square', 0.015, 0.01); }); };
   o.gacha = function () { play('gacha', function () { for (var i = 0; i < 7; i++) noise(0.04, 1900, 1400, 0.035, i * 0.13, 5); }); };
   o.win = function () { play('win', function () { [660, 880, 1100, 1320].forEach(function (f, i) { tone(f, f, 0.12, 'triangle', 0.04, i * 0.09); }); }); };
+  // ごほうびの おいわい：ファンファーレ ＋ キラキラ
+  o.fanfare = function () { play('fanfare', function () {
+    [[523, 0], [659, .12], [784, .24], [1047, .36], [784, .56], [1047, .68]].forEach(function (n) { tone(n[0], n[0], 0.16, 'triangle', 0.05, n[1]); tone(n[0] * 2, n[0] * 2, 0.1, 'sine', 0.015, n[1]); });
+    tone(1047, 1047, 0.6, 'triangle', 0.045, 0.82); tone(1319, 1319, 0.6, 'triangle', 0.03, 0.82); tone(1568, 1568, 0.6, 'sine', 0.025, 0.82);
+    for (var i = 0; i < 10; i++) tone(2000 + Math.random() * 2500, 3000 + Math.random() * 2000, 0.06, 'sine', 0.012, 0.9 + i * 0.07);
+  }); };
   o.ng = function () { play('ng', function () { tone(240, 170, 0.18, 'square', 0.02); }); };
   o.squish = function () { play('squish', function () { tone(260, 520, 0.12, 'sine', 0.05); }); };
   o.water = function () { play('water', function () { for (var i = 0; i < 5; i++) tone(1500 + Math.random() * 1500, 2600, 0.05, 'sine', 0.015, i * 0.05); }); };

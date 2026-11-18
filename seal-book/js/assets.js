@@ -45,7 +45,7 @@ window.SealAssets = (function () {
     return c;
   }
   // かたちに そった しろい フチ
-  function rimCanvas(fit, r) {
+  function rimCanvas(fit, r, gold) {
     var S = BOX + PAD * 2, c = canvas(S, S), x = c.getContext('2d');
     var steps = 24;
     x.drawImage(fit, PAD, PAD);
@@ -56,7 +56,12 @@ window.SealAssets = (function () {
       }
     });
     x.globalCompositeOperation = 'source-in';
-    x.fillStyle = '#ffffff';
+    if (gold) {
+      // ごほうびシールは きんいろの フチ
+      var g = x.createLinearGradient(0, 0, S, S);
+      g.addColorStop(0, '#fff6c4'); g.addColorStop(0.3, '#f6c945'); g.addColorStop(0.5, '#fff3b0'); g.addColorStop(0.72, '#e6a92a'); g.addColorStop(1, '#fff0a8');
+      x.fillStyle = g;
+    } else x.fillStyle = '#ffffff';
     x.fillRect(0, 0, S, S);
     return c;
   }
@@ -66,9 +71,9 @@ window.SealAssets = (function () {
     D.SHEETS = json.sheets.map(function (sh) {
       return {
         id: sh.id, name: sh.name,
-        norun: /^norun/.test(sh.id),
+        norun: /^norun/.test(sh.id), reward: !!sh.reward,
         items: sh.stickers.map(function (st) {
-          var it = { id: st.id, file: 'stickers/' + st.file, n: st.name, tex: st.tex || 'normal', ph: st.placeholder || '', sheet: sh.id, order: order++ };
+          var it = { id: st.id, file: 'stickers/' + st.file, n: st.name, tex: st.tex || 'normal', ph: st.placeholder || '', sheet: sh.id, reward: !!sh.reward, order: order++ };
           it.h = (order * 47) % 360;
           D.CAT[it.id] = it;
           return it;
@@ -82,7 +87,7 @@ window.SealAssets = (function () {
       var ph = !im;
       var src = im || emojiCanvas(it.ph);
       var fit = fitCanvas(src);
-      var jobs = [ph ? toURL(fit) : Promise.resolve(it.file), toURL(rimCanvas(fit, RIM_THIN)), toURL(rimCanvas(fit, RIM_THICK))];
+      var jobs = [ph ? toURL(fit) : Promise.resolve(it.file), toURL(rimCanvas(fit, RIM_THIN, it.reward)), toURL(rimCanvas(fit, RIM_THICK, it.reward))];
       return Promise.all(jobs).then(function (u) {
         A[it.id] = { art: u[0], thin: u[1], thick: u[2], placeholder: ph };
       });
@@ -95,15 +100,20 @@ window.SealAssets = (function () {
     .concat(D.PAGES.map(function (p) { return ['page-' + p.id, 'assets/textures/page-' + p.id + '.jpg']; }));
   var found = [];
   function probeTextures() {
-    var root = document.documentElement;
-    return Promise.all(TEXTURES.map(function (t) {
+    var root = document.documentElement, css = '';
+    // シートの だいし（シートごと）
+    var list = TEXTURES.concat(D.SHEETS.map(function (sh) { return ['sheet-' + sh.id, 'assets/textures/sheet-' + sh.id + '.jpg']; }));
+    return Promise.all(list.map(function (t) {
       return loadImg(t[1]).then(function (im) {
         if (!im) return;
         root.style.setProperty('--tx-' + t[0], 'url("' + t[1] + '")');
         root.classList.add('has-' + t[0]);
+        if (/^sheet-/.test(t[0])) css += '.has-' + t[0] + ' .' + t[0] + ' { --paper: var(--tx-' + t[0] + ') center / cover no-repeat; }\n';
         found.push(t[1]);
       });
-    }));
+    })).then(function () {
+      if (css) { var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); }
+    });
   }
 
   function prepare(onProgress) {
@@ -117,7 +127,7 @@ window.SealAssets = (function () {
         var it = all[i++];
         return prepOne(it).then(function () { done++; if (onProgress) onProgress(done, all.length); return worker(); });
       }
-      return Promise.all([worker(), worker(), worker(), worker(), probeTextures()]);
+      return Promise.all([worker(), worker(), worker(), worker()]).then(probeTextures);
     });
   }
 

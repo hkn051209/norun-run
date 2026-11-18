@@ -13,7 +13,17 @@
       { id: 'mori', name: 'もり', icon: '🌳' },
       { id: 'okashi', name: 'おかしのくに', icon: '🍬' },
       { id: 'uchu', name: 'うちゅう', icon: '🪐' },
-      { id: 'hana', name: 'おはなばたけ', icon: '🌷' }
+      { id: 'hana', name: 'おはなばたけ', icon: '🌷' },
+      { id: 'gohoubi', name: 'ごほうび', icon: '🏆', reward: true }
+    ],
+    // ごほうびの りゆう（え と いろで えらべる）
+    REASONS: [
+      { id: 'otetsudai', name: 'おてつだい', icon: '🧺', color: '#ffb8cf' },
+      { id: 'ganbatta', name: 'がんばった', icon: '💪', color: '#ffd27a' },
+      { id: 'test', name: 'テスト', icon: '📝', color: '#a6d8ff' },
+      { id: 'okataduke', name: 'おかたづけ', icon: '🧸', color: '#bfe8a8' },
+      { id: 'yakusoku', name: 'おやくそくを まもった', icon: '🤙', color: '#d9c6ff' },
+      { id: 'sonota', name: 'そのほか', icon: '⭐', color: '#ffeaa6' }
     ],
     COVERS: [
       { id: 'pink', name: 'ピンク クリア' },
