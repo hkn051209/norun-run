@@ -756,6 +756,83 @@
      "tex": "normal"
     }
    ]
+  },
+  {
+   "id": "reward",
+   "name": "ごほうび",
+   "reward": true,
+   "stickers": [
+    {
+     "id": "rw01",
+     "file": "reward/01_star.png",
+     "name": "きんの ほし",
+     "tex": "puffy",
+     "placeholder": "🌟"
+    },
+    {
+     "id": "rw02",
+     "file": "reward/02_trophy.png",
+     "name": "トロフィー",
+     "tex": "puffy",
+     "placeholder": "🏆"
+    },
+    {
+     "id": "rw03",
+     "file": "reward/03_crown.png",
+     "name": "おうかん",
+     "tex": "puffy",
+     "placeholder": "👑"
+    },
+    {
+     "id": "rw04",
+     "file": "reward/04_hanamaru.png",
+     "name": "はなまる",
+     "tex": "normal",
+     "placeholder": "💮"
+    },
+    {
+     "id": "rw05",
+     "file": "reward/05_medal.png",
+     "name": "きんメダル",
+     "tex": "puffy",
+     "placeholder": "🥇"
+    },
+    {
+     "id": "rw06",
+     "file": "reward/06_ribbon.png",
+     "name": "リボンメダル",
+     "tex": "puffy",
+     "placeholder": "🏅"
+    },
+    {
+     "id": "rw07",
+     "file": "reward/07_gem.png",
+     "name": "ほうせき",
+     "tex": "water",
+     "placeholder": "💎"
+    },
+    {
+     "id": "rw08",
+     "file": "reward/08_heart.png",
+     "name": "キラキラハート",
+     "tex": "puffy",
+     "placeholder": "💖"
+    },
+    {
+     "id": "rw09",
+     "file": "reward/09_rainbow.png",
+     "name": "にじ",
+     "tex": "water",
+     "placeholder": "🌈"
+    },
+    {
+     "id": "rw10",
+     "file": "reward/10_ribbonbow.png",
+     "name": "リボン",
+     "tex": "puffy",
+     "placeholder": "🎀"
+    }
+   ]
   }
  ]
 }
