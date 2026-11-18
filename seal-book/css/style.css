@@ -588,3 +588,107 @@ html.has-desk body { background: radial-gradient(ellipse 85% 75% at 50% 48%, rgb
 .ld-bar { width: 300px; height: 16px; border-radius: 99px; background: rgba(255, 255, 255, .6); overflow: hidden; margin: 10px auto; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .15); }
 .ld-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffb3d1, #ff7fae); transition: width .2s; }
 #scr-inv > *, #scr-sheets > *, #scr-trade > * { flex-shrink: 0; }
+
+/* ---------- v6：ドラッグで はる ---------- */
+.tray-item, .inv-item { touch-action: pan-y; }
+@media (orientation: portrait) { .tray-item { touch-action: pan-x; } }
+.tray-item.lifted, .inv-item.lifted { opacity: .35; transform: scale(.92); }
+.ghost { position: fixed; left: 0; top: 0; z-index: 600; pointer-events: none; will-change: transform;
+  filter: drop-shadow(0 .14em .1em rgba(50, 30, 20, .32)); transition: filter .15s; }
+.ghost > .stk { transform: rotate(-4deg); animation: liftUp .18s ease-out; }
+@keyframes liftUp { from { transform: scale(.85) rotate(0); } to { transform: rotate(-4deg); } }
+.ghost.over { filter: drop-shadow(0 0 .06em rgba(255, 246, 170, 1)) drop-shadow(0 0 .14em rgba(255, 215, 90, .9)) drop-shadow(0 .14em .1em rgba(50, 30, 20, .28)) brightness(1.07); }
+.ghost.ng > .stk { opacity: .7; }
+.ghost.peel { filter: drop-shadow(0 .14em .1em rgba(50, 30, 20, .35)); }
+.ghost.peel > .stk { transform: rotate(12deg); }
+.ghost-tag { position: absolute; left: 50%; bottom: -.25em; transform: translateX(-50%); font-size: max(14px, .14em); font-weight: 900; color: #fff; background: #f0564a; border-radius: 99px; padding: .15em .7em; white-space: nowrap; }
+.ghost.back { transition: opacity .25s, transform .25s; opacity: 0; }
+.ghost.poof { animation: poof .26s ease-out forwards; }
+@keyframes poof { to { opacity: 0; filter: blur(2px); } }
+.page.drop-ok::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; border-radius: inherit;
+  box-shadow: inset 0 0 0 calc(var(--pw) * .012) rgba(255, 214, 90, .85), inset 0 0 calc(var(--pw) * .07) rgba(255, 236, 150, .7); animation: glowPulse 1s ease-in-out infinite; }
+@keyframes glowPulse { 50% { opacity: .55; } }
+.hint { margin: 0 0 12px; font-size: 18px; font-weight: 800; color: var(--pink-d); }
+
+/* 「かり」の しるし */
+.ph-tag { position: absolute; right: -.04em; bottom: -.02em; z-index: 6; font-style: normal; font-size: max(10px, .13em); font-weight: 900; line-height: 1;
+  color: #8a6d55; background: rgba(255, 255, 255, .92); border: 1.5px dashed #c9a98a; border-radius: .6em; padding: .18em .4em; pointer-events: none; }
+
+/* ---------- v6：ごほうびシール ---------- */
+.stk.reward { font-size: 1.2em; margin: -.1em; }
+.stk.reward .rim { filter: drop-shadow(0 0 .02em rgba(255, 220, 90, .9)) drop-shadow(0 .03em .025em rgba(120, 80, 10, .35)) drop-shadow(0 .06em .07em rgba(60, 35, 25, .22)); }
+.stk.reward .shimmer { z-index: 3; -webkit-mask: var(--m) center / 100% 100% no-repeat; mask: var(--m) center / 100% 100% no-repeat;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, .85) 48%, rgba(255, 250, 200, .6) 52%, rgba(255, 255, 255, 0) 65%) 0 0 / 300% 100% no-repeat;
+  animation: shimmer 2.6s ease-in-out infinite; mix-blend-mode: screen; }
+@keyframes shimmer { 0% { background-position: 120% 0; } 55%, 100% { background-position: -20% 0; } }
+.stk.reward.tex-water .dome { box-shadow: 0 0 0 .04em #f6cf52, 0 0 .06em .05em rgba(255, 220, 90, .7), 0 .07em .09em rgba(40, 60, 90, .25), inset 0 -.08em .12em hsla(var(--h), 70%, 35%, .35), inset 0 .03em .04em rgba(255, 255, 255, .9); }
+.stk .tw { position: absolute; z-index: 5; font-style: normal; color: #fff6b8; line-height: 1; pointer-events: none; text-shadow: 0 0 .05em #ffd54a, 0 0 .1em #fff; animation: twinkle 1.6s ease-in-out infinite; }
+.stk .tw.a { left: -6%; top: -4%; font-size: .2em; }
+.stk .tw.b { right: -4%; top: 14%; font-size: .14em; animation-delay: .5s; }
+.stk .tw.c { right: 6%; bottom: -6%; font-size: .17em; animation-delay: 1s; }
+.stk .tw.d { left: 2%; bottom: 8%; font-size: .14em; animation-delay: .8s; }
+@keyframes twinkle { 0%, 100% { transform: scale(.3) rotate(0); opacity: 0; } 45% { transform: scale(1) rotate(45deg); opacity: 1; } 70% { opacity: .9; } }
+
+/* ごほうびシート */
+.lace-reward { --lc: #fff6d6; --lc2: #f3c74a; }
+.sheet-reward { --paper: radial-gradient(circle, rgba(240, 190, 60, .28) 2px, transparent 3px) 0 0 / 26px 26px, linear-gradient(135deg, #fffaf0, #fff1cf); --stitch: #e7b93e; }
+
+/* ごほうびページ */
+.bg-gohoubi { background:
+  radial-gradient(circle, rgba(240, 190, 70, .35) 2px, transparent 3px) 0 0 / 40px 40px,
+  radial-gradient(ellipse 60% 30% at 50% 0, rgba(255, 220, 120, .45), transparent 70%),
+  linear-gradient(#fffaf0, #fff0d2); }
+.has-page-gohoubi .bg-gohoubi { background: var(--tx-page-gohoubi) center / cover no-repeat; }
+.rb { position: absolute; inset: 9% 5% 4% 11%; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.rb-title { font-size: calc(var(--pw) * .05); font-weight: 900; color: #b07b10; background: linear-gradient(#fff7d6, #ffe7a0); border-radius: 99px; padding: .2em 1em; box-shadow: 0 .08em .15em rgba(150, 100, 20, .25); margin-bottom: calc(var(--pw) * .025); }
+.rb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--pw) * .015) calc(var(--pw) * .01); width: 100%; }
+.rb-cell { display: flex; flex-direction: column; align-items: center; gap: calc(var(--pw) * .006); }
+.rb-stk { font-size: calc(var(--pw) * .13); height: 1.15em; display: grid; place-items: center; }
+.rb-date { font-size: calc(var(--pw) * .028); font-weight: 900; color: #8a6d55; }
+.rb-cell .rchip { font-size: calc(var(--pw) * .022); }
+.rb-empty { margin-top: 20%; text-align: center; font-size: calc(var(--pw) * .04); font-weight: 800; line-height: 1.8; color: #8a6d55; }
+.rb-more { margin-top: auto; font-size: calc(var(--pw) * .026); font-weight: 800; color: #8a6d55; }
+.rchip { display: inline-flex; align-items: center; gap: .25em; background: var(--rc); border-radius: 99px; padding: .15em .6em .15em .35em; font-size: 14px; font-weight: 800; white-space: nowrap; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .6); }
+.rchip i { font-style: normal; }
+.seg { display: inline-flex; gap: 4px; background: rgba(255, 255, 255, .6); border-radius: 18px; padding: 4px; }
+
+/* ほごしゃ：ごほうびを あげる（いちばん めだつ ばしょ） */
+.pp-reward { background: linear-gradient(135deg, #fffbea, #fff1c8); border-radius: 24px; padding: 14px 18px 18px; margin-bottom: 14px; box-shadow: 0 0 0 3px #f3c74a, 0 6px 0 #e3b23a; }
+.pp-reward h3 { margin: 0 0 8px; font-size: 26px; color: #9a6a00; }
+.ppr-step { display: flex; align-items: center; gap: 10px; margin: 10px 0 6px; font-size: 19px; flex-wrap: wrap; }
+.ppr-step small { opacity: .7; font-weight: 700; }
+.ppr-no { width: 32px; height: 32px; border-radius: 50%; background: #f3c74a; color: #fff; font-weight: 900; display: grid; place-items: center; }
+.ppr-stks { display: flex; gap: 8px; flex-wrap: wrap; }
+.ppr-stk { width: 96px; height: 96px; border: 0; border-radius: 20px; background: rgba(255, 255, 255, .8); font-size: 64px; display: grid; place-items: center; box-shadow: 0 3px 0 #ead7a8; }
+.ppr-stk.on { background: #fff; box-shadow: 0 0 0 4px #f0a400, 0 3px 0 #ead7a8; }
+.ppr-reasons { display: flex; gap: 8px; flex-wrap: wrap; }
+.ppr-reason { min-height: 64px; border: 0; border-radius: 20px; background: var(--rc); padding: 6px 16px; display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; box-shadow: 0 3px 0 rgba(0, 0, 0, .12); }
+.ppr-reason i { font-style: normal; font-size: 30px; }
+.ppr-reason.on { box-shadow: 0 0 0 4px #f0a400, 0 3px 0 rgba(0, 0, 0, .12); transform: translateY(-2px); }
+.ppr-go { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+.ppr-go small { font-size: 15px; font-weight: 700; opacity: .75; max-width: 420px; }
+.pp-hist { margin-top: 14px; }
+.pp-hist .hs { font-size: 40px; }
+.hstate { font-size: 13px; font-weight: 900; border-radius: 99px; padding: 2px 10px; background: #ffe0d6; color: #b5452f; }
+.hstate.got { background: #dff3d4; color: #3f8a2a; }
+
+/* うけとりの えんしゅつ */
+.celebrate { position: fixed; inset: 0; z-index: 700; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 45%, rgba(255, 245, 200, .95), rgba(255, 200, 120, .85) 45%, rgba(120, 60, 40, .75)); }
+.cel-rays { position: absolute; left: 50%; top: 45%; width: 220vmax; height: 220vmax; margin: -110vmax 0 0 -110vmax; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, .35) 0 8deg, rgba(255, 255, 255, 0) 8deg 20deg); animation: spin 18s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.cel-inner { position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.cel-title { font-size: clamp(30px, 5vw, 48px); font-weight: 900; color: #fff; letter-spacing: .05em; text-shadow: 0 3px 0 #e08a00, 2px 2px 0 #e08a00, -2px 2px 0 #e08a00, 0 8px 20px rgba(150, 70, 0, .5); animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+.cel-stk { position: relative; font-size: min(42vmin, 300px); animation: celIn 1s .2s cubic-bezier(.25, 1.5, .5, 1) both; }
+.cel-stk .tw { font-size: .14em; }
+.cel-stk > .tw.a { left: -10%; top: 0; } .cel-stk > .tw.b { right: -8%; top: 10%; animation-delay: .4s; } .cel-stk > .tw.c { right: 0; bottom: 0; animation-delay: .8s; } .cel-stk > .tw.d { left: -4%; bottom: 10%; animation-delay: 1.2s; }
+@keyframes celIn { 0% { transform: scale(0) rotate(-30deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes pop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.cel-name { font-size: 28px; font-weight: 900; background: #fff; border-radius: 99px; padding: 4px 22px; box-shadow: 0 4px 0 #f0c060; }
+.cel-why .rchip { font-size: 22px; padding: .25em .9em .25em .5em; }
+#celOk { opacity: 0; animation: fadein .3s 1.3s forwards; }
+.cf { position: absolute; top: -5%; left: var(--x); width: 12px; height: 18px; background: var(--c); border-radius: 3px; transform: rotate(var(--r)); animation: fall var(--t) var(--d) linear infinite; pointer-events: none; }
+@keyframes fall { to { transform: translateY(115vh) rotate(calc(var(--r) + 540deg)); } }
+.ph-tag { font-size: clamp(10px, .13em, 18px); }
+.cel-stk { font-size: min(34vmin, 260px); margin: 6px 0; }
+.cel-stk > .tw { position: absolute; font-style: normal; color: #fff6b8; line-height: 1; text-shadow: 0 0 .05em #ffd54a, 0 0 .1em #fff; animation: twinkle 1.6s ease-in-out infinite; font-size: .16em; }
