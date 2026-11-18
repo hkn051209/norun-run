@@ -1,0 +1,761 @@
+{
+ "_readme": "シールの いちらん。file は stickers/ からの ばしょ。tex は normal（ふつう）/ puffy（ぷっくり）/ water（ウォーター）。placeholder は がぞうが ない ときだけ つかう かりの えもじ。",
+ "sheets": [
+  {
+   "id": "animal",
+   "name": "どうぶつ",
+   "stickers": [
+    {
+     "id": "an01",
+     "file": "animal/01_dog.png",
+     "name": "いぬ",
+     "tex": "normal",
+     "placeholder": "🐶"
+    },
+    {
+     "id": "an02",
+     "file": "animal/02_cat.png",
+     "name": "ねこ",
+     "tex": "normal",
+     "placeholder": "🐱"
+    },
+    {
+     "id": "an03",
+     "file": "animal/03_rabbit.png",
+     "name": "うさぎ",
+     "tex": "puffy",
+     "placeholder": "🐰"
+    },
+    {
+     "id": "an04",
+     "file": "animal/04_bear.png",
+     "name": "くま",
+     "tex": "normal",
+     "placeholder": "🐻"
+    },
+    {
+     "id": "an05",
+     "file": "animal/05_panda.png",
+     "name": "パンダ",
+     "tex": "puffy",
+     "placeholder": "🐼"
+    },
+    {
+     "id": "an06",
+     "file": "animal/06_fox.png",
+     "name": "きつね",
+     "tex": "normal",
+     "placeholder": "🦊"
+    },
+    {
+     "id": "an07",
+     "file": "animal/07_koala.png",
+     "name": "コアラ",
+     "tex": "normal",
+     "placeholder": "🐨"
+    },
+    {
+     "id": "an08",
+     "file": "animal/08_tiger.png",
+     "name": "とら",
+     "tex": "normal",
+     "placeholder": "🐯"
+    },
+    {
+     "id": "an09",
+     "file": "animal/09_frog.png",
+     "name": "かえる",
+     "tex": "water",
+     "placeholder": "🐸"
+    },
+    {
+     "id": "an10",
+     "file": "animal/10_penguin.png",
+     "name": "ペンギン",
+     "tex": "normal",
+     "placeholder": "🐧"
+    },
+    {
+     "id": "an11",
+     "file": "animal/11_chick.png",
+     "name": "ひよこ",
+     "tex": "puffy",
+     "placeholder": "🐥"
+    },
+    {
+     "id": "an12",
+     "file": "animal/12_dolphin.png",
+     "name": "いるか",
+     "tex": "water",
+     "placeholder": "🐬"
+    }
+   ]
+  },
+  {
+   "id": "food",
+   "name": "たべもの",
+   "stickers": [
+    {
+     "id": "fd01",
+     "file": "food/01_strawberry.png",
+     "name": "いちご",
+     "tex": "puffy",
+     "placeholder": "🍓"
+    },
+    {
+     "id": "fd02",
+     "file": "food/02_cake.png",
+     "name": "ケーキ",
+     "tex": "normal",
+     "placeholder": "🍰"
+    },
+    {
+     "id": "fd03",
+     "file": "food/03_donut.png",
+     "name": "ドーナツ",
+     "tex": "normal",
+     "placeholder": "🍩"
+    },
+    {
+     "id": "fd04",
+     "file": "food/04_softcream.png",
+     "name": "ソフトクリーム",
+     "tex": "water",
+     "placeholder": "🍦"
+    },
+    {
+     "id": "fd05",
+     "file": "food/05_lollipop.png",
+     "name": "キャンディ",
+     "tex": "puffy",
+     "placeholder": "🍭"
+    },
+    {
+     "id": "fd06",
+     "file": "food/06_cupcake.png",
+     "name": "カップケーキ",
+     "tex": "normal",
+     "placeholder": "🧁"
+    },
+    {
+     "id": "fd07",
+     "file": "food/07_cookie.png",
+     "name": "クッキー",
+     "tex": "normal",
+     "placeholder": "🍪"
+    },
+    {
+     "id": "fd08",
+     "file": "food/08_chocolate.png",
+     "name": "チョコ",
+     "tex": "normal",
+     "placeholder": "🍫"
+    },
+    {
+     "id": "fd09",
+     "file": "food/09_onigiri.png",
+     "name": "おにぎり",
+     "tex": "normal",
+     "placeholder": "🍙"
+    },
+    {
+     "id": "fd10",
+     "file": "food/10_pudding.png",
+     "name": "プリン",
+     "tex": "water",
+     "placeholder": "🍮"
+    },
+    {
+     "id": "fd11",
+     "file": "food/11_watermelon.png",
+     "name": "すいか",
+     "tex": "normal",
+     "placeholder": "🍉"
+    },
+    {
+     "id": "fd12",
+     "file": "food/12_cherry.png",
+     "name": "さくらんぼ",
+     "tex": "puffy",
+     "placeholder": "🍒"
+    }
+   ]
+  },
+  {
+   "id": "sky",
+   "name": "ほし・てんき",
+   "stickers": [
+    {
+     "id": "sk01",
+     "file": "sky/01_star.png",
+     "name": "ほし",
+     "tex": "puffy",
+     "placeholder": "⭐"
+    },
+    {
+     "id": "sk02",
+     "file": "sky/02_moon.png",
+     "name": "つき",
+     "tex": "normal",
+     "placeholder": "🌙"
+    },
+    {
+     "id": "sk03",
+     "file": "sky/03_sun.png",
+     "name": "たいよう",
+     "tex": "normal",
+     "placeholder": "☀️"
+    },
+    {
+     "id": "sk04",
+     "file": "sky/04_rainbow.png",
+     "name": "にじ",
+     "tex": "water",
+     "placeholder": "🌈"
+    },
+    {
+     "id": "sk05",
+     "file": "sky/05_cloud.png",
+     "name": "くも",
+     "tex": "normal",
+     "placeholder": "☁️"
+    },
+    {
+     "id": "sk06",
+     "file": "sky/06_thunder.png",
+     "name": "かみなり",
+     "tex": "normal",
+     "placeholder": "⚡"
+    },
+    {
+     "id": "sk07",
+     "file": "sky/07_snow.png",
+     "name": "ゆき",
+     "tex": "water",
+     "placeholder": "❄️"
+    },
+    {
+     "id": "sk08",
+     "file": "sky/08_sakura.png",
+     "name": "さくら",
+     "tex": "puffy",
+     "placeholder": "🌸"
+    },
+    {
+     "id": "sk09",
+     "file": "sky/09_sunflower.png",
+     "name": "ひまわり",
+     "tex": "normal",
+     "placeholder": "🌻"
+    },
+    {
+     "id": "sk10",
+     "file": "sky/10_clover.png",
+     "name": "よつば",
+     "tex": "normal",
+     "placeholder": "🍀"
+    },
+    {
+     "id": "sk11",
+     "file": "sky/11_tulip.png",
+     "name": "チューリップ",
+     "tex": "normal",
+     "placeholder": "🌷"
+    },
+    {
+     "id": "sk12",
+     "file": "sky/12_mushroom.png",
+     "name": "きのこ",
+     "tex": "puffy",
+     "placeholder": "🍄"
+    }
+   ]
+  },
+  {
+   "id": "toy",
+   "name": "のりもの・おもちゃ",
+   "stickers": [
+    {
+     "id": "ty01",
+     "file": "toy/01_car.png",
+     "name": "くるま",
+     "tex": "normal",
+     "placeholder": "🚗"
+    },
+    {
+     "id": "ty02",
+     "file": "toy/02_train.png",
+     "name": "でんしゃ",
+     "tex": "normal",
+     "placeholder": "🚃"
+    },
+    {
+     "id": "ty03",
+     "file": "toy/03_airplane.png",
+     "name": "ひこうき",
+     "tex": "normal",
+     "placeholder": "✈️"
+    },
+    {
+     "id": "ty04",
+     "file": "toy/04_rocket.png",
+     "name": "ロケット",
+     "tex": "puffy",
+     "placeholder": "🚀"
+    },
+    {
+     "id": "ty05",
+     "file": "toy/05_bicycle.png",
+     "name": "じてんしゃ",
+     "tex": "normal",
+     "placeholder": "🚲"
+    },
+    {
+     "id": "ty06",
+     "file": "toy/06_firetruck.png",
+     "name": "しょうぼうしゃ",
+     "tex": "normal",
+     "placeholder": "🚒"
+    },
+    {
+     "id": "ty07",
+     "file": "toy/07_balloon.png",
+     "name": "ふうせん",
+     "tex": "water",
+     "placeholder": "🎈"
+    },
+    {
+     "id": "ty08",
+     "file": "toy/08_teddybear.png",
+     "name": "ぬいぐるみ",
+     "tex": "puffy",
+     "placeholder": "🧸"
+    },
+    {
+     "id": "ty09",
+     "file": "toy/09_merrygoround.png",
+     "name": "メリーゴーランド",
+     "tex": "normal",
+     "placeholder": "🎠"
+    },
+    {
+     "id": "ty10",
+     "file": "toy/10_present.png",
+     "name": "プレゼント",
+     "tex": "normal",
+     "placeholder": "🎁"
+    },
+    {
+     "id": "ty11",
+     "file": "toy/11_dice.png",
+     "name": "サイコロ",
+     "tex": "normal",
+     "placeholder": "🎲"
+    },
+    {
+     "id": "ty12",
+     "file": "toy/12_yacht.png",
+     "name": "ヨット",
+     "tex": "water",
+     "placeholder": "⛵"
+    }
+   ]
+  },
+  {
+   "id": "norun1",
+   "name": "のるん 1",
+   "stickers": [
+    {
+     "id": "nr1-01",
+     "file": "norun/set1/01_normal.png",
+     "name": "のるん",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-02",
+     "file": "norun/set1/02_happy.png",
+     "name": "にこにこ",
+     "tex": "puffy"
+    },
+    {
+     "id": "nr1-03",
+     "file": "norun/set1/03_salute.png",
+     "name": "けいれい",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-04",
+     "file": "norun/set1/04_sleep.png",
+     "name": "おやすみ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-05",
+     "file": "norun/set1/05_cry.png",
+     "name": "えーん",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-06",
+     "file": "norun/set1/06_angry.png",
+     "name": "ぷんぷん",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-07",
+     "file": "norun/set1/07_surprise.png",
+     "name": "びっくり",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-08",
+     "file": "norun/set1/08_melt.png",
+     "name": "とろける",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-09",
+     "file": "norun/set1/09_cat.png",
+     "name": "ねこ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-10",
+     "file": "norun/set1/10_rabbit.png",
+     "name": "うさぎ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-11",
+     "file": "norun/set1/11_bear.png",
+     "name": "くま",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-12",
+     "file": "norun/set1/12_panda.png",
+     "name": "パンダ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-13",
+     "file": "norun/set1/13_fox.png",
+     "name": "きつね",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-14",
+     "file": "norun/set1/14_penguin.png",
+     "name": "ペンギン",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-15",
+     "file": "norun/set1/15_chick.png",
+     "name": "ひよこ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-16",
+     "file": "norun/set1/16_jellyfish.png",
+     "name": "くらげ",
+     "tex": "water"
+    },
+    {
+     "id": "nr1-17",
+     "file": "norun/set1/17_bread.png",
+     "name": "しょくパン",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-18",
+     "file": "norun/set1/18_strawberry.png",
+     "name": "いちご",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-19",
+     "file": "norun/set1/19_pudding.png",
+     "name": "プリン",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-20",
+     "file": "norun/set1/20_pancake.png",
+     "name": "パンケーキ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-21",
+     "file": "norun/set1/21_onigiri.png",
+     "name": "おにぎり",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-22",
+     "file": "norun/set1/22_donut.png",
+     "name": "ドーナツ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-23",
+     "file": "norun/set1/23_mochi.png",
+     "name": "おもち",
+     "tex": "puffy"
+    },
+    {
+     "id": "nr1-24",
+     "file": "norun/set1/24_cupcake.png",
+     "name": "カップケーキ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-25",
+     "file": "norun/set1/25_ghost.png",
+     "name": "おばけ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-26",
+     "file": "norun/set1/26_heart.png",
+     "name": "ハート",
+     "tex": "puffy"
+    },
+    {
+     "id": "nr1-27",
+     "file": "norun/set1/27_star.png",
+     "name": "ほし",
+     "tex": "puffy"
+    },
+    {
+     "id": "nr1-28",
+     "file": "norun/set1/28_moon.png",
+     "name": "つき",
+     "tex": "water"
+    },
+    {
+     "id": "nr1-29",
+     "file": "norun/set1/29_cloud.png",
+     "name": "くも",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-30",
+     "file": "norun/set1/30_mushroom.png",
+     "name": "きのこ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-31",
+     "file": "norun/set1/31_gamepad.png",
+     "name": "ゲーム",
+     "tex": "normal"
+    },
+    {
+     "id": "nr1-32",
+     "file": "norun/set1/32_cushion.png",
+     "name": "クッション",
+     "tex": "normal"
+    }
+   ]
+  },
+  {
+   "id": "norun2",
+   "name": "のるん 2",
+   "stickers": [
+    {
+     "id": "nr2-01",
+     "file": "norun/set2/01_arigatou.png",
+     "name": "ありがとう",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-02",
+     "file": "norun/set2/02_gomen.png",
+     "name": "ごめん",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-03",
+     "file": "norun/set2/03_ok.png",
+     "name": "オッケー",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-04",
+     "file": "norun/set2/04_dame.png",
+     "name": "だめ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-05",
+     "file": "norun/set2/05_love.png",
+     "name": "ラブ",
+     "tex": "puffy"
+    },
+    {
+     "id": "nr2-06",
+     "file": "norun/set2/06_hungry.png",
+     "name": "おなかすいた",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-07",
+     "file": "norun/set2/07_hot.png",
+     "name": "あつい",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-08",
+     "file": "norun/set2/08_yawn.png",
+     "name": "あくび",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-09",
+     "file": "norun/set2/09_frog.png",
+     "name": "かえる",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-10",
+     "file": "norun/set2/10_octopus.png",
+     "name": "たこ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-11",
+     "file": "norun/set2/11_pig.png",
+     "name": "ぶた",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-12",
+     "file": "norun/set2/12_sheep.png",
+     "name": "ひつじ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-13",
+     "file": "norun/set2/13_hamster.png",
+     "name": "ハムスター",
+     "tex": "puffy"
+    },
+    {
+     "id": "nr2-14",
+     "file": "norun/set2/14_seal.png",
+     "name": "アザラシ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-15",
+     "file": "norun/set2/15_crab.png",
+     "name": "かに",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-16",
+     "file": "norun/set2/16_dog.png",
+     "name": "いぬ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-17",
+     "file": "norun/set2/17_oden.png",
+     "name": "おでん",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-18",
+     "file": "norun/set2/18_takoyaki.png",
+     "name": "たこやき",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-19",
+     "file": "norun/set2/19_nikuman.png",
+     "name": "にくまん",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-20",
+     "file": "norun/set2/20_yakiimo.png",
+     "name": "やきいも",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-21",
+     "file": "norun/set2/21_taiyaki.png",
+     "name": "たいやき",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-22",
+     "file": "norun/set2/22_softcream.png",
+     "name": "ソフトクリーム",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-23",
+     "file": "norun/set2/23_kakigori.png",
+     "name": "かきごおり",
+     "tex": "water"
+    },
+    {
+     "id": "nr2-24",
+     "file": "norun/set2/24_dango.png",
+     "name": "だんご",
+     "tex": "puffy"
+    },
+    {
+     "id": "nr2-25",
+     "file": "norun/set2/25_snowman.png",
+     "name": "ゆきだるま",
+     "tex": "water"
+    },
+    {
+     "id": "nr2-26",
+     "file": "norun/set2/26_kagamimochi.png",
+     "name": "かがみもち",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-27",
+     "file": "norun/set2/27_balloon.png",
+     "name": "ふうせん",
+     "tex": "puffy"
+    },
+    {
+     "id": "nr2-28",
+     "file": "norun/set2/28_slime.png",
+     "name": "スライム",
+     "tex": "water"
+    },
+    {
+     "id": "nr2-29",
+     "file": "norun/set2/29_pumpkin.png",
+     "name": "かぼちゃ",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-30",
+     "file": "norun/set2/30_tree.png",
+     "name": "ツリー",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-31",
+     "file": "norun/set2/31_teruteru.png",
+     "name": "てるてるぼうず",
+     "tex": "normal"
+    },
+    {
+     "id": "nr2-32",
+     "file": "norun/set2/32_daruma.png",
+     "name": "だるま",
+     "tex": "normal"
+    }
+   ]
+  }
+ ]
+}
