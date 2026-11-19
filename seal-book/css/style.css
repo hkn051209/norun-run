@@ -692,3 +692,138 @@ html.has-desk body { background: radial-gradient(ellipse 85% 75% at 50% 48%, rgb
 .ph-tag { font-size: clamp(10px, .13em, 18px); }
 .cel-stk { font-size: min(34vmin, 260px); margin: 6px 0; }
 .cel-stk > .tw { position: absolute; font-style: normal; color: #fff6b8; line-height: 1; text-shadow: 0 0 .05em #ffd54a, 0 0 .1em #fff; animation: twinkle 1.6s ease-in-out infinite; font-size: .16em; }
+
+/* ---------- v7：アイコン（SVG）と シールの え の アイコン ---------- */
+.ic { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -.22em; flex: 0 0 auto; }
+.art-ic { width: 1.35em; height: 1.35em; object-fit: contain; display: inline-block; vertical-align: -.32em; filter: drop-shadow(0 1px 1px rgba(80, 40, 20, .25)); }
+#nav button .ic { width: 38px; height: 38px; }
+#nav button { font-size: 14px; }
+.ticket .ic { width: 34px; height: 34px; }
+.icon-btn .ic { width: 32px; height: 32px; }
+.icon-btn.lock .ic { width: 24px; height: 24px; }
+.who .face, .pface { overflow: hidden; }
+.who .face .art-ic { width: 44px; height: 44px; vertical-align: 0; }
+.pface .art-ic { width: 82%; height: 82%; vertical-align: 0; }
+.cl-face .art-ic { width: 1.6em; height: 1.6em; }
+.whochip .art-ic, .pp-tab .art-ic { width: 1.5em; height: 1.5em; }
+.facebtn .art-ic { width: 42px; height: 42px; vertical-align: 0; }
+.title-deco { display: flex; gap: 14px; justify-content: center; }
+.title-deco .art-ic { width: 52px; height: 52px; animation: bob 2.4s ease-in-out infinite; }
+.title-deco .art-ic:nth-child(2) { animation-delay: .3s; } .title-deco .art-ic:nth-child(3) { animation-delay: .6s; } .title-deco .art-ic:nth-child(4) { animation-delay: .9s; } .title-deco .art-ic:nth-child(5) { animation-delay: 1.2s; }
+@keyframes bob { 50% { transform: translateY(-6px) rotate(4deg); } }
+.page-label { display: flex; align-items: center; gap: .25em; }
+.page-label .art-ic { width: 1.4em; height: 1.4em; vertical-align: 0; }
+.pcard { position: relative; }
+.plock { position: absolute; right: 12px; top: 6px; }
+.plock .ic { width: 34px; height: 34px; }
+.big .ic, .mid .ic { width: 1.3em; height: 1.3em; margin-right: .15em; }
+.edit-bar .big .ic { width: 34px; height: 34px; margin: 0; }
+.mode .ic { width: 80px; height: 80px; }
+.carrow .ic { width: 64px; height: 64px; }
+.rchip .ic { width: 1.25em; height: 1.25em; }
+.ppr-reason .ic { width: 34px; height: 34px; }
+.g-tickets .ic, .g-none .ic { width: 1.4em; height: 1.4em; }
+.ld-book .ic { width: 90px; height: 90px; }
+#toast .ic { width: 1.3em; height: 1.3em; }
+.pin h2 .art-ic { width: 1.5em; height: 1.5em; }
+
+/* ---------- v7：がぞうの 6あなリング と レザーの ベルト ---------- */
+.rings i:nth-child(n+5) { display: none; }
+/* がぞうの リング：1こずつ きりだして、うえから みた わっか（よこながの だえん）に する */
+.has-ring6 .binder .rings { left: calc(var(--pw) * .015); width: calc(var(--pw) * .19); filter: drop-shadow(0 calc(var(--pw) * .006) calc(var(--pw) * .006) rgba(40, 25, 20, .4)); }
+.has-ring6 .binder .rings i { display: block; border: 0; padding: 0; box-shadow: none; -webkit-mask: none; mask: none; border-radius: 0;
+  height: calc(var(--pw) * .1); margin-top: calc(var(--pw) * -.05); background: var(--tx-ring6) 0 0 / 100% 600% no-repeat; }
+.has-ring6 .binder .rings i:nth-child(1) { top: 7.9%; background-position-y: 0%; }
+.has-ring6 .binder .rings i:nth-child(2) { top: 24.8%; background-position-y: 20%; }
+.has-ring6 .binder .rings i:nth-child(3) { top: 41.6%; background-position-y: 40%; }
+.has-ring6 .binder .rings i:nth-child(4) { top: 58.5%; background-position-y: 60%; }
+.has-ring6 .binder .rings i:nth-child(5) { top: 75.4%; background-position-y: 80%; }
+.has-ring6 .binder .rings i:nth-child(6) { top: 92.2%; background-position-y: 100%; }
+.has-ring6 .holes { background:
+  radial-gradient(circle at 50% 7.9%, #cbb79f calc(var(--pw) * .014), rgba(0,0,0,.12) calc(var(--pw) * .017), transparent calc(var(--pw) * .019)),
+  radial-gradient(circle at 50% 24.8%, #cbb79f calc(var(--pw) * .014), rgba(0,0,0,.12) calc(var(--pw) * .017), transparent calc(var(--pw) * .019)),
+  radial-gradient(circle at 50% 41.6%, #cbb79f calc(var(--pw) * .014), rgba(0,0,0,.12) calc(var(--pw) * .017), transparent calc(var(--pw) * .019)),
+  radial-gradient(circle at 50% 58.5%, #cbb79f calc(var(--pw) * .014), rgba(0,0,0,.12) calc(var(--pw) * .017), transparent calc(var(--pw) * .019)),
+  radial-gradient(circle at 50% 75.4%, #cbb79f calc(var(--pw) * .014), rgba(0,0,0,.12) calc(var(--pw) * .017), transparent calc(var(--pw) * .019)),
+  radial-gradient(circle at 50% 92.2%, #cbb79f calc(var(--pw) * .014), rgba(0,0,0,.12) calc(var(--pw) * .017), transparent calc(var(--pw) * .019)); }
+.has-ring6 .mini-binder .rings { left: calc(var(--pw) * -.05); width: calc(var(--pw) * .16); }
+.has-strap .binder { margin-right: calc(var(--pw) * .22); }
+.has-strap .belt { background: var(--tx-strap) center / 100% 100% no-repeat; box-shadow: none; border-radius: 0;
+  width: calc(var(--pw) * .3); height: calc(var(--pw) * .18); right: calc(var(--pw) * -.24);
+  filter: drop-shadow(0 calc(var(--pw) * .008) calc(var(--pw) * .01) rgba(60, 35, 20, .35)); }
+.has-strap .belt::before, .has-strap .belt .snap { display: none; }
+.has-strap .belt.closed { width: calc(var(--pw) * .36); height: calc(var(--pw) * .216); right: calc(var(--pw) * -.1); transform: translateY(-50%) scaleX(-1); }
+.has-strap .belt.unsnap { transform: translateY(-50%) scaleX(-1) translateX(calc(var(--pw) * -.05)) rotate(-6deg); }
+.has-strap .mini-binder .belt.closed { right: calc(var(--pw) * -.12); }
+
+/* ---------- v7：え に ツヤが かいてある シールは、かさねる ツヤを ひかえめに ---------- */
+.stk:not(.is-ph) .gloss { opacity: .35; }
+.stk:not(.is-ph) .spec { opacity: .55; }
+.stk:not(.is-ph) .shade { opacity: .55; }
+.has-paper .page::before { opacity: .28; }
+
+/* ---------- v7：スマホの はば（せまい がめん） ---------- */
+@media (max-width: 640px) {
+  #topbar { flex-wrap: wrap; gap: 4px 6px; margin: 6px 6px 0; padding: 6px; border-radius: 22px; }
+  #nav { order: 3; flex: 1 1 100%; gap: 2px; }
+  #nav button { min-height: 58px; max-width: none; padding: 2px 0; }
+  #nav button .ic { width: 30px; height: 30px; }
+  #nav button span { font-size: 11px; }
+  .who { min-height: 52px; max-width: none; flex: 1 1 auto; }
+  .who .face { width: 42px; height: 42px; }
+  .who .face .art-ic { width: 38px; height: 38px; }
+  .who small { display: inline; }
+  .tb-right { margin-left: auto; }
+  .ticket { min-height: 48px; font-size: 20px; padding: 4px 10px; }
+  .ticket .ic { width: 28px; height: 28px; }
+  .icon-btn { width: 48px; height: 48px; }
+  .pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: 100%; }
+  .pface { width: 84px; height: 84px; }
+  .pname { font-size: 20px; }
+  .title-deco .art-ic { width: 40px; height: 40px; }
+  .controls { gap: 8px; }
+  .big { min-width: 0; padding: 8px 14px; font-size: 19px; }
+  .huge { font-size: 24px; padding: 10px 22px; }
+  .tray { height: 132px; }
+  .tray-head { width: 110px; font-size: 15px; white-space: normal; }
+  .tray-item { flex: 0 0 82px; height: 82px; font-size: 56px; }
+  .edit-bar .big { min-width: 0; flex: 1 1 30%; }
+  .keys { grid-template-columns: repeat(3, 78px); }
+  .key { height: 70px; }
+  .gacha-wrap { gap: 14px; }
+  .machine { transform: scale(.85); margin: -20px 0; }
+  .cbox { min-width: 0; padding: 12px; }
+  .cstk { font-size: 100px; height: 110px; }
+}
+@media (max-width: 640px) {
+  .who { flex: 1 1 0; min-width: 0; }
+  .who .nm { max-width: none; }
+  .tb-right { flex: 0 0 auto; }
+  #nav button span { font-size: 10.5px; letter-spacing: -.02em; }
+  .controls { padding: 4px 6px 8px; min-height: 0; flex-wrap: nowrap; }
+  .controls .big { padding: 6px 10px; font-size: 17px; min-height: 52px; }
+  .controls .mid { padding: 4px 10px; font-size: 15px; min-height: 46px; }
+  .pageno { min-width: 0; font-size: 22px; padding: 2px 10px; }
+  .pageno span { font-size: 12px; }
+  .seg .mid { padding: 4px 8px; }
+  .tray-empty { font-size: 13px; line-height: 1.5; padding: 6px 10px; text-align: left; }
+  .tray-head small { font-size: 12px; }
+}
+@media (orientation: portrait) { .tray-empty { display: block; } }
+@media (max-width: 640px) {
+  .who small { display: none; }
+  #nav button span { font-size: 10px; letter-spacing: -.06em; }
+}
+@media (max-width: 640px) {
+  .sheet-grid, .sheet-grid.many { grid-template-columns: repeat(3, 1fr); gap: 6px 4px; }
+  .sheet-item, .sheet-grid.many .sheet-item { width: 92px; height: 92px; font-size: 78px; }
+  .sheet { padding: 14px 8px 12px; }
+  .lace { padding: 10px; }
+  .tab { min-height: 52px; padding: 4px 12px; }
+  .tab span { font-size: 15px; }
+  .inv-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .inv-item { min-height: 128px; }
+  .inv-item .ii { font-size: 66px; }
+}
+#toast { white-space: normal; text-align: center; line-height: 1.4; }
+@media (max-width: 640px) { #toast { font-size: 17px; padding: 12px 18px; width: max-content; max-width: 92vw; } }
