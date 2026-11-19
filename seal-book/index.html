@@ -17,16 +17,16 @@
   <header id="topbar" class="hidden">
     <button id="who" class="who" aria-label="あそぶ ひとを かえる"><span class="face"></span><span class="nm"></span><small>かわる</small></button>
     <nav id="nav">
-      <button data-go="book">📖<span>シールちょう</span></button>
-      <button data-go="inv">🎒<span>もちもの</span></button>
-      <button data-go="sheets">📄<span>シールシート</span></button>
-      <button data-go="gacha">🎰<span>ガチャ</span></button>
-      <button data-go="trade">🔄<span>こうかん</span></button>
+      <button data-go="book"><i data-ic="book"></i><span>シールちょう</span></button>
+      <button data-go="inv"><i data-ic="bag"></i><span>もちもの</span></button>
+      <button data-go="sheets"><i data-ic="sheet"></i><span>シールシート</span></button>
+      <button data-go="gacha"><i data-ic="gacha"></i><span>ガチャ</span></button>
+      <button data-go="trade"><i data-ic="trade"></i><span>こうかん</span></button>
     </nav>
     <div class="tb-right">
-      <span id="tickets" class="ticket" aria-label="ガチャけん">🎫<b>0</b></span>
-      <button id="muteBtn" class="icon-btn" aria-label="おと">🔊</button>
-      <button id="lockBtn" class="icon-btn lock" aria-label="ほごしゃ">🔒</button>
+      <span id="tickets" class="ticket" aria-label="ガチャけん"><i data-ic="ticket"></i><b>0</b></span>
+      <button id="muteBtn" class="icon-btn" aria-label="おと"><i data-ic="sound"></i></button>
+      <button id="lockBtn" class="icon-btn lock" aria-label="ほごしゃ"><i data-ic="lock"></i></button>
     </div>
   </header>
   <main>
@@ -43,6 +43,7 @@
 <div id="celebrate" class="celebrate hidden"></div>
 <div id="toast" role="status"></div>
 <script src="js/data.js"></script>
+<script src="js/icons.js"></script>
 <script src="js/sound.js"></script>
 <script src="js/assets.js"></script>
 <script src="js/app.js"></script>
