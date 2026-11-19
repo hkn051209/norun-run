@@ -95,7 +95,7 @@ window.SealAssets = (function () {
   }
 
   // しつかん がぞう（あれば つかう）
-  var TEXTURES = [['desk', 'assets/textures/desk.jpg'], ['paper', 'assets/textures/paper.png']]
+  var TEXTURES = [['desk', 'assets/textures/desk.jpg'], ['paper', 'assets/textures/paper.png'], ['ring6', 'assets/parts/rings6.png'], ['strap', 'assets/parts/strap.png']]
     .concat(D.COVERS.map(function (c) { return ['cover-' + c.id, 'assets/textures/cover-' + c.id + '.jpg']; }))
     .concat(D.PAGES.map(function (p) { return ['page-' + p.id, 'assets/textures/page-' + p.id + '.jpg']; }));
   var found = [];
@@ -106,7 +106,8 @@ window.SealAssets = (function () {
     return Promise.all(list.map(function (t) {
       return loadImg(t[1]).then(function (im) {
         if (!im) return;
-        root.style.setProperty('--tx-' + t[0], 'url("' + t[1] + '")');
+        // CSS の なかの url() は css/ からの ばしょに なるので、ページからの ばしょに なおして わたす
+        root.style.setProperty('--tx-' + t[0], 'url("' + new URL(t[1], location.href).href + '")');
         root.classList.add('has-' + t[0]);
         if (/^sheet-/.test(t[0])) css += '.has-' + t[0] + ' .' + t[0] + ' { --paper: var(--tx-' + t[0] + ') center / cover no-repeat; }\n';
         found.push(t[1]);

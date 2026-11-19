@@ -11,7 +11,7 @@
 
   /* ---------- ほぞん ---------- */
   function newPlayer(i) {
-    return { name: D.NAMES[i], face: D.FACES[i], color: D.COLORS[i], cover: D.COVERS[i].id, tickets: 0, inv: {}, pages: D.PAGES.map(function () { return []; }), rewards: [], rewardView: 'order' };
+    return { name: D.NAMES[i], face: D.FACES[i], color: D.COLORS[i], cover: D.COVERS[i].id, tickets: 0, inv: {}, pages: D.PAGES.map(function () { return []; }), rewards: [], rewardView: 'order', pin: null };
   }
   function fresh() { return { v: 1, pass: '1234', muted: false, players: [0, 1, 2, 3].map(newPlayer), history: [] }; }
   function load() {
@@ -87,6 +87,8 @@
     if (a.placeholder) h += '<i class="ph-tag">かり</i>';
     return h + '</div>';
   }
+  function artImg(id) { var a = window.SealAssets.get(id); return a ? '<img class="art-ic" src="' + a.art + '" alt="" draggable="false">' : ''; }
+  function faceHTML(f) { var id = D.FACE_ART[f]; return id ? artImg(id) : esc(f || ''); }
   function sheetIcon(sh) { var a = window.SealAssets.get(sh.items[0].id); return '<img class="tab-ico" src="' + (a ? a.art : '') + '" alt="">'; }
   function tapEffect(stk) {
     if (!stk) return;
@@ -113,11 +115,11 @@
   }
   function rerender() { R[scr](); updTop(); }
   function updTop() {
-    $('#muteBtn').textContent = S.muted ? '🔇' : '🔊';
+    $('#muteBtn').innerHTML = S.muted ? IC.mute : IC.sound;
     $('#muteBtn').setAttribute('aria-label', S.muted ? 'おと なし' : 'おと あり');
     if (cur === null) return;
     var p = P();
-    $('#who .face').textContent = p.face;
+    $('#who .face').innerHTML = faceHTML(p.face);
     $('#who .nm').textContent = p.name;
     $('#who').style.setProperty('--c', p.color);
     $('#tickets b').textContent = p.tickets;
@@ -144,20 +146,30 @@
   /* ---------- 1. だれが あそぶ？ ---------- */
   R.players = function () {
     var el = $('#scr-players');
-    el.innerHTML = '<div class="title-wrap"><div class="title-deco">⭐ 🌸 🎀 🌈 ⭐</div><h1>シールちょう</h1><p>だれが あそぶ？</p></div>' +
+    el.innerHTML = '<div class="title-wrap"><div class="title-deco">' + ['sk01', 'sk08', 'rw10', 'sk04', 'fd03'].map(artImg).join('') + '</div><h1>シールちょう</h1><p>だれが あそぶ？</p></div>' +
       '<div class="pcards">' + S.players.map(function (p, i) {
-        return '<button class="pcard" data-i="' + i + '" style="--c:' + p.color + '"><span class="pface">' + p.face + '</span>' +
-          '<span class="pname">' + esc(p.name) + '</span><span class="pmeta">シール ' + (invTotal(p) + placedTotal(p)) + 'まい ・ 🎫' + p.tickets + '</span></button>';
+        return '<button class="pcard" data-i="' + i + '" style="--c:' + p.color + '"><span class="pface">' + faceHTML(p.face) + '</span>' +
+          '<span class="pname">' + esc(p.name) + '</span><span class="pmeta">シール ' + (invTotal(p) + placedTotal(p)) + 'まい ・ ' + IC.ticket + p.tickets + '</span>' + (p.pin ? '<span class="plock">' + IC.lock + '</span>' : '') + '</button>';
       }).join('') + '</div>' +
-      '<button class="lock-corner" id="lockCorner">🔒 ほごしゃ</button>';
+      '<button class="lock-corner" id="lockCorner">' + IC.lock + 'ほごしゃ</button>';
     $$('.pcard', el).forEach(function (b) {
       b.onclick = function () {
-        cur = +b.dataset.i; bookOpen = false; pageIdx = 0; choice = null; tr = { step: 'who' };
-        Snd.pop(); go('book'); setTimeout(checkRewards, 250);
+        var i = +b.dataset.i, q = S.players[i];
+        if (!q.pin) { enterPlayer(i); return; }
+        pinPad(faceHTML(q.face) + ' ' + esc(q.name) + ' の パスワード', '4けたの すうじを いれてね', function (code) {
+          if (code === q.pin || code === S.pass) { closeModal(); enterPlayer(i); return true; }
+          Snd.ng(); return false;
+        });
       };
     });
     $('#lockCorner').onclick = openParent;
   };
+
+  function enterPlayer(i) {
+    cur = i; bookOpen = false; pageIdx = 0; choice = null; tr = { step: 'who' };
+    Snd.pop(); go('book'); setTimeout(checkRewards, 250);
+  }
+  function closeModal() { var m = $('#modal'); m.classList.add('hidden'); m.innerHTML = ''; }
 
   /* ---------- 2. シールちょう ---------- */
   var bookOpen = false, pageIdx = 0, choice = null, selUid = null, flipping = false, opening = false;
@@ -166,17 +178,17 @@
   function boardMode() { return isRewardPage() && P().rewardView !== 'free'; }
   function md(t) { var d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate(); }
   function reasonOf(id) { return D.REASONS.filter(function (r) { return r.id === id; })[0] || D.REASONS[D.REASONS.length - 1]; }
-  function reasonChip(id) { var r = reasonOf(id); return '<span class="rchip" style="--rc:' + r.color + '"><i>' + r.icon + '</i><b>' + r.name + '</b></span>'; }
+  function reasonChip(id) { var r = reasonOf(id); return '<span class="rchip" style="--rc:' + r.color + '"><i>' + IC[r.icon] + '</i><b>' + r.name + '</b></span>'; }
 
   function coverHTML(p) {
     return '<div class="cover" id="cover"><div class="cover-insert"></div><div class="cover-gloss"></div>' +
-      '<div class="cover-label"><span class="cl-face">' + p.face + '</span><span class="cl-name">' + esc(p.name) + ' の</span><b>シールちょう</b></div></div>';
+      '<div class="cover-label"><span class="cl-face">' + faceHTML(p.face) + '</span><span class="cl-name">' + esc(p.name) + ' の</span><b>シールちょう</b></div></div>';
   }
   // ごほうびページ：もらった じゅんに ならべる
   function rewardBoard(p) {
     var list = p.rewards.filter(function (r) { return r.seen && validKey(r.key); });
     var show = list.slice(-20);
-    return '<div class="rb"><div class="rb-title">🏆 もらった じゅん</div>' +
+    return '<div class="rb"><div class="rb-title">' + IC.trophy + 'もらった じゅん</div>' +
       (show.length ? '<div class="rb-grid">' + show.map(function (r) {
         return '<div class="rb-cell"><div class="rb-stk">' + stkHTML(r.key) + '</div><span class="rb-date">' + md(r.t) + '</span>' + reasonChip(r.reason) + '</div>';
       }).join('') + '</div>' : '<div class="rb-empty">まだ ないよ<br>おてつだい や がんばった ときに<br>おうちの ひとから もらえるよ</div>') +
@@ -184,7 +196,7 @@
   }
   function pageInner(idx) {
     var pg = D.PAGES[idx], p = P();
-    var h = '<div class="page-label">' + pg.icon + ' ' + pg.name + '</div><div class="holes"></div>';
+    var h = '<div class="page-label">' + artImg(pg.art) + pg.name + '</div><div class="holes"></div>';
     if (pg.reward && p.rewardView !== 'free') return h + rewardBoard(p);
     p.pages[idx].forEach(function (it) {
       if (!validKey(it.key)) return;
@@ -204,7 +216,7 @@
     el.innerHTML = '<div class="book-main"><div class="stage" id="stage"><div class="binder cov-' + p.cover + '" id="binder">' +
       '<div class="binder-back"></div>' +
       '<div class="page-area" id="pageArea"><div class="page" id="page"></div></div>' +
-      '<div class="rings"><i></i><i></i><i></i><i></i></div>' +
+      '<div class="rings"><i></i><i></i><i></i><i></i><i></i><i></i></div>' +
       (bookOpen ? '' : coverHTML(p)) +
       '<div class="belt' + (bookOpen ? '' : ' closed') + '"><b class="snap"></b></div>' +
       '</div></div><div class="controls" id="controls"></div></div>' +
@@ -219,7 +231,7 @@
     var st = $('#stage'), b = $('#binder');
     if (!st || !b) return;
     var W = st.clientWidth, H = st.clientHeight;
-    var pw = Math.floor(Math.min((W - 16) / 1.34, (H - 10) / 1.43));
+    var pw = Math.floor(Math.min((W - 16) / 1.43, (H - 10) / 1.43));
     b.style.setProperty('--pw', Math.max(150, pw) + 'px');
   }
   function pagePW() { var b = $('#binder'); return b ? parseFloat(b.style.getPropertyValue('--pw')) || 300 : 0; }
@@ -227,20 +239,20 @@
   function rControls() {
     var c = $('#controls'); if (!c) return;
     if (!bookOpen) {
-      c.innerHTML = '<button class="big pri" id="openBtn">📖 ひらく</button><button class="big" id="coverBtn">🎨 ちょうを えらぶ</button>';
+      c.innerHTML = '<button class="big pri" id="openBtn">' + IC.book + 'ひらく</button><button class="big" id="coverBtn">' + IC.palette + 'ちょうを えらぶ</button>';
       $('#openBtn').onclick = openBook;
       $('#coverBtn').onclick = chooseCover;
     } else if (selUid) {
-      c.innerHTML = '<div class="edit-bar"><button class="big" data-ed="big">➕<span>おおきく</span></button><button class="big" data-ed="small">➖<span>ちいさく</span></button>' +
-        '<button class="big" data-ed="rl">↺<span>まわす</span></button><button class="big" data-ed="rr">↻<span>まわす</span></button>' +
-        '<button class="big warn" data-ed="peel">🩹<span>はがす</span></button><button class="big pri" data-ed="done">✔<span>おわり</span></button></div>';
+      c.innerHTML = '<div class="edit-bar"><button class="big" data-ed="big">' + IC.plus + '<span>おおきく</span></button><button class="big" data-ed="small">' + IC.minus + '<span>ちいさく</span></button>' +
+        '<button class="big" data-ed="rl">' + IC.rotl + '<span>まわす</span></button><button class="big" data-ed="rr">' + IC.rotr + '<span>まわす</span></button>' +
+        '<button class="big warn" data-ed="peel">' + IC.peel + '<span>はがす</span></button><button class="big pri" data-ed="done">' + IC.check + '<span>おわり</span></button></div>';
       $$('[data-ed]', c).forEach(function (b) { b.onclick = function () { editSel(b.dataset.ed); }; });
     } else {
       var pg = D.PAGES[pageIdx], free = P().rewardView === 'free';
       c.innerHTML = '<button class="big" id="prevBtn"' + (pageIdx === 0 ? ' disabled' : '') + '>◀ まえ</button>' +
         '<div class="pageno" id="pageNo"><b>' + (pageIdx + 1) + '</b> / ' + D.PAGES.length + '<span>' + pg.name + '</span></div>' +
         '<button class="big" id="nextBtn"' + (pageIdx === D.PAGES.length - 1 ? ' disabled' : '') + '>つぎ ▶</button>' +
-        (pg.reward ? '<div class="seg" id="rvSeg"><button class="mid' + (free ? '' : ' on') + '" data-v="order">🏆 ならべる</button><button class="mid' + (free ? ' on' : '') + '" data-v="free">✋ はる</button></div>' : '') +
+        (pg.reward ? '<div class="seg" id="rvSeg"><button class="mid' + (free ? '' : ' on') + '" data-v="order">' + IC.trophy + 'ならべる</button><button class="mid' + (free ? ' on' : '') + '" data-v="free">' + IC.hand + 'はる</button></div>' : '') +
         '<button class="mid" id="closeBtn">とじる</button>';
       $('#prevBtn').onclick = function () { flip(-1); };
       $('#nextBtn').onclick = function () { flip(1); };
@@ -260,9 +272,9 @@
     var t = $('#tray'); if (!t) return;
     var p = P(), list = trayKeys(p);
     if (choice && (!(p.inv[choice] > 0) || list.indexOf(choice) < 0)) choice = null;
-    var empty = boardMode() ? 'ここは ならべる ページ<br>「✋ はる」に すると<br>ごほうびシールを はれるよ' :
-      isRewardPage() ? 'ごほうびシールが ないよ<br>おうちの ひとから<br>もらえるよ' : 'シールが ないよ<br>📄シールシート や<br>🎰ガチャ で もらおう';
-    t.innerHTML = '<div class="tray-head">🎒 はる シール<small>' + (choice ? 'ページを タップして はってね' : 'ゆびで ページまで ひっぱってね') + '</small></div>' +
+    var empty = boardMode() ? 'ここは ならべる ページ<br>「' + IC.hand + 'はる」に すると<br>ごほうびシールを はれるよ' :
+      isRewardPage() ? 'ごほうびシールが ないよ<br>おうちの ひとから<br>もらえるよ' : 'シールが ないよ<br>' + IC.sheet + 'シールシート や<br>' + IC.gacha + 'ガチャ で もらおう';
+    t.innerHTML = '<div class="tray-head">' + IC.bag + 'はる シール<small>' + (choice ? 'ページを タップして はってね' : 'ゆびで ページまで ひっぱってね') + '</small></div>' +
       (list.length ? '<div class="tray-list">' + list.map(function (k) {
         return '<button class="tray-item' + (k === choice ? ' on' : '') + '" data-k="' + esc(k) + '">' + stkHTML(k) + '<span class="cnt">' + p.inv[k] + '</span></button>';
       }).join('') + '</div>' : '<div class="tray-empty">' + empty + '</div>');
@@ -299,7 +311,7 @@
 
   function chooseCover() {
     var p = P(), m = $('#modal');
-    m.innerHTML = '<div class="sheet-modal"><h2>🎨 ちょうを えらぼう</h2><div class="cover-pick">' + D.COVERS.map(function (c) {
+    m.innerHTML = '<div class="sheet-modal"><h2>' + IC.palette + 'ちょうを えらぼう</h2><div class="cover-pick">' + D.COVERS.map(function (c) {
       return '<button class="cp' + (p.cover === c.id ? ' on' : '') + '" data-c="' + c.id + '"><div class="mini-binder cov-' + c.id + '"><div class="cover"><div class="cover-insert"></div><div class="cover-gloss"></div></div><div class="rings"><i></i><i></i><i></i></div><div class="belt closed"><b class="snap"></b></div></div><span>' + c.name + '</span></button>';
     }).join('') + '</div><button class="big" id="cpClose">とじる</button></div>';
     m.classList.remove('hidden');
@@ -395,7 +407,7 @@
     return isRewardKey(k);
   }
   function dropNG(k) {
-    if (boardMode()) toast('「✋ はる」に すると はれるよ');
+    if (boardMode()) toast('「' + IC.hand + 'はる」に すると はれるよ');
     else toast('ここは ごほうびシール だけ はれるよ');
     Snd.ng();
   }
@@ -540,13 +552,13 @@
   R.inv = function () {
     var p = P(), list = invList(p), el = $('#scr-inv');
     if (choice && !(p.inv[choice] > 0)) choice = null;
-    el.innerHTML = '<div class="paper"><h2>🎒 ' + esc(p.name) + ' の もちもの</h2>' +
+    el.innerHTML = '<div class="paper"><h2>' + IC.bag + esc(p.name) + ' の もちもの</h2>' +
       '<p class="sub">もっている シール <b>' + invTotal(p) + '</b>まい ・ ちょうに はった シール <b>' + placedTotal(p) + '</b>まい</p>' +
-      (list.length ? '<p class="hint">👆 シールを ゆびで おさえて うごかすと、ちょうに はれるよ</p><div class="inv-grid">' + list.map(function (k) {
+      (list.length ? '<p class="hint">' + IC.hand + 'シールを ゆびで おさえて うごかすと、ちょうに はれるよ</p><div class="inv-grid">' + list.map(function (k) {
         return '<button class="inv-item' + (k === choice ? ' on' : '') + '" data-k="' + esc(k) + '"><div class="ii">' + stkHTML(k) + '</div>' +
           '<span class="cnt">×' + p.inv[k] + '</span><span class="nm">' + esc(stkName(k)) + '</span>' + texLabel(k) + '</button>';
-      }).join('') + '</div>' : '<div class="empty">まだ シールが ないよ<br>📄 シールシート や 🎰 ガチャ で あつめよう！</div>') +
-      '</div><div class="bottom-bar"><button class="big pri" id="useBtn"' + (choice ? '' : ' disabled') + '>📖 ちょうに はる</button></div>';
+      }).join('') + '</div>' : '<div class="empty">まだ シールが ないよ<br>' + IC.sheet + 'シールシート や ' + IC.gacha + 'ガチャ で あつめよう！</div>') +
+      '</div><div class="bottom-bar"><button class="big pri" id="useBtn"' + (choice ? '' : ' disabled') + '>' + IC.book + 'ちょうに はる</button></div>';
     $$('.inv-item', el).forEach(function (b) {
       b.addEventListener('pointerdown', function (e) { beginSourceDrag(e, b.dataset.k, b, 'y'); });
       b.onclick = function () {
@@ -585,7 +597,7 @@
       '<div class="sheet-grid' + (sh.norun ? ' many' : '') + '">' + sh.items.map(function (it) {
         var k = keyOf(it.id, it.tex);
         return '<button class="sheet-item" data-k="' + k + '">' + stkHTML(k) + '</button>';
-      }).join('') + '</div><div class="sheet-foot">' + (sh.reward ? '🏆 ごほうびシールは おうちの ひとから もらえる とくべつな シールだよ' : 'すきな シールを タップすると もちものに はいるよ') +
+      }).join('') + '</div><div class="sheet-foot">' + (sh.reward ? IC.trophy + 'ごほうびシールは おうちの ひとから もらえる とくべつな シールだよ' : 'すきな シールを タップすると もちものに はいるよ') +
       (sh.items.some(function (it) { var a = window.SealAssets.get(it.id); return a && a.placeholder; }) ? '<br><small>「かり」の シールは、ほんものの え が とどくまでの かりの え です</small>' : '') +
       '</div></div></div></div>';
     $$('.tab', $('#sheetTabs')).forEach(function (b) { b.onclick = function () { sheetIdx = +b.dataset.i; Snd.tap(); R.sheets(); }; });
@@ -627,9 +639,9 @@
     POS.forEach(function (q, i) { caps += '<i style="--c:' + CAPS[i % CAPS.length] + ';left:' + q[0] + '%;top:' + q[1] + '%;--rot:' + (i * 67 % 360) + 'deg"></i>'; });
     el.innerHTML = '<div class="gacha-wrap"><div class="machine" id="machine"><div class="g-dome"><div class="g-caps">' + caps + '</div><i class="g-shine"></i></div>' +
       '<div class="g-body"><div class="g-label">シール ガチャ</div><div class="g-handle" id="gHandle"><i></i></div><div class="g-out"></div></div></div>' +
-      '<div class="g-side"><div class="g-tickets">🎫 ガチャけん<br><b id="gCount">' + t + '</b> まい</div>' +
+      '<div class="g-side"><div class="g-tickets">' + IC.ticket + 'ガチャけん<br><b id="gCount">' + t + '</b> まい</div>' +
       (t > 0 ? '<button class="big pri huge" id="spinBtn">まわす！<small>けん 1まい つかうよ</small></button>' :
-        '<div class="g-none" id="gNone">🎫 けんが ないよ<br><b>ほごしゃに けんを もらってね</b></div><button class="big huge" id="spinBtn" disabled>まわす！</button>') +
+        '<div class="g-none" id="gNone">' + IC.ticket + 'けんが ないよ<br><b>ほごしゃに けんを もらってね</b></div><button class="big huge" id="spinBtn" disabled>まわす！</button>') +
       '<p class="g-hint">ぷっくり や ウォーター が でるかも！</p></div></div><div class="g-result hidden" id="gResult"></div>';
     var sb = $('#spinBtn');
     if (sb && t > 0) sb.onclick = spin;
@@ -674,25 +686,25 @@
       return '<button class="inv-item' + (k === sel ? ' on' : '') + '" data-k="' + esc(k) + '"><div class="ii">' + stkHTML(k) + '</div><span class="cnt">×' + p.inv[k] + '</span><span class="nm">' + esc(stkName(k)) + '</span>' + texLabel(k) + '</button>';
     }).join('') + '</div>';
   }
-  function who(i) { var q = S.players[i]; return '<span class="whochip" style="--c:' + q.color + '">' + q.face + ' ' + esc(q.name) + '</span>'; }
+  function who(i) { var q = S.players[i]; return '<span class="whochip" style="--c:' + q.color + '">' + faceHTML(q.face) + esc(q.name) + '</span>'; }
   R.trade = function () {
     var el = $('#scr-trade'), me = P(), h = '<div class="paper trade">';
     var back = '<button class="mid back" id="trBack">◀ もどる</button>';
     if (tr.step === 'who') {
-      h += '<h2>🔄 こうかん ・ 🎁 プレゼント</h2><p class="sub">だれと する？</p><div class="partners">' +
+      h += '<h2>' + IC.trade + 'こうかん ・ ' + IC.gift + 'プレゼント</h2><p class="sub">だれと する？</p><div class="partners">' +
         S.players.map(function (q, i) {
           if (i === cur) return '';
-          return '<button class="pcard small" data-i="' + i + '" style="--c:' + q.color + '"><span class="pface">' + q.face + '</span><span class="pname">' + esc(q.name) + '</span><span class="pmeta">シール ' + invTotal(q) + 'まい</span></button>';
+          return '<button class="pcard small" data-i="' + i + '" style="--c:' + q.color + '"><span class="pface">' + faceHTML(q.face) + '</span><span class="pname">' + esc(q.name) + '</span><span class="pmeta">シール ' + invTotal(q) + 'まい</span></button>';
         }).join('') + '</div>';
-      h += '<h3>📜 りれき</h3>' + (S.history.length ? '<ul class="hist">' + S.history.slice(0, 30).map(function (x) {
+      h += '<h3>' + IC.scroll + 'りれき</h3>' + (S.history.length ? '<ul class="hist">' + S.history.slice(0, 30).map(function (x) {
         return '<li><span class="ht">' + fmtTime(x.t) + '</span> ' + (x.type === 'trade' ?
-          esc(x.na) + ' ⇄ ' + esc(x.nb) + ' <span class="hs">' + stkHTML(x.ka) + '</span>と<span class="hs">' + stkHTML(x.kb) + '</span>を こうかん' :
+          esc(x.na) + ' ' + IC.swap + esc(x.nb) + ' <span class="hs">' + stkHTML(x.ka) + '</span>と<span class="hs">' + stkHTML(x.kb) + '</span>を こうかん' :
           esc(x.na) + ' → ' + esc(x.nb) + ' <span class="hs">' + stkHTML(x.ka) + '</span>を プレゼント') + '</li>';
       }).join('') + '</ul>' : '<p class="sub">まだ ないよ</p>');
     } else if (tr.step === 'mode') {
       h += back + '<h2>' + who(tr.partner) + ' と なにする？</h2><div class="modes">' +
-        '<button class="mode" data-m="trade">🔄<b>こうかん</b><span>シールを とりかえっこ</span></button>' +
-        '<button class="mode" data-m="gift">🎁<b>プレゼント</b><span>シールを あげる</span></button></div>';
+        '<button class="mode" data-m="trade">' + IC.trade + '<b>こうかん</b><span>シールを とりかえっこ</span></button>' +
+        '<button class="mode" data-m="gift">' + IC.gift + '<b>プレゼント</b><span>シールを あげる</span></button></div>';
     } else if (tr.step === 'give') {
       h += back + '<h2>' + who(cur) + ' が あげる シールを えらんでね</h2>' + stkGrid(me, tr.give, 'giveGrid');
     } else if (tr.step === 'get') {
@@ -701,8 +713,8 @@
       var isT = tr.mode === 'trade';
       h += back + '<h2>' + (isT ? 'これで こうかんする？' : 'これを プレゼントする？') + '</h2>' +
         '<div class="confirm-row"><div class="cbox">' + who(cur) + '<div class="cstk">' + stkHTML(tr.give) + '</div><span>' + esc(stkName(tr.give)) + '</span></div>' +
-        '<div class="carrow">' + (isT ? '⇄' : '➡') + '</div>' +
-        '<div class="cbox">' + who(tr.partner) + '<div class="cstk">' + (isT ? stkHTML(tr.get) + '</div><span>' + esc(stkName(tr.get)) + '</span>' : '<span class="giftbox">🎁</span></div><span>もらう</span>') + '</div></div>' +
+        '<div class="carrow">' + (isT ? IC.swap : IC.arrow) + '</div>' +
+        '<div class="cbox">' + who(tr.partner) + '<div class="cstk">' + (isT ? stkHTML(tr.get) + '</div><span>' + esc(stkName(tr.get)) + '</span>' : '<span class="giftbox">' + IC.gift + '</span></div><span>もらう</span>') + '</div></div>' +
         '<div class="bottom-bar"><button class="big" id="trCancel">やめる</button><button class="big pri huge" id="trDo">' + (isT ? 'こうかんする' : 'プレゼントする') + '</button></div>';
     }
     el.innerHTML = h + '</div>';
@@ -716,7 +728,14 @@
     $$('#giveGrid .inv-item').forEach(function (b) { b.onclick = function () { tr.give = b.dataset.k; tr.step = tr.mode === 'trade' ? 'get' : 'confirm'; Snd.tap(); R.trade(); }; });
     $$('#getGrid .inv-item').forEach(function (b) { b.onclick = function () { tr.get = b.dataset.k; tr.step = 'confirm'; Snd.tap(); R.trade(); }; });
     if ($('#trCancel')) $('#trCancel').onclick = function () { tr = { step: 'who' }; R.trade(); };
-    if ($('#trDo')) $('#trDo').onclick = doTrade;
+    if ($('#trDo')) $('#trDo').onclick = function () {
+      var q = S.players[tr.partner];
+      if (tr.mode !== 'trade' || !q.pin) { doTrade(); return; }
+      pinPad(faceHTML(q.face) + ' ' + esc(q.name) + ' の パスワード', esc(q.name) + ' に いれて もらってね', function (code) {
+        if (code === q.pin || code === S.pass) { closeModal(); doTrade(); return true; }
+        Snd.ng(); return false;
+      });
+    };
   };
   function doTrade() {
     var a = P(), b = S.players[tr.partner], isT = tr.mode === 'trade';
@@ -726,7 +745,7 @@
     S.history.unshift({ t: Date.now(), type: isT ? 'trade' : 'gift', a: cur, b: tr.partner, na: a.name, nb: b.name, ka: tr.give, kb: isT ? tr.get : null });
     S.history = S.history.slice(0, 100);
     save(); Snd.win();
-    toast(isT ? '🔄 こうかん できたよ！' : '🎁 プレゼント したよ！');
+    toast(isT ? IC.trade + 'こうかん できたよ！' : IC.gift + 'プレゼント したよ！');
     tr = { step: 'who' }; R.trade();
   }
 
@@ -756,7 +775,7 @@
     });
   }
   function openParent() {
-    pinPad('🔒 ほごしゃ モード', 'パスワード（4けた）を いれてください', function (code) {
+    pinPad(IC.lock + 'ほごしゃ モード', 'パスワード（4けた）を いれてください', function (code) {
       if (code === S.pass) { pp = { i: cur === null ? 0 : cur, view: 'main', sheet: 0, tex: 'normal', rk: null, reason: null }; showParent(); return true; }
       Snd.ng(); return false;
     });
@@ -766,31 +785,32 @@
   function showParent() {
     var m = $('#modal'), q = S.players[pp.i];
     m.classList.remove('hidden');
-    var h = '<div class="parent"><div class="pp-head"><h2>🔒 ほごしゃ モード</h2><button class="big" id="ppClose">とじる</button></div>' +
+    var h = '<div class="parent"><div class="pp-head"><h2>' + IC.lock + 'ほごしゃ モード</h2><button class="big" id="ppClose">とじる</button></div>' +
       '<div class="pp-tabs">' + S.players.map(function (x, i) {
-        return '<button class="pp-tab' + (i === pp.i ? ' on' : '') + '" data-i="' + i + '" style="--c:' + x.color + '">' + x.face + ' ' + esc(x.name) + '</button>';
+        return '<button class="pp-tab' + (i === pp.i ? ' on' : '') + '" data-i="' + i + '" style="--c:' + x.color + '">' + faceHTML(x.face) + esc(x.name) + '</button>';
       }).join('') + '</div>';
     if (pp.view === 'main') {
       var rs = rewardSheet();
-      h += '<div class="pp-reward"><h3>🏆 ごほうびシールを あげる</h3>' +
+      h += '<div class="pp-reward"><h3>' + IC.trophy + 'ごほうびシールを あげる</h3>' +
         '<div class="ppr-step"><span class="ppr-no">1</span><b>あげる こ</b>' + who(pp.i) + '<small>（うえで えらべます）</small></div>' +
         '<div class="ppr-step"><span class="ppr-no">2</span><b>シール</b></div><div class="ppr-stks">' + (rs ? rs.items.map(function (it) {
           var k = keyOf(it.id, it.tex);
           return '<button class="ppr-stk' + (pp.rk === k ? ' on' : '') + '" data-rk="' + k + '">' + stkHTML(k) + '</button>';
         }).join('') : '') + '</div>' +
         '<div class="ppr-step"><span class="ppr-no">3</span><b>りゆう</b></div><div class="ppr-reasons">' + D.REASONS.map(function (r) {
-          return '<button class="ppr-reason' + (pp.reason === r.id ? ' on' : '') + '" data-rs="' + r.id + '" style="--rc:' + r.color + '"><i>' + r.icon + '</i><b>' + r.name + '</b></button>';
+          return '<button class="ppr-reason' + (pp.reason === r.id ? ' on' : '') + '" data-rs="' + r.id + '" style="--rc:' + r.color + '"><i>' + IC[r.icon] + '</i><b>' + r.name + '</b></button>';
         }).join('') + '</div>' +
-        '<div class="ppr-go"><button class="big pri huge" id="ppRewardGo"' + (pp.rk && pp.reason ? '' : ' disabled') + '>🎁 ' + esc(q.name) + ' に あげる</button>' +
+        '<div class="ppr-go"><button class="big pri huge" id="ppRewardGo"' + (pp.rk && pp.reason ? '' : ' disabled') + '>' + IC.gift + esc(q.name) + ' に あげる</button>' +
         '<small>つぎに ' + esc(q.name) + ' で ひらいた ときに、おいわいの えんしゅつと いっしょに とどきます</small></div></div>' +
         '<div class="pp-grid">' +
-        '<div class="pp-card"><h3>🎫 ガチャけんを あげる</h3><p>いま <b id="ppT">' + q.tickets + '</b> まい</p><div class="row"><button class="big pri" data-t="1">＋1</button><button class="big pri" data-t="5">＋5</button></div></div>' +
-        '<div class="pp-card"><h3>🎁 シールを あげる</h3><p>ぜんぶの シートから えらべます</p><button class="big pri" id="ppGive">シールを えらぶ</button></div>' +
-        '<div class="pp-card"><h3>✏️ なまえ と かお</h3><div class="row"><input id="ppName" maxlength="10" value="' + esc(q.name) + '"><button class="big" id="ppNameBtn">かえる</button></div>' +
-        '<div class="faces">' + D.FACES.map(function (f) { return '<button class="facebtn' + (f === q.face ? ' on' : '') + '" data-f="' + f + '">' + f + '</button>'; }).join('') + '</div></div>' +
-        '<div class="pp-card"><h3>🗑 データを リセット</h3><p>シール・はったもの・けん・ちょうの しゅるい・ごほうびの りれきを さいしょに もどします（なまえ と かお は のこります）</p><button class="big danger" id="ppReset">リセット</button></div>' +
-        '<div class="pp-card"><h3>🖼 シールの え</h3><p>ほんばんの PNG：<b id="ppReal">' + (window.SealAssets.total() - window.SealAssets.placeholderCount()) + '</b>まい ／ かりの えもじ：<b id="ppPh">' + window.SealAssets.placeholderCount() + '</b>まい</p><p>PNG の おきかたは README を みてください</p></div>' +
-        '<div class="pp-card"><h3>🔑 パスワードを かえる</h3><p>4けたの すうじ</p><button class="big" id="ppPass">かえる</button></div>' +
+        '<div class="pp-card"><h3>' + IC.ticket + 'ガチャけんを あげる</h3><p>いま <b id="ppT">' + q.tickets + '</b> まい</p><div class="row"><button class="big pri" data-t="1">＋1</button><button class="big pri" data-t="5">＋5</button></div></div>' +
+        '<div class="pp-card"><h3>' + IC.gift + 'シールを あげる</h3><p>ぜんぶの シートから えらべます</p><button class="big pri" id="ppGive">シールを えらぶ</button></div>' +
+        '<div class="pp-card"><h3>' + IC.pencil + 'なまえ と かお</h3><div class="row"><input id="ppName" maxlength="10" value="' + esc(q.name) + '"><button class="big" id="ppNameBtn">かえる</button></div>' +
+        '<div class="faces">' + D.FACES.map(function (f) { return '<button class="facebtn' + (f === q.face ? ' on' : '') + '" data-f="' + f + '">' + faceHTML(f) + '</button>'; }).join('') + '</div></div>' +
+        '<div class="pp-card"><h3>' + IC.trash + 'データを リセット</h3><p>シール・はったもの・けん・ちょうの しゅるい・ごほうびの りれきを さいしょに もどします（なまえ と かお は のこります）</p><button class="big danger" id="ppReset">リセット</button></div>' +
+        '<div class="pp-card"><h3>' + IC.image + 'シールの え</h3><p>ほんばんの PNG：<b id="ppReal">' + (window.SealAssets.total() - window.SealAssets.placeholderCount()) + '</b>まい ／ かりの えもじ：<b id="ppPh">' + window.SealAssets.placeholderCount() + '</b>まい</p><p>PNG の おきかたは README を みてください</p></div>' +
+        '<div class="pp-card"><h3>' + IC.lock + esc(q.name) + ' の パスワード</h3><p>' + (q.pin ? 'いま：<b>あり</b>（ほかの こは はいれません）' : 'いま：<b>なし</b>（だれでも ひらけます）') + '<br><small>ほごしゃの パスワードでも ひらけます</small></p><div class="row"><button class="big pri" id="ppKidPin">' + (q.pin ? 'かえる' : 'つける') + '</button>' + (q.pin ? '<button class="big" id="ppKidPinOff">はずす</button>' : '') + '</div></div>' +
+        '<div class="pp-card"><h3>' + IC.key + 'ほごしゃの パスワードを かえる</h3><p>4けたの すうじ</p><button class="big" id="ppPass">かえる</button></div>' +
         '</div>' + rewardHistoryHTML();
     } else {
       var ns = normalSheets(), sh = ns[pp.sheet] || ns[0];
@@ -821,7 +841,7 @@
         if (!ok) return;
         return ask('ほんとうに けしますか？<br>もとに もどせません。', 'リセットする', true).then(function (ok2) {
           if (!ok2) return;
-          var n = newPlayer(pp.i); n.name = q.name; n.face = q.face;
+          var n = newPlayer(pp.i); n.name = q.name; n.face = q.face; n.pin = q.pin;
           S.players[pp.i] = n;
           if (cur === pp.i) { choice = null; selUid = null; pageIdx = 0; bookOpen = false; }
           save(); toast('リセット しました'); showParent();
@@ -829,8 +849,8 @@
       });
     };
     if ($('#ppPass')) $('#ppPass').onclick = function () {
-      pinPad('🔑 あたらしい パスワード', '4けたを いれてください', function (c1) {
-        pinPad('🔑 もういちど', 'おなじ 4けたを いれてください', function (c2) {
+      pinPad(IC.key + 'あたらしい パスワード', '4けたを いれてください', function (c1) {
+        pinPad(IC.key + 'もういちど', 'おなじ 4けたを いれてください', function (c2) {
           if (c2 !== c1) { Snd.ng(); toast('ちがう すうじでした。もういちど'); return false; }
           S.pass = c2; save(); toast('パスワードを かえました'); showParent(); return true;
         }, showParent);
@@ -838,13 +858,25 @@
       }, showParent);
     };
     if ($('#ppBack')) $('#ppBack').onclick = function () { pp.view = 'main'; showParent(); };
+    if ($('#ppKidPin')) $('#ppKidPin').onclick = function () {
+      pinPad(IC.lock + esc(q.name) + ' の あたらしい パスワード', '4けたを いれてください', function (c1) {
+        pinPad(IC.lock + 'もういちど', 'おなじ 4けたを いれてください', function (c2) {
+          if (c2 !== c1) { Snd.ng(); toast('ちがう すうじでした。もういちど'); return false; }
+          q.pin = c2; save(); toast(esc(q.name) + ' に パスワードを つけました'); showParent(); return true;
+        }, showParent);
+        return true;
+      }, showParent);
+    };
+    if ($('#ppKidPinOff')) $('#ppKidPinOff').onclick = function () {
+      ask(esc(q.name) + ' の パスワードを はずしますか？', 'はずす').then(function (ok) { if (!ok) return; q.pin = null; save(); toast('パスワードを はずしました'); showParent(); });
+    };
     $$('.ppr-stk', m).forEach(function (b) { b.onclick = function () { pp.rk = b.dataset.rk; Snd.tap(); showParent(); }; });
     $$('.ppr-reason', m).forEach(function (b) { b.onclick = function () { pp.reason = b.dataset.rs; Snd.tap(); showParent(); }; });
     if ($('#ppRewardGo')) $('#ppRewardGo').onclick = function () {
       if (!pp.rk || !pp.reason) return;
       q.rewards.push({ t: Date.now(), key: pp.rk, reason: pp.reason, seen: false });
       save(); Snd.win();
-      toast('🏆 ' + esc(q.name) + ' に ごほうびを おくったよ');
+      toast(IC.trophy + esc(q.name) + ' に ごほうびを おくったよ');
       pp.rk = null; pp.reason = null; showParent();
     };
     $$('#ppSheetTabs .tab').forEach(function (b) { b.onclick = function () { pp.sheet = +b.dataset.i; showParent(); }; });
@@ -858,7 +890,7 @@
     var all = [];
     S.players.forEach(function (x, i) { x.rewards.forEach(function (r) { all.push({ i: i, r: r }); }); });
     all.sort(function (a, b) { return b.r.t - a.r.t; });
-    return '<div class="pp-card pp-hist"><h3>📜 ごほうびの りれき</h3>' + (all.length ? '<ul class="hist">' + all.slice(0, 80).map(function (x) {
+    return '<div class="pp-card pp-hist"><h3>' + IC.scroll + 'ごほうびの りれき</h3>' + (all.length ? '<ul class="hist">' + all.slice(0, 80).map(function (x) {
       return '<li><span class="ht">' + fmtTime(x.r.t) + '</span>' + who(x.i) + '<span class="hs">' + (validKey(x.r.key) ? stkHTML(x.r.key) : '') + '</span>' + esc(stkName(x.r.key)) + ' ' + reasonChip(x.r.reason) +
         '<span class="hstate' + (x.r.seen ? ' got' : '') + '">' + (x.r.seen ? 'とどいた' : 'まだ ひらいていない') + '</span></li>';
     }).join('') + '</ul>' : '<p>まだ ありません</p>') + '</div>';
@@ -885,7 +917,7 @@
       r.seen = true; r.got = Date.now();
       invAdd(p, r.key, 1); save(); Snd.get();
       ov.classList.add('hidden'); ov.innerHTML = ''; celebrating = false;
-      toast('🏆 ' + esc(stkName(r.key)) + ' が もちものに はいったよ');
+      toast(IC.trophy + esc(stkName(r.key)) + ' が もちものに はいったよ');
       rerender();
       setTimeout(checkRewards, 400);
     };
@@ -894,6 +926,7 @@
   /* ---------- きどう ---------- */
   var ready = false;
   function init() {
+    $$('[data-ic]').forEach(function (e) { e.outerHTML = IC[e.dataset.ic]; });
     $$('#nav button').forEach(function (b) { b.onclick = function () { choice = b.dataset.go === 'book' ? choice : null; go(b.dataset.go); }; });
     $('#who').onclick = function () { cur = null; go('players'); };
     $('#lockBtn').onclick = openParent;
@@ -905,7 +938,7 @@
     if (window.ResizeObserver) new ResizeObserver(function () { layoutBook(); }).observe($('main'));
     var ps = $('#scr-players');
     ps.classList.add('on');
-    ps.innerHTML = '<div class="loading"><div class="ld-book">📖</div><p>シールを じゅんびちゅう…</p><div class="ld-bar"><i id="ldBar"></i></div></div>';
+    ps.innerHTML = '<div class="loading"><div class="ld-book">' + IC.book + '</div><p>シールを じゅんびちゅう…</p><div class="ld-bar"><i id="ldBar"></i></div></div>';
     window.SealAssets.prepare(function (n, all) { var b = $('#ldBar'); if (b) b.style.width = Math.round(n / all * 100) + '%'; })
       .then(function () { ready = true; go('players'); })
       .catch(function () { ps.innerHTML = '<div class="loading"><p>シールを よみこめなかったよ<br>もういちど ひらいてね</p></div>'; });
